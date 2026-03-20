@@ -1,0 +1,208 @@
+import { db } from './client';
+import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
+import {
+  categories, expenses, bills, salary, targets, categoryTargets, settings,
+  type NewCategory, type NewExpense, type NewBill, type NewSalary,
+  type NewTarget, type NewCategoryTarget,
+} from './schema';
+
+// ─── Settings ──────────────────────────────────────────────────────────────
+export async function getSetting(key: string): Promise<string | null> {
+  const row = await db.select().from(settings).where(eq(settings.key, key)).get();
+  return row?.value ?? null;
+}
+
+export async function setSetting(key: string, value: string) {
+  await db.insert(settings).values({ key, value }).onConflictDoUpdate({
+    target: settings.key,
+    set: { value },
+  });
+}
+
+// ─── Categories ────────────────────────────────────────────────────────────
+export async function getCategories() {
+  return db.select().from(categories).orderBy(categories.name).all();
+}
+
+export async function createCategory(data: NewCategory) {
+  return db.insert(categories).values(data).returning().get();
+}
+
+export async function updateCategory(id: number, data: Partial<NewCategory>) {
+  return db.update(categories).set(data).where(eq(categories.id, id)).returning().get();
+}
+
+export async function deleteCategory(id: number) {
+  await db.delete(categories).where(eq(categories.id, id));
+}
+
+// ─── Expenses ──────────────────────────────────────────────────────────────
+export async function getExpenses(filters?: { startDate?: string; endDate?: string; categoryId?: number }) {
+  const conditions = [];
+  if (filters?.startDate) conditions.push(gte(expenses.date, filters.startDate));
+  if (filters?.endDate) conditions.push(lte(expenses.date, filters.endDate));
+  if (filters?.categoryId) conditions.push(eq(expenses.categoryId, filters.categoryId));
+
+  const query = db
+    .select({
+      id: expenses.id,
+      amount: expenses.amount,
+      categoryId: expenses.categoryId,
+      note: expenses.note,
+      date: expenses.date,
+      createdAt: expenses.createdAt,
+      categoryName: categories.name,
+      categoryIcon: categories.icon,
+      categoryColor: categories.color,
+    })
+    .from(expenses)
+    .leftJoin(categories, eq(expenses.categoryId, categories.id))
+    .orderBy(desc(expenses.date), desc(expenses.createdAt));
+
+  if (conditions.length > 0) {
+    return query.where(and(...conditions)).all();
+  }
+  return query.all();
+}
+
+export async function createExpense(data: NewExpense) {
+  return db.insert(expenses).values(data).returning().get();
+}
+
+export async function updateExpense(id: number, data: Partial<NewExpense>) {
+  return db.update(expenses).set(data).where(eq(expenses.id, id)).returning().get();
+}
+
+export async function deleteExpense(id: number) {
+  await db.delete(expenses).where(eq(expenses.id, id));
+}
+
+export async function getExpenseTotalByCategory(startDate: string, endDate: string) {
+  return db
+    .select({
+      categoryId: expenses.categoryId,
+      categoryName: categories.name,
+      categoryIcon: categories.icon,
+      categoryColor: categories.color,
+      total: sql<number>`SUM(${expenses.amount})`,
+    })
+    .from(expenses)
+    .leftJoin(categories, eq(expenses.categoryId, categories.id))
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
+    .groupBy(expenses.categoryId)
+    .all();
+}
+
+// ─── Bills ──────────────────────────────────────────────────────────────────
+export async function getBills() {
+  return db
+    .select({
+      id: bills.id,
+      name: bills.name,
+      amount: bills.amount,
+      categoryId: bills.categoryId,
+      frequency: bills.frequency,
+      dueDay: bills.dueDay,
+      isActive: bills.isActive,
+      notifyDaysBefore: bills.notifyDaysBefore,
+      notificationId: bills.notificationId,
+      createdAt: bills.createdAt,
+      categoryName: categories.name,
+      categoryIcon: categories.icon,
+      categoryColor: categories.color,
+    })
+    .from(bills)
+    .leftJoin(categories, eq(bills.categoryId, categories.id))
+    .orderBy(bills.dueDay)
+    .all();
+}
+
+export async function createBill(data: NewBill) {
+  return db.insert(bills).values(data).returning().get();
+}
+
+export async function updateBill(id: number, data: Partial<NewBill>) {
+  return db.update(bills).set(data).where(eq(bills.id, id)).returning().get();
+}
+
+export async function deleteBill(id: number) {
+  await db.delete(bills).where(eq(bills.id, id));
+}
+
+// ─── Salary ─────────────────────────────────────────────────────────────────
+export async function getSalary() {
+  return db.select().from(salary).orderBy(desc(salary.effectiveDate)).all();
+}
+
+export async function getLatestSalaryByPeriod(period: 'first' | 'fifteenth') {
+  return db
+    .select()
+    .from(salary)
+    .where(eq(salary.period, period))
+    .orderBy(desc(salary.effectiveDate))
+    .get();
+}
+
+export async function upsertSalary(data: NewSalary) {
+  return db.insert(salary).values(data).returning().get();
+}
+
+// ─── Targets ────────────────────────────────────────────────────────────────
+export async function getTargetForMonth(month: string) {
+  return db.select().from(targets).where(eq(targets.month, month)).get();
+}
+
+export async function upsertTarget(month: string, overallLimit: number | null) {
+  const existing = await getTargetForMonth(month);
+  if (existing) {
+    return db.update(targets).set({ overallLimit }).where(eq(targets.id, existing.id)).returning().get();
+  }
+  return db.insert(targets).values({ month, overallLimit }).returning().get();
+}
+
+export async function getCategoryTargetsForMonth(month: string) {
+  const target = await getTargetForMonth(month);
+  if (!target) return [];
+
+  return db
+    .select({
+      id: categoryTargets.id,
+      targetId: categoryTargets.targetId,
+      categoryId: categoryTargets.categoryId,
+      limitAmount: categoryTargets.limitAmount,
+      categoryName: categories.name,
+      categoryIcon: categories.icon,
+      categoryColor: categories.color,
+    })
+    .from(categoryTargets)
+    .leftJoin(categories, eq(categoryTargets.categoryId, categories.id))
+    .where(eq(categoryTargets.targetId, target.id))
+    .all();
+}
+
+export async function upsertCategoryTarget(month: string, categoryId: number, limitAmount: number) {
+  let target = await getTargetForMonth(month);
+  if (!target) {
+    target = (await db.insert(targets).values({ month, overallLimit: null }).returning().get()) ?? null;
+  }
+
+  const existing = await db
+    .select()
+    .from(categoryTargets)
+    .where(and(eq(categoryTargets.targetId, target!.id), eq(categoryTargets.categoryId, categoryId)))
+    .get();
+
+  if (existing) {
+    return db
+      .update(categoryTargets)
+      .set({ limitAmount })
+      .where(eq(categoryTargets.id, existing.id))
+      .returning()
+      .get();
+  }
+  return db.insert(categoryTargets).values({ targetId: target!.id, categoryId, limitAmount }).returning().get();
+}
+
+export async function deleteCategoryTarget(id: number) {
+  await db.delete(categoryTargets).where(eq(categoryTargets.id, id));
+}

@@ -30,8 +30,14 @@ yarn-error.*
 .DS_Store
 *.pem
 
+# Windows
+Thumbs.db
+desktop.ini
+
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +45,13 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Drizzle
+/drizzle/
+
+# IDE
+.idea/
+.vscode/
+
+# Claude Code
+.claude/

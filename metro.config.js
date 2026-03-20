@@ -1,0 +1,6 @@
+const { getDefaultConfig } = require('expo/metro-config');
+
+// eslint-disable-next-line no-undef
+const config = getDefaultConfig(__dirname);
+
+module.exports = config;
