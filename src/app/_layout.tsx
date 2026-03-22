@@ -14,9 +14,15 @@ export default function RootLayout() {
   const { theme, loadSettings, isLoaded } = useSettingsStore();
 
   useEffect(() => {
-    runMigrations();
-    seedCategories();
-    loadSettings();
+    (async () => {
+      try {
+        runMigrations();
+        seedCategories();
+        await loadSettings();
+      } catch (e) {
+        console.error('[startup] init failed:', e);
+      }
+    })();
   }, []);
 
   const resolvedTheme =
