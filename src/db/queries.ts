@@ -144,6 +144,21 @@ export async function getLatestSalaryByPeriod(period: 'first' | 'fifteenth') {
 }
 
 export async function upsertSalary(data: NewSalary) {
+  const existing = await db
+    .select()
+    .from(salary)
+    .where(eq(salary.period, data.period))
+    .orderBy(desc(salary.effectiveDate))
+    .get();
+
+  if (existing) {
+    return db
+      .update(salary)
+      .set({ amount: data.amount, effectiveDate: data.effectiveDate })
+      .where(eq(salary.id, existing.id))
+      .returning()
+      .get();
+  }
   return db.insert(salary).values(data).returning().get();
 }
 

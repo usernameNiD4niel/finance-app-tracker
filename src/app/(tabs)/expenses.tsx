@@ -1,8 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Text, FAB, Chip, useTheme } from 'react-native-paper';
+import { View, StyleSheet, FlatList, ScrollView } from 'react-native';
+import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { TopHeader } from '../../components/ui/TopHeader';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useCategoryStore } from '../../store/categoryStore';
@@ -14,6 +17,7 @@ import type { AppTheme } from '../../theme';
 export default function ExpensesScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { currency } = useSettingsStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { categories, loadCategories } = useCategoryStore();
@@ -26,48 +30,61 @@ export default function ExpensesScreen() {
   }, [selectedCategory]));
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const primary = theme.colors.primary;
+
+  const chips = [
+    { key: null as number | null, label: 'All' },
+    ...categories.map(c => ({ key: c.id as number | null, label: c.name })),
+  ];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
-          Expenses
-        </Text>
-        <Text variant="titleMedium" style={{ color: theme.custom.expense, fontWeight: '700' }}>
-          -{formatCurrency(total, currency)}
-        </Text>
-      </View>
+    <ScreenContainer>
+      <TopHeader
+        title="Expenses"
+        rightElement={
+          <Text style={{ color: theme.custom.expense, fontWeight: '700', fontSize: 16 }}>
+            -{formatCurrency(total, currency)}
+          </Text>
+        }
+      />
 
       {/* Category Filter */}
       <View style={styles.filterWrap}>
-        <FlatList
+        <ScrollView
           horizontal
-          data={[{ id: null as any, name: 'All', icon: 'filter', color: theme.colors.primary, isCustom: false, createdAt: '' }, ...categories]}
-          keyExtractor={(item) => String(item.id)}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-          renderItem={({ item }) => {
-            const isActive = item.id === (selectedCategory ?? null);
+        >
+          {chips.map((chip) => {
+            const isActive = chip.key === selectedCategory;
             return (
-              <Chip
-                selected={isActive}
-                onPress={() => setSelectedCategory(item.id ?? null)}
-                style={{ backgroundColor: isActive ? theme.colors.primaryContainer : theme.colors.surfaceVariant }}
-                textStyle={{ color: isActive ? theme.colors.primary : theme.colors.onSurface }}
+              <View
+                key={chip.key === null ? 'all' : String(chip.key)}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: isActive ? primary + '22' : theme.colors.surfaceVariant,
+                    borderColor: isActive ? primary : 'transparent',
+                  },
+                ]}
               >
-                {item.name}
-              </Chip>
+                <Text
+                  onPress={() => setSelectedCategory(chip.key)}
+                  style={[styles.chipLabel, { color: isActive ? primary : theme.colors.onSurface }]}
+                >
+                  {chip.label}
+                </Text>
+              </View>
             );
-          }}
-        />
+          })}
+        </ScrollView>
       </View>
 
       {/* Expense List */}
       <FlatList
         data={expenses}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <ExpenseListItem
             id={item.id}
             amount={item.amount}
@@ -79,6 +96,7 @@ export default function ExpensesScreen() {
             currency={currency}
             onDelete={removeExpense}
             onEdit={(id) => router.push({ pathname: '/modals/add-expense', params: { id } })}
+            index={index}
           />
         )}
         ListEmptyComponent={
@@ -92,33 +110,40 @@ export default function ExpensesScreen() {
             </Text>
           </View>
         }
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 150, paddingHorizontal: 16 }}
         showsVerticalScrollIndicator={false}
       />
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[
+          styles.fab,
+          {
+            bottom: insets.bottom + 90,
+            backgroundColor: theme.colors.primary,
+            shadowColor: theme.colors.primary,
+          },
+        ]}
         color="#fff"
         onPress={() => router.push('/modals/add-expense')}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 16,
-    elevation: 2,
-  },
   filterWrap: {
     paddingVertical: 12,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  chipLabel: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   empty: {
     alignItems: 'center',
@@ -127,7 +152,10 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 24,
-    borderRadius: 18,
+    borderRadius: 20,
+    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
 });

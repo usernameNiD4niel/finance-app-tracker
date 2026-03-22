@@ -107,7 +107,7 @@ export default function AddBillScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -136,7 +136,6 @@ export default function AddBillScreen() {
           )}
         />
 
-        {/* Category */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
           style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
@@ -158,7 +157,6 @@ export default function AddBillScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
-        {/* Frequency */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Frequency</Text>
         <View style={styles.freqRow}>
           {FREQUENCIES.map(f => (
@@ -189,7 +187,6 @@ export default function AddBillScreen() {
           )}
         />
 
-        {/* Notifications */}
         <View style={styles.switchRow}>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>Notify before due</Text>
           <Switch value={notifyEnabled} onValueChange={setNotifyEnabled} color={theme.colors.primary} />
@@ -209,7 +206,14 @@ export default function AddBillScreen() {
         )}
 
         <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: theme.colors.primary, opacity: submitting ? 0.7 : 1 }]}
+          style={[
+            styles.submitBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: submitting ? 0.7 : 1,
+              shadowColor: theme.colors.primary,
+            },
+          ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
@@ -240,7 +244,7 @@ const styles = StyleSheet.create({
   label: { marginBottom: 6, marginTop: 16 },
   input: { marginBottom: 4 },
   categoryBtn: {
-    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 8, borderWidth: 1, gap: 10,
+    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 10,
   },
   catIconWrap: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   freqRow: { flexDirection: 'row', gap: 10 },
@@ -248,5 +252,14 @@ const styles = StyleSheet.create({
     flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12, borderWidth: 1.5,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
-  submitBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 32 },
+  submitBtn: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 32,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });

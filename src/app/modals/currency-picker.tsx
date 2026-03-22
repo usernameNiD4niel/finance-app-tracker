@@ -21,7 +21,7 @@ export default function CurrencyPickerScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -39,7 +39,10 @@ export default function CurrencyPickerScreen() {
             <TouchableOpacity
               style={[
                 styles.item,
-                { backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg, borderColor: isSelected ? theme.colors.primary : 'transparent' },
+                {
+                  backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
+                  borderColor: isSelected ? theme.colors.primary : theme.custom.cardBorder,
+                },
               ]}
               onPress={() => handleSelect(item.code)}
             >
@@ -67,6 +70,6 @@ const styles = StyleSheet.create({
   },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: 14, borderWidth: 1.5,
+    padding: 16, borderRadius: 16, borderWidth: 1.5,
   },
 });

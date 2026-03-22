@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Vibration } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -60,10 +60,20 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
             key={i}
             style={[
               styles.dot,
-              {
-                backgroundColor: i < pin.length ? theme.colors.primary : theme.colors.surfaceVariant,
-                borderColor: theme.colors.outline,
-              },
+              i < pin.length
+                ? {
+                    backgroundColor: theme.colors.primary,
+                    borderColor: theme.colors.primary,
+                    shadowColor: theme.colors.primary,
+                    shadowOpacity: 0.6,
+                    shadowRadius: 6,
+                    shadowOffset: { width: 0, height: 0 },
+                    elevation: 4,
+                  }
+                : {
+                    backgroundColor: theme.colors.surfaceVariant,
+                    borderColor: theme.colors.outline,
+                  },
             ]}
           />
         ))}
@@ -78,7 +88,9 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
                 style={[
                   styles.key,
                   {
-                    backgroundColor: key === '' ? 'transparent' : theme.colors.surfaceVariant,
+                    backgroundColor: key === '' ? 'transparent' : theme.custom.cardBg,
+                    borderColor: key === '' ? 'transparent' : theme.custom.cardBorder,
+                    borderWidth: key === '' ? 0 : 1,
                   },
                 ]}
                 onPress={() => handleKey(key)}
@@ -136,7 +148,7 @@ const styles = StyleSheet.create({
   key: {
     flex: 1,
     aspectRatio: 1.4,
-    borderRadius: 16,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },

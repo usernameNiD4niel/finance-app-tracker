@@ -2,7 +2,10 @@ import React, { useCallback } from 'react';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { TopHeader } from '../../components/ui/TopHeader';
 import { BillCard } from '../../components/BillCard';
 import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -13,6 +16,7 @@ import type { AppTheme } from '../../theme';
 export default function BillsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { currency } = useSettingsStore();
   const { bills, loadBills, editBill, removeBill } = useBillStore();
 
@@ -32,23 +36,23 @@ export default function BillsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
-        <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
-          Bills
-        </Text>
-        <View style={styles.headerRight}>
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Monthly</Text>
-          <Text variant="titleMedium" style={{ color: theme.custom.expense, fontWeight: '700' }}>
-            {formatCurrency(monthlyTotal, currency)}
-          </Text>
-        </View>
-      </View>
+    <ScreenContainer>
+      <TopHeader
+        title="Bills"
+        rightElement={
+          <View style={styles.headerRight}>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Monthly</Text>
+            <Text style={{ color: theme.custom.expense, fontWeight: '700', fontSize: 16 }}>
+              {formatCurrency(monthlyTotal, currency)}
+            </Text>
+          </View>
+        }
+      />
 
       <FlatList
         data={bills}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <BillCard
             id={item.id}
             name={item.name}
@@ -62,6 +66,7 @@ export default function BillsScreen() {
             onToggle={handleToggle}
             onDelete={handleDelete}
             onEdit={(id) => router.push({ pathname: '/modals/add-bill', params: { id } })}
+            index={index}
           />
         )}
         ListEmptyComponent={
@@ -75,37 +80,37 @@ export default function BillsScreen() {
             </Text>
           </View>
         }
-        contentContainerStyle={{ paddingTop: 8, paddingBottom: 100 }}
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: insets.bottom + 150 }}
         showsVerticalScrollIndicator={false}
       />
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={[
+          styles.fab,
+          {
+            bottom: insets.bottom + 90,
+            backgroundColor: theme.colors.primary,
+            shadowColor: theme.colors.primary,
+          },
+        ]}
         color="#fff"
         onPress={() => router.push('/modals/add-bill')}
       />
-    </View>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 16,
-    elevation: 2,
-  },
   headerRight: { alignItems: 'flex-end' },
   empty: { alignItems: 'center', paddingTop: 80 },
   fab: {
     position: 'absolute',
     right: 20,
-    bottom: 24,
-    borderRadius: 18,
+    borderRadius: 20,
+    elevation: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
 });

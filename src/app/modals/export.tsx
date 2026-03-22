@@ -38,7 +38,7 @@ export default function ExportScreen() {
       const { start, end } = getRangeDates();
       await exportExpenses(start, end, exportFormat);
     } catch (e) {
-      Alert.alert('Export Failed', 'Could not export data. Please try again.');
+      Alert.alert('Export Failed', e instanceof Error ? e.message : String(e));
     } finally {
       setExporting(false);
     }
@@ -53,7 +53,7 @@ export default function ExportScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -62,7 +62,6 @@ export default function ExportScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Format Selection */}
         <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
           Format
         </Text>
@@ -72,7 +71,10 @@ export default function ExportScreen() {
               key={f}
               style={[
                 styles.formatBtn,
-                { backgroundColor: exportFormat === f ? theme.colors.primaryContainer : theme.colors.surfaceVariant, borderColor: exportFormat === f ? theme.colors.primary : 'transparent' },
+                {
+                  backgroundColor: exportFormat === f ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
+                  borderColor: exportFormat === f ? theme.colors.primary : 'transparent',
+                },
               ]}
               onPress={() => setExportFormat(f)}
             >
@@ -88,7 +90,6 @@ export default function ExportScreen() {
           ))}
         </View>
 
-        {/* Range Selection */}
         <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12, marginTop: 24 }}>
           Date Range
         </Text>
@@ -99,7 +100,10 @@ export default function ExportScreen() {
               key={opt.key}
               style={[
                 styles.rangeOption,
-                { backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg, borderColor: isSelected ? theme.colors.primary : 'transparent' },
+                {
+                  backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
+                  borderColor: isSelected ? theme.colors.primary : theme.custom.cardBorder,
+                },
               ]}
               onPress={() => setRangeOption(opt.key)}
             >
@@ -113,9 +117,15 @@ export default function ExportScreen() {
           );
         })}
 
-        {/* Export Button */}
         <TouchableOpacity
-          style={[styles.exportBtn, { backgroundColor: theme.colors.primary, opacity: exporting ? 0.7 : 1 }]}
+          style={[
+            styles.exportBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: exporting ? 0.7 : 1,
+              shadowColor: theme.colors.primary,
+            },
+          ]}
           onPress={handleExport}
           disabled={exporting}
         >
@@ -143,10 +153,11 @@ const styles = StyleSheet.create({
   },
   rangeOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: 14, marginBottom: 8, borderWidth: 1.5,
+    padding: 16, borderRadius: 16, marginBottom: 8, borderWidth: 1.5,
   },
   exportBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     borderRadius: 16, paddingVertical: 16, marginTop: 24,
+    shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
 });

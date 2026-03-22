@@ -36,7 +36,7 @@ export default function AddExpenseScreen() {
   const isEditing = !!id;
   const existing = isEditing ? expenses.find(e => e.id === Number(id)) : null;
 
-  const { control, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       amount: existing ? String(existing.amount) : '',
@@ -79,7 +79,7 @@ export default function AddExpenseScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -90,7 +90,6 @@ export default function AddExpenseScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Amount */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
         <Controller
           control={control}
@@ -110,7 +109,6 @@ export default function AddExpenseScreen() {
         />
         {errors.amount && <Text style={{ color: theme.custom.expense }}>{errors.amount.message}</Text>}
 
-        {/* Category */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
           style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
@@ -136,7 +134,6 @@ export default function AddExpenseScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
-        {/* Note */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Note (optional)</Text>
         <Controller
           control={control}
@@ -152,7 +149,6 @@ export default function AddExpenseScreen() {
           )}
         />
 
-        {/* Date */}
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Date</Text>
         <Controller
           control={control}
@@ -170,9 +166,15 @@ export default function AddExpenseScreen() {
           )}
         />
 
-        {/* Submit */}
         <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: theme.colors.primary, opacity: submitting ? 0.7 : 1 }]}
+          style={[
+            styles.submitBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: submitting ? 0.7 : 1,
+              shadowColor: theme.colors.primary,
+            },
+          ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
@@ -210,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     gap: 10,
   },
@@ -226,5 +228,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 32,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
 });

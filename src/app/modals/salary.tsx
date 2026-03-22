@@ -18,9 +18,7 @@ export default function SalaryScreen() {
   const [fifteenthAmount, setFifteenthAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadSalary();
-  }, []);
+  useEffect(() => { loadSalary(); }, []);
 
   useEffect(() => {
     if (salaryFirst) setFirstAmount(String(salaryFirst.amount));
@@ -45,7 +43,7 @@ export default function SalaryScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -61,7 +59,7 @@ export default function SalaryScreen() {
           </Text>
         </View>
 
-        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg }]}>
+        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
           <View style={styles.periodHeader}>
             <View style={[styles.badge, { backgroundColor: theme.custom.income + '22' }]}>
               <Text variant="labelSmall" style={{ color: theme.custom.income }}>1st Period</Text>
@@ -81,7 +79,7 @@ export default function SalaryScreen() {
           />
         </View>
 
-        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg }]}>
+        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
           <View style={styles.periodHeader}>
             <View style={[styles.badge, { backgroundColor: theme.custom.income + '22' }]}>
               <Text variant="labelSmall" style={{ color: theme.custom.income }}>2nd Period</Text>
@@ -102,7 +100,14 @@ export default function SalaryScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: theme.colors.primary, opacity: saving ? 0.7 : 1 }]}
+          style={[
+            styles.saveBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: saving ? 0.7 : 1,
+              shadowColor: theme.colors.primary,
+            },
+          ]}
           onPress={handleSave}
           disabled={saving}
         >
@@ -122,12 +127,21 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 16 },
   infoCard: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
-    borderRadius: 12, padding: 14,
+    borderRadius: 16, padding: 14,
   },
-  periodCard: { borderRadius: 16, padding: 16 },
+  periodCard: { borderRadius: 18, borderWidth: 1, padding: 16 },
   periodHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
   },
   badge: { borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
-  saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 8 },
+  saveBtn: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });

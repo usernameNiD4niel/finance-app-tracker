@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, Switch, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { TopHeader } from '../../components/ui/TopHeader';
+import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { AppTheme } from '../../theme';
 
@@ -19,7 +22,13 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
   const theme = useTheme<AppTheme>();
   return (
     <TouchableOpacity
-      style={[styles.row, { backgroundColor: theme.custom.cardBg }]}
+      style={[
+        styles.row,
+        {
+          backgroundColor: theme.custom.cardBg,
+          borderColor: theme.custom.cardBorder,
+        },
+      ]}
       onPress={onPress}
       disabled={!onPress}
       activeOpacity={onPress ? 0.7 : 1}
@@ -49,133 +58,96 @@ export default function SettingsScreen() {
   const { currency, theme: currentTheme, setTheme } = useSettingsStore();
 
   const isDark = currentTheme === 'dark';
-  const isSystem = currentTheme === 'system';
 
   const handleThemeToggle = async (val: boolean) => {
     await setTheme(val ? 'dark' : 'light');
   };
 
-  const handleSystemTheme = async () => {
-    await setTheme('system');
-  };
-
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={false}>
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
-          Settings
-        </Text>
-      </View>
+    <ScreenContainer>
+      <TopHeader title="Settings" />
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Appearance */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Appearance</MutedLabel>
+        <SettingRow
+          icon="theme-light-dark"
+          iconColor={theme.colors.primary}
+          label="Dark Mode"
+          right={
+            <Switch
+              value={isDark}
+              onValueChange={handleThemeToggle}
+              color={theme.colors.primary}
+            />
+          }
+        />
 
-      {/* Appearance */}
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
-        APPEARANCE
-      </Text>
-      <SettingRow
-        icon="theme-light-dark"
-        iconColor={theme.colors.primary}
-        label="Dark Mode"
-        right={
-          <Switch
-            value={isDark}
-            onValueChange={handleThemeToggle}
-            color={theme.colors.primary}
-          />
-        }
-      />
-      <SettingRow
-        icon="cellphone"
-        iconColor={theme.colors.secondary}
-        label="Use System Theme"
-        right={
-          <Switch
-            value={isSystem}
-            onValueChange={handleSystemTheme}
-            color={theme.colors.primary}
-          />
-        }
-      />
+        {/* Financial */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Financial</MutedLabel>
+        <SettingRow
+          icon="currency-usd"
+          iconColor={theme.custom.success}
+          label="Currency"
+          value={currency}
+          onPress={() => router.push('/modals/currency-picker')}
+        />
+        <SettingRow
+          icon="cash-clock"
+          iconColor={theme.custom.income}
+          label="Salary Settings"
+          onPress={() => router.push('/modals/salary')}
+        />
+        <SettingRow
+          icon="target"
+          iconColor={theme.colors.tertiary}
+          label="Budget Targets"
+          onPress={() => router.push('/modals/budget-targets')}
+        />
 
-      {/* Financial */}
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
-        FINANCIAL
-      </Text>
-      <SettingRow
-        icon="currency-usd"
-        iconColor={theme.custom.success}
-        label="Currency"
-        value={currency}
-        onPress={() => router.push('/modals/currency-picker')}
-      />
-      <SettingRow
-        icon="cash-clock"
-        iconColor={theme.custom.income}
-        label="Salary Settings"
-        onPress={() => router.push('/modals/salary')}
-      />
-      <SettingRow
-        icon="target"
-        iconColor={theme.colors.tertiary}
-        label="Budget Targets"
-        onPress={() => router.push('/modals/budget-targets')}
-      />
+        {/* Data */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Data</MutedLabel>
+        <SettingRow
+          icon="tag-multiple"
+          iconColor={theme.colors.secondary}
+          label="Categories"
+          onPress={() => router.push('/modals/categories')}
+        />
+        <SettingRow
+          icon="export"
+          iconColor={theme.colors.primary}
+          label="Export Data"
+          onPress={() => router.push('/modals/export')}
+        />
 
-      {/* Data */}
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
-        DATA
-      </Text>
-      <SettingRow
-        icon="tag-multiple"
-        iconColor={theme.colors.secondary}
-        label="Categories"
-        onPress={() => router.push('/modals/categories')}
-      />
-      <SettingRow
-        icon="export"
-        iconColor={theme.colors.primary}
-        label="Export Data"
-        onPress={() => router.push('/modals/export')}
-      />
+        {/* Security */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Security</MutedLabel>
+        <SettingRow
+          icon="lock-reset"
+          iconColor={theme.custom.warning}
+          label="Change PIN"
+          onPress={() => router.push('/modals/change-pin')}
+        />
 
-      {/* Security */}
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
-        SECURITY
-      </Text>
-      <SettingRow
-        icon="lock-reset"
-        iconColor={theme.custom.warning}
-        label="Change PIN"
-        onPress={() => router.push('/modals/change-pin')}
-      />
+        {/* About */}
+        <MutedLabel uppercase style={styles.sectionTitle}>About</MutedLabel>
+        <SettingRow
+          icon="information-outline"
+          iconColor={theme.colors.onSurfaceVariant}
+          label="Version"
+          value="1.0.0"
+        />
 
-      {/* About */}
-      <Text variant="labelLarge" style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}>
-        ABOUT
-      </Text>
-      <SettingRow
-        icon="information-outline"
-        iconColor={theme.colors.onSurfaceVariant}
-        label="Version"
-        value="1.0.0"
-      />
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+        <View style={{ height: 120 }} />
+      </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 8,
-  },
   sectionTitle: {
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 8,
-    letterSpacing: 0.5,
   },
   row: {
     flexDirection: 'row',
@@ -184,7 +156,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginHorizontal: 16,
     marginBottom: 2,
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
     gap: 12,
   },
   rowIcon: {

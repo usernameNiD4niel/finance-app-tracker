@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,7 +7,6 @@ import { useTargetStore } from '../../store/targetStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getCurrentMonth } from '../../utils/date';
-import { formatCurrency } from '../../utils/currency';
 import type { AppTheme } from '../../theme';
 
 export default function BudgetTargetsScreen() {
@@ -15,7 +14,7 @@ export default function BudgetTargetsScreen() {
   const router = useRouter();
   const { currency } = useSettingsStore();
   const { categories, loadCategories } = useCategoryStore();
-  const { currentTarget, categoryTargets, loadTargets, setOverallTarget, setCategoryTarget, removeCategoryTarget } = useTargetStore();
+  const { currentTarget, categoryTargets, loadTargets, setOverallTarget, setCategoryTarget } = useTargetStore();
 
   const month = getCurrentMonth();
   const [overallAmount, setOverallAmount] = useState('');
@@ -54,7 +53,7 @@ export default function BudgetTargetsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -63,8 +62,7 @@ export default function BudgetTargetsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Overall Budget */}
-        <View style={[styles.card, { backgroundColor: theme.custom.cardBg }]}>
+        <View style={[styles.card, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
           <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
             Monthly Overall Limit
           </Text>
@@ -78,12 +76,11 @@ export default function BudgetTargetsScreen() {
           />
         </View>
 
-        {/* Per Category */}
         <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
           Per Category Limits
         </Text>
         {categories.map(cat => (
-          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.cardBg }]}>
+          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
             <View style={[styles.catIcon, { backgroundColor: cat.color + '22' }]}>
               <MaterialCommunityIcons name={cat.icon as any} size={18} color={cat.color} />
             </View>
@@ -103,7 +100,14 @@ export default function BudgetTargetsScreen() {
         ))}
 
         <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: theme.colors.primary, opacity: saving ? 0.7 : 1 }]}
+          style={[
+            styles.saveBtn,
+            {
+              backgroundColor: theme.colors.primary,
+              opacity: saving ? 0.7 : 1,
+              shadowColor: theme.colors.primary,
+            },
+          ]}
           onPress={handleSave}
           disabled={saving}
         >
@@ -121,8 +125,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
   },
   content: { padding: 20, gap: 12 },
-  card: { borderRadius: 16, padding: 16, marginBottom: 4 },
-  catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 14 },
+  card: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 4 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14 },
   catIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  saveBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center', marginTop: 16 },
+  saveBtn: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 16,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });

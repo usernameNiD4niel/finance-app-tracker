@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { format } from 'date-fns';
 import { getExpenses } from '../db/queries';
@@ -21,7 +21,8 @@ export async function exportExpenses(
   const data = await getExpenses({ startDate, endDate });
   const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
   const fileName = `expenses-${timestamp}.${exportFormat}`;
-  const filePath = (FileSystem.cacheDirectory ?? '') + fileName;
+  const dir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
+  const filePath = dir + fileName;
 
   let content: string;
   if (exportFormat === 'csv') {
@@ -40,14 +41,16 @@ export async function exportExpenses(
   }
 
   await FileSystem.writeAsStringAsync(filePath, content, {
-    encoding: FileSystem.EncodingType.UTF8,
+    encoding: 'utf8',
   });
 
   const canShare = await Sharing.isAvailableAsync();
-  if (canShare) {
-    await Sharing.shareAsync(filePath, {
-      mimeType: exportFormat === 'csv' ? 'text/csv' : 'application/json',
-      dialogTitle: `Export Expenses (${exportFormat.toUpperCase()})`,
-    });
+  if (!canShare) {
+    throw new Error(`Sharing is not supported on this device.\nFile saved to: ${filePath}`);
   }
+  await Sharing.shareAsync(filePath, {
+    mimeType: exportFormat === 'csv' ? 'text/csv' : 'application/json',
+    UTI: exportFormat === 'csv' ? 'public.comma-separated-values-text' : 'public.json',
+    dialogTitle: `Export Expenses (${exportFormat.toUpperCase()})`,
+  });
 }

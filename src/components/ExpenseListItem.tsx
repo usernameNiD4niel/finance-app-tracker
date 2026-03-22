@@ -1,9 +1,10 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Alert, View } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatCurrency } from '../utils/currency';
 import { formatShortDate } from '../utils/date';
+import { ListRowCard } from './ui/ListRowCard';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -17,12 +18,13 @@ interface Props {
   currency: string;
   onDelete: (id: number) => void;
   onEdit: (id: number) => void;
+  index?: number;
 }
 
 export function ExpenseListItem({
   id, amount, note, date,
   categoryName, categoryIcon, categoryColor,
-  currency, onDelete, onEdit,
+  currency, onDelete, onEdit, index = 0,
 }: Props) {
   const theme = useTheme<AppTheme>();
 
@@ -39,10 +41,10 @@ export function ExpenseListItem({
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme.custom.cardBg }]}
+    <ListRowCard
       onLongPress={handleLongPress}
-      activeOpacity={0.7}
+      index={index}
+      style={styles.card}
     >
       <View style={[styles.iconContainer, { backgroundColor: (categoryColor ?? theme.colors.primary) + '22' }]}>
         <MaterialCommunityIcons
@@ -59,26 +61,19 @@ export function ExpenseListItem({
           {categoryName} · {formatShortDate(date)}
         </Text>
       </View>
-      <Text variant="titleSmall" style={{ color: theme.custom.expense, fontWeight: '700' }}>
+      <Text variant="titleSmall" style={{ color: theme.custom.expense, fontWeight: '800' }}>
         -{formatCurrency(amount, currency)}
       </Text>
-    </TouchableOpacity>
+    </ListRowCard>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    marginHorizontal: 16,
     marginVertical: 4,
-    borderRadius: 14,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
   },
   iconContainer: {
     width: 44,

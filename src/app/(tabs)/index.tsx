@@ -1,25 +1,45 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
-import { Text, FAB, useTheme } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable } from 'react-native';
+import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../../components/BalanceCard';
 import { SalaryPeriodBar } from '../../components/SalaryPeriodBar';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { BudgetProgressBar } from '../../components/BudgetProgressBar';
+import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { SectionHeader } from '../../components/ui/SectionHeader';
+import { ActionButtonRow } from '../../components/ui/ActionButtonRow';
+import { RoundedCard } from '../../components/ui/RoundedCard';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentPeriodDates, getCurrentMonth } from '../../utils/date';
-import { getDaysUntilDue } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function formatTodayDate(): string {
+  return new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
 export default function DashboardScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { currency } = useSettingsStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
@@ -57,18 +77,45 @@ export default function DashboardScreen() {
 
   const recentExpenses = expenses.slice(0, 5);
 
+  const quickActions = [
+    { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
+    { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
+    { icon: 'chart-bar', label: 'Stats', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/stats') },
+    { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <ScreenContainer>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
       >
         {/* Header */}
-        <View style={styles.header}>
-          <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
-            Finance Tracker
-          </Text>
-          <MaterialCommunityIcons name="wallet" size={28} color={theme.colors.primary} />
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <View style={styles.headerLeft}>
+            <Text style={[styles.greeting, { color: theme.colors.onSurfaceVariant }]}>
+              {getGreeting()} 👋
+            </Text>
+            <Text style={[styles.appTitle, { color: theme.colors.onSurface }]}>
+              Finance Tracker
+            </Text>
+            <Text style={[styles.dateLabel, { color: theme.colors.onSurfaceVariant }]}>
+              {formatTodayDate()}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.notifBtn, { backgroundColor: theme.colors.surfaceVariant }]}
+            onPress={() => router.push('/modals/notifications')}
+          >
+            <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
+          </TouchableOpacity>
         </View>
 
         {/* Balance Card */}
@@ -81,6 +128,11 @@ export default function DashboardScreen() {
           period={balanceData.period}
         />
 
+        {/* Quick Actions */}
+        <View style={styles.quickActions}>
+          <ActionButtonRow actions={quickActions} />
+        </View>
+
         {/* Period Progress */}
         <SalaryPeriodBar />
 
@@ -89,53 +141,71 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <SectionHeader title="Upcoming Bills" onSeeAll={() => router.push('/(tabs)/bills')} />
             {upcomingBills.map((bill) => (
-              <TouchableOpacity
-                key={bill.id}
-                style={[styles.upcomingBill, { backgroundColor: theme.custom.cardBg }]}
-                onPress={() => router.push('/(tabs)/bills')}
-              >
-                <View style={[styles.billIcon, { backgroundColor: (bill.categoryColor ?? theme.colors.primary) + '22' }]}>
-                  <MaterialCommunityIcons
-                    name={(bill.categoryIcon ?? 'receipt') as any}
-                    size={18}
-                    color={bill.categoryColor ?? theme.colors.primary}
-                  />
-                </View>
-                <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, flex: 1 }}>
-                  {bill.name}
-                </Text>
-                <Text variant="labelSmall" style={{ color: bill.daysUntilDue <= 2 ? theme.custom.expense : theme.colors.onSurfaceVariant }}>
-                  {bill.daysUntilDue === 0 ? 'Today' : `${bill.daysUntilDue}d`}
-                </Text>
-                <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginLeft: 8 }}>
-                  {formatCurrency(bill.amount, currency)}
-                </Text>
-              </TouchableOpacity>
+              <View key={bill.id}>
+                <Pressable
+                  style={[
+                    styles.upcomingBill,
+                    {
+                      backgroundColor: theme.custom.cardBg,
+                      borderColor: theme.custom.cardBorder,
+                    },
+                  ]}
+                  onPress={() => router.push('/(tabs)/bills')}
+                >
+                  <View style={[styles.billIcon, { backgroundColor: (bill.categoryColor ?? theme.colors.primary) + '22' }]}>
+                    <MaterialCommunityIcons
+                      name={(bill.categoryIcon ?? 'receipt') as any}
+                      size={18}
+                      color={bill.categoryColor ?? theme.colors.primary}
+                    />
+                  </View>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, flex: 1 }}>
+                    {bill.name}
+                  </Text>
+                  <View style={[styles.dueBadge, {
+                    backgroundColor: bill.daysUntilDue <= 2
+                      ? theme.custom.expense + '22'
+                      : theme.colors.surfaceVariant,
+                  }]}>
+                    <Text variant="labelSmall" style={{
+                      color: bill.daysUntilDue <= 2 ? theme.custom.expense : theme.colors.onSurfaceVariant,
+                      fontWeight: '600',
+                    }}>
+                      {bill.daysUntilDue === 0 ? 'Today' : `${bill.daysUntilDue}d`}
+                    </Text>
+                  </View>
+                  <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginLeft: 8 }}>
+                    {formatCurrency(bill.amount, currency)}
+                  </Text>
+                </Pressable>
+              </View>
             ))}
           </View>
         )}
 
         {/* Budget Progress */}
         {currentTarget?.overallLimit && (
-          <View style={[styles.section, styles.card, { backgroundColor: theme.custom.cardBg }]}>
-            <SectionHeader title="Monthly Budget" onSeeAll={() => router.push('/modals/budget-targets')} />
-            <BudgetProgressBar
-              label="Overall"
-              spent={balanceData.spent}
-              limit={currentTarget.overallLimit}
-              currency={currency}
-            />
-            {categoryTargets.slice(0, 3).map((ct) => (
+          <View style={styles.section}>
+            <RoundedCard>
+              <SectionHeader title="Monthly Budget" onSeeAll={() => router.push('/modals/budget-targets')} />
               <BudgetProgressBar
-                key={ct.id}
-                label={ct.categoryName ?? ''}
-                icon={ct.categoryIcon ?? undefined}
-                iconColor={ct.categoryColor ?? undefined}
-                spent={0}
-                limit={ct.limitAmount}
+                label="Overall"
+                spent={balanceData.spent}
+                limit={currentTarget.overallLimit}
                 currency={currency}
               />
-            ))}
+              {categoryTargets.slice(0, 3).map((ct) => (
+                <BudgetProgressBar
+                  key={ct.id}
+                  label={ct.categoryName ?? ''}
+                  icon={ct.categoryIcon ?? undefined}
+                  iconColor={ct.categoryColor ?? undefined}
+                  spent={0}
+                  limit={ct.limitAmount}
+                  currency={currency}
+                />
+              ))}
+            </RoundedCard>
           </View>
         )}
 
@@ -143,14 +213,17 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg }]}>
+            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet
               </Text>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+                Tap Add to record your first expense
+              </Text>
             </View>
           ) : (
-            recentExpenses.map((exp) => (
+            recentExpenses.map((exp, i) => (
               <ExpenseListItem
                 key={exp.id}
                 id={exp.id}
@@ -163,85 +236,86 @@ export default function DashboardScreen() {
                 currency={currency}
                 onDelete={removeExpense}
                 onEdit={(id) => router.push({ pathname: '/modals/add-expense', params: { id } })}
+                index={i}
               />
             ))
           )}
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
-
-      <FAB
-        icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        color="#fff"
-        onPress={() => router.push('/modals/add-expense')}
-      />
-    </View>
+    </ScreenContainer>
   );
 }
-
-function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll: () => void }) {
-  const theme = useTheme<AppTheme>();
-  return (
-    <View style={sectionHeaderStyles.row}>
-      <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
-        {title}
-      </Text>
-      <TouchableOpacity onPress={onSeeAll}>
-        <Text variant="labelMedium" style={{ color: theme.colors.primary }}>See All</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-const sectionHeaderStyles = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-});
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 8,
+    paddingBottom: 4,
+  },
+  headerLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  greeting: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  appTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  dateLabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    marginTop: 1,
+  },
+  notifBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+  },
+  quickActions: {
+    marginTop: 22,
+    marginBottom: 2,
   },
   section: {
-    marginTop: 20,
+    marginTop: 22,
     paddingHorizontal: 16,
-  },
-  card: {
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 16,
   },
   upcomingBill: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 6,
+    padding: 13,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: 7,
     gap: 10,
   },
   billIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  dueBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
   empty: {
     alignItems: 'center',
-    padding: 32,
-    borderRadius: 16,
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
+    padding: 36,
     borderRadius: 18,
+    borderWidth: 1,
+    gap: 4,
   },
 });

@@ -1,16 +1,17 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ScreenContainer } from '../../components/ui/ScreenContainer';
+import { TopHeader } from '../../components/ui/TopHeader';
+import { RoundedCard } from '../../components/ui/RoundedCard';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { getMonthBounds, formatMonthYear, getCurrentMonth } from '../../utils/date';
+import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
 import type { AppTheme } from '../../theme';
-
-const { width } = Dimensions.get('window');
 
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
@@ -30,118 +31,127 @@ export default function StatsScreen() {
   const maxCategoryTotal = Math.max(...categoryTotals.map(c => c.total ?? 0), 1);
 
   const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+  const primary = theme.colors.primary;
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text variant="headlineSmall" style={{ color: theme.colors.onSurface, fontWeight: '800' }}>
-          Statistics
-        </Text>
-      </View>
+    <ScreenContainer>
+      <TopHeader title="Statistics" />
 
-      {/* Month Selector */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.monthRow}>
-        {months.map((m, i) => {
-          const isSelected = format(m, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
-          return (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.monthChip,
-                { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surfaceVariant },
-              ]}
-              onPress={() => setSelectedMonth(m)}
-            >
-              <Text variant="labelMedium" style={{ color: isSelected ? '#fff' : theme.colors.onSurface }}>
-                {format(m, 'MMM')}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Month Selector */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.monthRow}
+        >
+          {months.map((m, i) => {
+            const isSelected = format(m, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.monthChip,
+                  {
+                    backgroundColor: isSelected ? primary + '22' : theme.colors.surfaceVariant,
+                    borderColor: isSelected ? primary : 'transparent',
+                    borderWidth: 1.5,
+                  },
+                ]}
+                onPress={() => setSelectedMonth(m)}
+              >
+                <Text
+                  style={[
+                    styles.monthChipText,
+                    { color: isSelected ? primary : theme.colors.onSurface },
+                  ]}
+                >
+                  {format(m, 'MMM')}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Summary */}
+        <View style={styles.cardWrap}>
+          <RoundedCard>
+            <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+              {formatMonthYear(format(selectedMonth, 'yyyy-MM-dd'))}
+            </Text>
+            <Text variant="displaySmall" style={{ color: theme.custom.expense, fontWeight: '800', marginTop: 4 }}>
+              {formatCurrency(total, currency)}
+            </Text>
+            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+              {expenses.length} transaction{expenses.length !== 1 ? 's' : ''}
+            </Text>
+          </RoundedCard>
+        </View>
+
+        {/* Category Bar Chart */}
+        {categoryTotals.length > 0 ? (
+          <View style={styles.cardWrap}>
+            <RoundedCard>
+              <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
+                By Category
               </Text>
-            </TouchableOpacity>
-          );
-        })}
+              {categoryTotals
+                .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
+                .map((cat) => {
+                  const ratio = (cat.total ?? 0) / maxCategoryTotal;
+                  return (
+                    <View key={cat.categoryId} style={styles.catRow}>
+                      <View style={[styles.catIcon, { backgroundColor: (cat.categoryColor ?? theme.colors.primary) + '22' }]}>
+                        <MaterialCommunityIcons
+                          name={(cat.categoryIcon ?? 'dots-horizontal') as any}
+                          size={16}
+                          color={cat.categoryColor ?? theme.colors.primary}
+                        />
+                      </View>
+                      <View style={styles.catInfo}>
+                        <View style={styles.catHeader}>
+                          <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
+                            {cat.categoryName ?? 'Unknown'}
+                          </Text>
+                          <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
+                            {formatCurrency(cat.total ?? 0, currency)}
+                          </Text>
+                        </View>
+                        <View style={[styles.barTrack, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                          <View
+                            style={[
+                              styles.barFill,
+                              {
+                                width: `${ratio * 100}%`,
+                                backgroundColor: cat.categoryColor ?? theme.colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                          {Math.round(ratio * 100)}% of total
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+            </RoundedCard>
+          </View>
+        ) : (
+          <View style={styles.empty}>
+            <MaterialCommunityIcons name="chart-bar" size={60} color={theme.colors.onSurfaceVariant} />
+            <Text variant="titleMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
+              No data for this month
+            </Text>
+          </View>
+        )}
+
+        <View style={{ height: 120 }} />
       </ScrollView>
-
-      {/* Summary */}
-      <View style={[styles.summaryCard, { backgroundColor: theme.custom.cardBg }]}>
-        <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-          {formatMonthYear(format(selectedMonth, 'yyyy-MM-dd'))}
-        </Text>
-        <Text variant="displaySmall" style={{ color: theme.custom.expense, fontWeight: '800', marginTop: 4 }}>
-          {formatCurrency(total, currency)}
-        </Text>
-        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-          {expenses.length} transaction{expenses.length !== 1 ? 's' : ''}
-        </Text>
-      </View>
-
-      {/* Category Bar Chart */}
-      {categoryTotals.length > 0 ? (
-        <View style={[styles.section, { backgroundColor: theme.custom.cardBg }]}>
-          <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
-            By Category
-          </Text>
-          {categoryTotals
-            .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
-            .map((cat) => {
-              const ratio = (cat.total ?? 0) / maxCategoryTotal;
-              return (
-                <View key={cat.categoryId} style={styles.catRow}>
-                  <View style={[styles.catIcon, { backgroundColor: (cat.categoryColor ?? theme.colors.primary) + '22' }]}>
-                    <MaterialCommunityIcons
-                      name={(cat.categoryIcon ?? 'dots-horizontal') as any}
-                      size={16}
-                      color={cat.categoryColor ?? theme.colors.primary}
-                    />
-                  </View>
-                  <View style={styles.catInfo}>
-                    <View style={styles.catHeader}>
-                      <Text variant="bodyMedium" style={{ color: theme.colors.onSurface }}>
-                        {cat.categoryName ?? 'Unknown'}
-                      </Text>
-                      <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>
-                        {formatCurrency(cat.total ?? 0, currency)}
-                      </Text>
-                    </View>
-                    <View style={[styles.barTrack, { backgroundColor: theme.colors.surfaceVariant }]}>
-                      <View
-                        style={[
-                          styles.barFill,
-                          {
-                            width: `${ratio * 100}%`,
-                            backgroundColor: cat.categoryColor ?? theme.colors.primary,
-                          },
-                        ]}
-                      />
-                    </View>
-                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                      {Math.round(ratio * 100)}% of total
-                    </Text>
-                  </View>
-                </View>
-              );
-            })}
-        </View>
-      ) : (
-        <View style={styles.empty}>
-          <MaterialCommunityIcons name="chart-bar" size={60} color={theme.colors.onSurfaceVariant} />
-          <Text variant="titleMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
-            No data for this month
-          </Text>
-        </View>
-      )}
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 8,
-  },
   monthRow: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -152,16 +162,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
-  summaryCard: {
-    marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+  monthChipText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
-  section: {
+  cardWrap: {
     marginHorizontal: 16,
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 16,
   },
   catRow: {
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   barTrack: {
-    height: 8,
+    height: 6,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 4,

@@ -1,81 +1,187 @@
+import React, { useEffect } from 'react';
+import { View, Pressable, StyleSheet, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { useTabStore } from '../../store/tabStore';
 import type { AppTheme } from '../../theme';
+
+const TAB_CONFIG = [
+  { name: 'index',    icon: 'view-dashboard-outline', activeIcon: 'view-dashboard',  label: 'Home' },
+  { name: 'expenses', icon: 'cash-multiple',           activeIcon: 'cash-multiple',   label: 'Expenses' },
+  { name: 'bills',    icon: 'receipt-outline',         activeIcon: 'receipt',         label: 'Bills' },
+  { name: 'stats',    icon: 'chart-bar-stacked',       activeIcon: 'chart-bar',       label: 'Stats' },
+  { name: 'settings', icon: 'cog-outline',             activeIcon: 'cog',             label: 'Settings' },
+] as const;
+
+function TabItem({
+  icon,
+  activeIcon,
+  label,
+  focused,
+  color,
+  onPress,
+  onLongPress,
+}: {
+  icon: string;
+  activeIcon: string;
+  label: string;
+  focused: boolean;
+  color: string;
+  onPress: () => void;
+  onLongPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const pillOpacity = useSharedValue(0);
+  const pillScaleX = useSharedValue(0.5);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.12 : 1, { damping: 14, stiffness: 220 });
+    pillOpacity.value = withTiming(focused ? 1 : 0, { duration: 180 });
+    pillScaleX.value = withSpring(focused ? 1 : 0.5, { damping: 14, stiffness: 220 });
+  }, [focused]);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const pillStyle = useAnimatedStyle(() => ({
+    opacity: pillOpacity.value,
+    transform: [{ scaleX: pillScaleX.value }],
+  }));
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      style={styles.tabItem}
+    >
+      <Animated.View style={[styles.pill, { backgroundColor: color + '1a' }, pillStyle]} />
+      <Animated.View style={iconStyle}>
+        <MaterialCommunityIcons
+          name={(focused ? activeIcon : icon) as any}
+          size={22}
+          color={color}
+        />
+      </Animated.View>
+      <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function FloatingTabBar({ state, navigation }: any) {
+  const theme = useTheme<AppTheme>();
+  const insets = useSafeAreaInsets();
+  const { setTab } = useTabStore();
+
+  return (
+    <View
+      style={[styles.outerContainer, { bottom: insets.bottom + 10 }]}
+      pointerEvents="box-none"
+    >
+      <View
+        style={[
+          styles.bar,
+          {
+            backgroundColor: theme.custom.tabBarBg,
+            borderColor: theme.dark
+              ? theme.custom.cardBorder
+              : 'rgba(0,0,0,0.06)',
+            shadowColor: theme.dark ? '#000' : '#6366f1',
+          },
+        ]}
+      >
+        {state.routes.map((route: any, index: number) => {
+          const config = TAB_CONFIG.find((t) => t.name === route.name);
+          const focused = state.index === index;
+          const color = focused
+            ? theme.colors.primary
+            : theme.colors.onSurfaceVariant;
+
+          return (
+            <TabItem
+              key={route.key}
+              icon={config?.icon ?? 'circle-outline'}
+              activeIcon={config?.activeIcon ?? 'circle'}
+              label={config?.label ?? ''}
+              focused={focused}
+              color={color}
+              onPress={() => {
+                setTab(index);
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
+                if (!focused && !event.defaultPrevented) {
+                  navigation.navigate(route.name, {});
+                }
+              }}
+              onLongPress={() => {
+                navigation.emit({ type: 'tabLongPress', target: route.key });
+              }}
+            />
+          );
+        })}
+      </View>
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const theme = useTheme<AppTheme>();
-
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: {
-          backgroundColor: theme.custom.tabBarBg,
-          borderTopColor: theme.colors.outline,
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
-          height: 64,
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.onSurfaceVariant,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="expenses"
-        options={{
-          title: 'Expenses',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cash-multiple" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bills"
-        options={{
-          title: 'Bills',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="receipt" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="stats"
-        options={{
-          title: 'Stats',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="chart-bar" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="cog" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
+      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+  },
+  bar: {
+    flexDirection: 'row',
+    width: '100%',
+    borderRadius: 28,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+    borderWidth: 1,
+    elevation: 28,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 54,
+    gap: 2,
+  },
+  pill: {
+    position: 'absolute',
+    width: 46,
+    height: 36,
+    borderRadius: 18,
+    top: 4,
+  },
+  tabLabel: {
+    fontSize: 9,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+});

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar } from 'expo-status-bar';
 import { lightTheme, darkTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
 import { runMigrations, seedCategories } from '../db/migrations';
@@ -34,16 +35,18 @@ export default function RootLayout() {
   const modalScreenOptions = {
     presentation: 'modal' as const,
     headerShown: false,
+    animation: 'none' as const,
     contentStyle: { backgroundColor: resolvedTheme.colors.background },
   };
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: resolvedTheme.colors.background }}>
+      <StatusBar style={resolvedTheme.dark ? 'light' : 'dark'} />
       <PaperProvider theme={resolvedTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
+        <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: resolvedTheme.colors.background } }}>
+          <Stack.Screen name="index" options={{ animation: 'none' }} />
+          <Stack.Screen name="(auth)" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
           <Stack.Screen name="modals/add-expense" options={modalScreenOptions} />
           <Stack.Screen name="modals/add-bill" options={modalScreenOptions} />
           <Stack.Screen name="modals/salary" options={modalScreenOptions} />
@@ -52,6 +55,7 @@ export default function RootLayout() {
           <Stack.Screen name="modals/export" options={modalScreenOptions} />
           <Stack.Screen name="modals/change-pin" options={modalScreenOptions} />
           <Stack.Screen name="modals/currency-picker" options={modalScreenOptions} />
+          <Stack.Screen name="modals/notifications" options={modalScreenOptions} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

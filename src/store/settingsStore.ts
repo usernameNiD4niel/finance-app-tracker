@@ -43,8 +43,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   },
 
   setTheme: async (theme) => {
-    await setSetting('theme', theme);
     set({ theme });
+    await setSetting('theme', theme);
   },
 
   setPin: async (pinHash) => {

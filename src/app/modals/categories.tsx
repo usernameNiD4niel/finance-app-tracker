@@ -67,7 +67,7 @@ export default function CategoriesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.surface }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -82,7 +82,7 @@ export default function CategoriesScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
-          <View style={[styles.catRow, { backgroundColor: theme.custom.cardBg }]}>
+          <View style={[styles.catRow, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
             <View style={[styles.catIcon, { backgroundColor: item.color + '22' }]}>
               <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
             </View>
@@ -107,7 +107,7 @@ export default function CategoriesScreen() {
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.overlay}>
-          <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
+          <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
             <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
             <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
               {editingId ? 'Edit Category' : 'New Category'}
@@ -150,7 +150,16 @@ export default function CategoriesScreen() {
               <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.colors.surfaceVariant }]} onPress={() => setModalVisible(false)}>
                 <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
+              <TouchableOpacity
+                style={[
+                  styles.saveBtn,
+                  {
+                    backgroundColor: theme.colors.primary,
+                    shadowColor: theme.colors.primary,
+                  },
+                ]}
+                onPress={handleSave}
+              >
                 <Text variant="labelLarge" style={{ color: '#fff' }}>Save</Text>
               </TouchableOpacity>
             </View>
@@ -168,17 +177,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
   },
   catRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 14, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14,
   },
   catIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 12 },
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.75)' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   iconOption: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   colorDot: { width: 36, height: 36, borderRadius: 18 },
   modalActions: { flexDirection: 'row', gap: 12 },
-  cancelBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  saveBtn: { flex: 1, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
+  cancelBtn: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  saveBtn: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });

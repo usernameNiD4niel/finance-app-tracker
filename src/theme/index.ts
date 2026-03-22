@@ -4,7 +4,7 @@ import { DarkTheme as NavigationDarkTheme, DefaultTheme as NavigationLightTheme 
 const customColors = {
   primary: '#6366f1',       // indigo-500
   primaryContainer: '#4338ca',
-  secondary: '#8b5cf6',     // violet-500
+  secondary: '#7c3aed',     // violet-700
   tertiary: '#06b6d4',      // cyan-500
   error: '#ef4444',
   success: '#22c55e',
@@ -33,6 +33,11 @@ export const lightTheme = {
     expense: '#ef4444',
     cardBg: '#ffffff',
     tabBarBg: '#ffffff',
+    glowPrimary: '#6366f1',
+    glowSecondary: '#7c3aed',
+    cardBorder: '#e2e8f0',
+    surfaceElevated: '#ffffff',
+    mutedText: '#9ca3af',
   },
 };
 
@@ -42,22 +47,28 @@ export const darkTheme = {
     ...MD3DarkTheme.colors,
     primary: customColors.primary,
     primaryContainer: '#3730a3',
-    secondary: customColors.secondary,
+    secondary: '#7c3aed',
     tertiary: customColors.tertiary,
     error: customColors.error,
-    background: '#0f172a',
-    surface: '#1e293b',
-    surfaceVariant: '#334155',
-    onSurface: '#f8fafc',
-    onSurfaceVariant: '#94a3b8',
-    outline: '#475569',
+    background: '#0d0f14',
+    surface: '#13151c',
+    surfaceVariant: '#1a1d28',
+    onSurface: '#f1f5f9',
+    onSurfaceVariant: '#8b9ab4',
+    outline: '#1f2437',
   },
   custom: {
     ...customColors,
     income: '#4ade80',
     expense: '#f87171',
-    cardBg: '#1e293b',
-    tabBarBg: '#1e293b',
+    warning: '#fbbf24',
+    cardBg: '#13151c',
+    tabBarBg: '#0d0f14',
+    glowPrimary: '#6366f1',
+    glowSecondary: '#7c3aed',
+    cardBorder: '#1f2437',
+    surfaceElevated: '#16192a',
+    mutedText: '#4b5563',
   },
 };
 

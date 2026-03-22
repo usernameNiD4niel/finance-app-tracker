@@ -47,14 +47,14 @@ export function BudgetProgressBar({ label, icon, iconColor, spent, limit, curren
             {label}
           </Text>
         </View>
-        <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
+        <Text variant="labelSmall" style={{ color: theme.custom.mutedText }}>
           {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
         </Text>
       </View>
-      <View style={[styles.track, { backgroundColor: theme.colors.surfaceVariant }]}>
+      <View style={[styles.track, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
         <Animated.View style={[styles.fill, { backgroundColor: barColor }, barStyle]} />
       </View>
-      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 2 }}>
+      <Text variant="bodySmall" style={{ color: theme.custom.mutedText, marginTop: 2 }}>
         {Math.round(ratio * 100)}% used · {formatCurrency(Math.max(limit - spent, 0), currency)} remaining
       </Text>
     </View>

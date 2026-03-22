@@ -19,7 +19,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
           <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
           <Text variant="titleLarge" style={{ color: theme.colors.onSurface, marginBottom: 16, fontWeight: '700' }}>
             Select Category
@@ -34,7 +34,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
                     style={[
                       styles.item,
                       {
-                        backgroundColor: isSelected ? cat.color + '22' : theme.colors.surfaceVariant,
+                        backgroundColor: isSelected ? cat.color + '22' : theme.colors.background,
                         borderColor: isSelected ? cat.color : 'transparent',
                         borderWidth: 2,
                       },
@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
   },
   sheet: {
     borderTopLeftRadius: 24,
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   item: {
     width: '22%',
     aspectRatio: 0.9,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
