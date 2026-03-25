@@ -189,12 +189,23 @@ export async function upsertSalary(data: NewSalary) {
     .get();
 
   if (existing) {
+    // Reverse old deposit then apply new one
+    if (existing.sourceId) {
+      await adjustSourceBalance(existing.sourceId, -existing.amount);
+    }
+    if (data.sourceId) {
+      await adjustSourceBalance(data.sourceId, data.amount);
+    }
     return db
       .update(salary)
-      .set({ amount: data.amount, effectiveDate: data.effectiveDate })
+      .set({ amount: data.amount, sourceId: data.sourceId ?? null, effectiveDate: data.effectiveDate })
       .where(eq(salary.id, existing.id))
       .returning()
       .get();
+  }
+
+  if (data.sourceId) {
+    await adjustSourceBalance(data.sourceId, data.amount);
   }
   return db.insert(salary).values(data).returning().get();
 }

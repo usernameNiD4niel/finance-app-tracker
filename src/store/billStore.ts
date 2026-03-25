@@ -30,6 +30,9 @@ export const useBillStore = create<BillState>((set, get) => ({
   },
 
   editBill: async (id, data) => {
+    if ('isActive' in data) {
+      set(state => ({ bills: state.bills.map(b => b.id === id ? { ...b, ...data } : b) }));
+    }
     await updateBill(id, data);
     await get().loadBills();
   },

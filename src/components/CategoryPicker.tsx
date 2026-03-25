@@ -20,7 +20,7 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
-        <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
+        <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
           <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
           <Text variant="titleLarge" style={{ color: theme.colors.onSurface, marginBottom: 16, fontWeight: '700' }}>
             Select Category

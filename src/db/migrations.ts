@@ -79,6 +79,7 @@ export function runMigrations() {
   // Add source_id columns (ignore if already exists)
   try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
+  try { sqlite.execSync(`ALTER TABLE salary ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
 }
 
 const PREDEFINED_CATEGORIES = [

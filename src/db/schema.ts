@@ -49,6 +49,7 @@ export const salary = sqliteTable('salary', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   amount: real('amount').notNull(),
   period: text('period', { enum: ['first', 'fifteenth'] }).notNull(),
+  sourceId: integer('source_id'),
   effectiveDate: text('effective_date').notNull(),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
