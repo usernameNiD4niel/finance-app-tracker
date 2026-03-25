@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
+import { PremiumModal } from '../../components/PremiumModal';
 import { neuCardLg, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -15,6 +16,7 @@ export default function LockScreen() {
   const { pinHash } = useSettingsStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [showPremium, setShowPremium] = useState(false);
 
   useEffect(() => {
     checkBiometrics();
@@ -31,7 +33,12 @@ export default function LockScreen() {
     if (success) unlock();
   };
 
-  const unlock = () => router.replace('/(tabs)');
+  const unlock = () => setShowPremium(true);
+
+  const handlePremiumDone = () => {
+    setShowPremium(false);
+    router.replace('/(tabs)');
+  };
 
   const handlePin = async (pin: string) => {
     if (!pinHash) { unlock(); return; }
@@ -74,6 +81,12 @@ export default function LockScreen() {
           </Text>
         </TouchableOpacity>
       )}
+
+      <PremiumModal
+        visible={showPremium}
+        onSubscribe={handlePremiumDone}
+        onDismiss={handlePremiumDone}
+      />
     </View>
   );
 }
