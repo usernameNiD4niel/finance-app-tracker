@@ -7,11 +7,14 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '../../components/CategoryPicker';
+import { SourcePicker } from '../../components/SourcePicker';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useSourceStore } from '../../store/sourceStore';
 import { scheduleBillNotification, cancelNotification } from '../../services/notifications';
-import type { Category } from '../../db/schema';
+import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
 const schema = z.object({
@@ -35,10 +38,13 @@ export default function AddBillScreen() {
   const { currency } = useSettingsStore();
   const { categories, loadCategories } = useCategoryStore();
   const { bills, addBill, editBill } = useBillStore();
+  const { sources, loadSources } = useSourceStore();
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [notifyEnabled, setNotifyEnabled] = useState(true);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const isEditing = !!id;
@@ -56,13 +62,18 @@ export default function AddBillScreen() {
 
   useEffect(() => {
     loadCategories();
+    loadSources();
     if (existing) {
       const cat = categories.find(c => c.id === existing.categoryId);
       if (cat) setSelectedCategory(cat);
+      if (existing.sourceId) {
+        const src = sources.find(s => s.id === existing.sourceId);
+        if (src) setSelectedSource(src);
+      }
       setFrequency(existing.frequency);
       setNotifyEnabled(existing.notifyDaysBefore > 0);
     }
-  }, [categories.length]);
+  }, [categories.length, sources.length]);
 
   const onSubmit = async (data: FormData) => {
     if (!selectedCategory) {
@@ -75,6 +86,7 @@ export default function AddBillScreen() {
         name: data.name,
         amount: Number(data.amount),
         categoryId: selectedCategory.id,
+        sourceId: selectedSource?.id ?? null,
         frequency,
         dueDay: Number(data.dueDay),
         notifyDaysBefore: notifyEnabled ? Number(data.notifyDaysBefore) : 0,
@@ -138,7 +150,7 @@ export default function AddBillScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
           onPress={() => setCategoryPickerVisible(true)}
         >
           {selectedCategory ? (
@@ -157,6 +169,27 @@ export default function AddBillScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
+        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Source</Text>
+        <TouchableOpacity
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+          onPress={() => setSourcePickerVisible(true)}
+        >
+          {selectedSource ? (
+            <>
+              <View style={[styles.catIconWrap, { backgroundColor: selectedSource.color + '22' }]}>
+                <MaterialCommunityIcons name={selectedSource.icon as any} size={20} color={selectedSource.color} />
+              </View>
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>{selectedSource.name}</Text>
+            </>
+          ) : (
+            <>
+              <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>Select Source (optional)</Text>
+            </>
+          )}
+          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Frequency</Text>
         <View style={styles.freqRow}>
           {FREQUENCIES.map(f => (
@@ -165,8 +198,8 @@ export default function AddBillScreen() {
               style={[
                 styles.freqBtn,
                 {
-                  backgroundColor: frequency === f ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-                  borderColor: frequency === f ? theme.colors.primary : 'transparent',
+                  backgroundColor: frequency === f ? theme.colors.primary + '22' : theme.custom.cardBg,
+                  boxShadow: frequency === f ? (neuChip(theme) as any) : undefined,
                 },
               ]}
               onPress={() => setFrequency(f)}
@@ -211,13 +244,13 @@ export default function AddBillScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>
             {isEditing ? 'Save Changes' : 'Add Bill'}
           </Text>
         </TouchableOpacity>
@@ -229,6 +262,14 @@ export default function AddBillScreen() {
         selectedId={selectedCategory?.id ?? null}
         onSelect={setSelectedCategory}
         onClose={() => setCategoryPickerVisible(false)}
+      />
+
+      <SourcePicker
+        visible={sourcePickerVisible}
+        sources={sources}
+        selectedId={selectedSource?.id ?? null}
+        onSelect={setSelectedSource}
+        onClose={() => setSourcePickerVisible(false)}
       />
     </View>
   );
@@ -244,12 +285,12 @@ const styles = StyleSheet.create({
   label: { marginBottom: 6, marginTop: 16 },
   input: { marginBottom: 4 },
   categoryBtn: {
-    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 10,
+    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, gap: 10,
   },
   catIconWrap: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   freqRow: { flexDirection: 'row', gap: 10 },
   freqBtn: {
-    flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12, borderWidth: 1.5,
+    flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
   submitBtn: {
@@ -257,9 +298,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 32,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

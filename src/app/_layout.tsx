@@ -4,20 +4,21 @@ import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { lightTheme, darkTheme } from '../theme';
+import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
-import { runMigrations, seedCategories } from '../db/migrations';
+import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { theme, loadSettings, isLoaded } = useSettingsStore();
+  const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
 
   useEffect(() => {
     (async () => {
       try {
         runMigrations();
         seedCategories();
+        seedMoneySources();
         await loadSettings();
       } catch (e) {
         console.error('[startup] init failed:', e);
@@ -25,15 +26,17 @@ export default function RootLayout() {
     })();
   }, []);
 
-  const resolvedTheme =
+  const isDark =
     theme === 'system'
-      ? colorScheme === 'dark' ? darkTheme : lightTheme
-      : theme === 'dark' ? darkTheme : lightTheme;
+      ? colorScheme === 'dark'
+      : theme === 'dark';
+
+  const resolvedTheme = buildTheme(primaryColor, isDark);
 
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#0f172a' }}>
-        <ActivityIndicator color="#6366f1" size="large" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2a2d3a' }}>
+        <ActivityIndicator color="#818cf8" size="large" />
       </View>
     );
   }

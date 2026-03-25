@@ -6,14 +6,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
+import { PremiumModal } from '../../components/PremiumModal';
+import { neuCardLg, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { pinHash } = useSettingsStore();
+  const { pinHash, setPremium } = useSettingsStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [showPremium, setShowPremium] = useState(false);
 
   useEffect(() => {
     checkBiometrics();
@@ -30,7 +33,18 @@ export default function LockScreen() {
     if (success) unlock();
   };
 
-  const unlock = () => router.replace('/(tabs)');
+  const unlock = () => setShowPremium(true);
+
+  const handlePremiumSubscribe = async () => {
+    await setPremium(true);
+    setShowPremium(false);
+    router.replace('/(tabs)');
+  };
+
+  const handlePremiumDismiss = () => {
+    setShowPremium(false);
+    router.replace('/(tabs)');
+  };
 
   const handlePin = async (pin: string) => {
     if (!pinHash) { unlock(); return; }
@@ -47,7 +61,7 @@ export default function LockScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.header}>
-        <View style={[styles.logoWrap, { backgroundColor: theme.colors.primaryContainer }]}>
+        <View style={[styles.logoWrap, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
           <MaterialCommunityIcons name="lock" size={40} color={theme.colors.primary} />
         </View>
         <Text variant="headlineMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginTop: 16 }}>
@@ -64,7 +78,7 @@ export default function LockScreen() {
 
       {bioAvailable && (
         <TouchableOpacity
-          style={[styles.biometricBtn, { borderColor: theme.colors.outline }]}
+          style={[styles.biometricBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuButton(theme) as any }]}
           onPress={tryBiometric}
         >
           <MaterialCommunityIcons name="fingerprint" size={28} color={theme.colors.primary} />
@@ -73,6 +87,12 @@ export default function LockScreen() {
           </Text>
         </TouchableOpacity>
       )}
+
+      <PremiumModal
+        visible={showPremium}
+        onSubscribe={handlePremiumSubscribe}
+        onDismiss={handlePremiumDismiss}
+      />
     </View>
   );
 }
@@ -97,7 +117,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
     borderRadius: 16,
     paddingVertical: 14,
     marginHorizontal: 40,

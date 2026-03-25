@@ -11,6 +11,7 @@ import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { cancelNotification } from '../../services/notifications';
 import { formatCurrency } from '../../utils/currency';
+import { neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function BillsScreen() {
@@ -91,10 +92,10 @@ export default function BillsScreen() {
           {
             bottom: insets.bottom + 90,
             backgroundColor: theme.colors.primary,
-            shadowColor: theme.colors.primary,
+            boxShadow: neuButton(theme) as any,
           },
         ]}
-        color="#fff"
+        color={theme.custom.buttonText}
         onPress={() => router.push('/modals/add-bill')}
       />
     </ScreenContainer>
@@ -108,9 +109,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     borderRadius: 20,
-    elevation: 8,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
   },
 });

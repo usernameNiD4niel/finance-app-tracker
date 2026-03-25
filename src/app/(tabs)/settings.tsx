@@ -7,7 +7,9 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
+import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
+import { PRIMARY_COLORS } from '../../theme';
 
 interface SettingRowProps {
   icon: string;
@@ -26,7 +28,7 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
         styles.row,
         {
           backgroundColor: theme.custom.cardBg,
-          borderColor: theme.custom.cardBorder,
+          boxShadow: neuListItem(theme) as any,
         },
       ]}
       onPress={onPress}
@@ -55,9 +57,10 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
 export default function SettingsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { currency, theme: currentTheme, setTheme } = useSettingsStore();
+  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor } = useSettingsStore();
 
   const isDark = currentTheme === 'dark';
+  const [showColors, setShowColors] = React.useState(false);
 
   const handleThemeToggle = async (val: boolean) => {
     await setTheme(val ? 'dark' : 'light');
@@ -81,6 +84,34 @@ export default function SettingsScreen() {
             />
           }
         />
+        <SettingRow
+          icon="palette"
+          iconColor={theme.colors.primary}
+          label="Accent Color"
+          onPress={() => setShowColors(!showColors)}
+          right={
+            <View style={[styles.colorPreview, { backgroundColor: primaryColor }]} />
+          }
+        />
+        {showColors && (
+          <View style={styles.colorRow}>
+            {PRIMARY_COLORS.map((c) => {
+              const color = isDark ? c.dark : c.light;
+              const isSelected = c.light === primaryColor || c.dark === primaryColor;
+              return (
+                <TouchableOpacity
+                  key={c.name}
+                  onPress={() => setPrimaryColor(c.light)}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: color },
+                    isSelected && { borderWidth: 2.5, borderColor: theme.colors.onSurface },
+                  ]}
+                />
+              );
+            })}
+          </View>
+        )}
 
         {/* Financial */}
         <MutedLabel uppercase style={styles.sectionTitle}>Financial</MutedLabel>
@@ -155,9 +186,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginHorizontal: 16,
-    marginBottom: 2,
+    marginBottom: 6,
     borderRadius: 16,
-    borderWidth: 1,
     gap: 12,
   },
   rowIcon: {
@@ -166,5 +196,24 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  colorPreview: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+  },
+  colorRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginHorizontal: 16,
+    marginBottom: 6,
+  },
+  colorDot: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
 });

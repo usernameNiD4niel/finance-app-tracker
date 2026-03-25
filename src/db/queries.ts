@@ -1,9 +1,9 @@
-import { db } from './client';
+import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import {
-  categories, expenses, bills, salary, targets, categoryTargets, settings,
+  categories, expenses, bills, salary, targets, categoryTargets, settings, moneySources,
   type NewCategory, type NewExpense, type NewBill, type NewSalary,
-  type NewTarget, type NewCategoryTarget,
+  type NewTarget, type NewCategoryTarget, type NewMoneySource,
 } from './schema';
 
 // ─── Settings ──────────────────────────────────────────────────────────────
@@ -48,15 +48,20 @@ export async function getExpenses(filters?: { startDate?: string; endDate?: stri
       id: expenses.id,
       amount: expenses.amount,
       categoryId: expenses.categoryId,
+      sourceId: expenses.sourceId,
       note: expenses.note,
       date: expenses.date,
       createdAt: expenses.createdAt,
       categoryName: categories.name,
       categoryIcon: categories.icon,
       categoryColor: categories.color,
+      sourceName: moneySources.name,
+      sourceIcon: moneySources.icon,
+      sourceColor: moneySources.color,
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
+    .leftJoin(moneySources, eq(expenses.sourceId, moneySources.id))
     .orderBy(desc(expenses.date), desc(expenses.createdAt));
 
   if (conditions.length > 0) {
@@ -93,6 +98,33 @@ export async function getExpenseTotalByCategory(startDate: string, endDate: stri
     .all();
 }
 
+export async function getExpenseTotal(
+  startDate: string, endDate: string
+): Promise<{ total: number; count: number }> {
+  const result = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
+      count: sql<number>`COUNT(${expenses.id})`,
+    })
+    .from(expenses)
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
+    .get();
+  return { total: result?.total ?? 0, count: result?.count ?? 0 };
+}
+
+export async function getDailyExpenseTotals(startDate: string, endDate: string) {
+  return db
+    .select({
+      date: expenses.date,
+      total: sql<number>`SUM(${expenses.amount})`,
+    })
+    .from(expenses)
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
+    .groupBy(expenses.date)
+    .orderBy(expenses.date)
+    .all();
+}
+
 // ─── Bills ──────────────────────────────────────────────────────────────────
 export async function getBills() {
   return db
@@ -101,6 +133,7 @@ export async function getBills() {
       name: bills.name,
       amount: bills.amount,
       categoryId: bills.categoryId,
+      sourceId: bills.sourceId,
       frequency: bills.frequency,
       dueDay: bills.dueDay,
       isActive: bills.isActive,
@@ -110,9 +143,13 @@ export async function getBills() {
       categoryName: categories.name,
       categoryIcon: categories.icon,
       categoryColor: categories.color,
+      sourceName: moneySources.name,
+      sourceIcon: moneySources.icon,
+      sourceColor: moneySources.color,
     })
     .from(bills)
     .leftJoin(categories, eq(bills.categoryId, categories.id))
+    .leftJoin(moneySources, eq(bills.sourceId, moneySources.id))
     .orderBy(bills.dueDay)
     .all();
 }
@@ -220,4 +257,39 @@ export async function upsertCategoryTarget(month: string, categoryId: number, li
 
 export async function deleteCategoryTarget(id: number) {
   await db.delete(categoryTargets).where(eq(categoryTargets.id, id));
+}
+
+// ─── Money Sources ────────────────────────────────────────────────────────
+export async function getMoneySources() {
+  return db.select().from(moneySources).orderBy(moneySources.name).all();
+}
+
+export async function getActiveMoneySources() {
+  return db.select().from(moneySources).where(eq(moneySources.isActive, true)).orderBy(moneySources.name).all();
+}
+
+export async function createMoneySource(data: NewMoneySource) {
+  return db.insert(moneySources).values(data).returning().get();
+}
+
+export async function updateMoneySource(id: number, data: Partial<NewMoneySource>) {
+  return db.update(moneySources).set(data).where(eq(moneySources.id, id)).returning().get();
+}
+
+export async function deleteMoneySource(id: number) {
+  // Soft-delete: set isActive = false
+  return db.update(moneySources).set({ isActive: false }).where(eq(moneySources.id, id)).returning().get();
+}
+
+export async function adjustSourceBalance(id: number, delta: number) {
+  sqlite.runSync('UPDATE money_sources SET balance = balance + ? WHERE id = ?', [delta, id]);
+}
+
+export async function getTotalSourceBalance(): Promise<number> {
+  const result = await db
+    .select({ total: sql<number>`COALESCE(SUM(${moneySources.balance}), 0)` })
+    .from(moneySources)
+    .where(eq(moneySources.isActive, true))
+    .get();
+  return result?.total ?? 0;
 }

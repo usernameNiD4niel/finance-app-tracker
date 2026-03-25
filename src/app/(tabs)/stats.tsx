@@ -6,26 +6,41 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { RoundedCard } from '../../components/ui/RoundedCard';
+import { CompareSpending } from '../../components/CompareSpending';
+import { PremiumGate } from '../../components/PremiumGate';
+import { DailySpendingChart } from '../../components/DailySpendingChart';
+import { CategoryRingChart } from '../../components/CategoryRingChart';
+import { PremiumModal } from '../../components/PremiumModal';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
+import { neuChip, neuInset } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
-  const { currency } = useSettingsStore();
-  const { expenses, categoryTotals, loadExpenses, loadCategoryTotals } = useExpenseStore();
+  const { currency, isPremium, setPremium } = useSettingsStore();
+  const { expenses, categoryTotals, dailyTotals, loadExpenses, loadCategoryTotals, loadDailyTotals } = useExpenseStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [isFocused, setIsFocused] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const load = useCallback(async () => {
     const { start, end } = getMonthBounds(selectedMonth);
     await loadExpenses({ startDate: start, endDate: end });
     await loadCategoryTotals(start, end);
-  }, [selectedMonth]);
+    if (isPremium) {
+      await loadDailyTotals(start, end);
+    }
+  }, [selectedMonth, isPremium]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    setIsFocused(true);
+    load();
+    return () => setIsFocused(false);
+  }, [load]));
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
   const maxCategoryTotal = Math.max(...categoryTotals.map(c => c.total ?? 0), 1);
@@ -52,9 +67,8 @@ export default function StatsScreen() {
                 style={[
                   styles.monthChip,
                   {
-                    backgroundColor: isSelected ? primary + '22' : theme.colors.surfaceVariant,
-                    borderColor: isSelected ? primary : 'transparent',
-                    borderWidth: 1.5,
+                    backgroundColor: isSelected ? primary + '22' : theme.custom.cardBg,
+                    boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
                   },
                 ]}
                 onPress={() => setSelectedMonth(m)}
@@ -116,7 +130,7 @@ export default function StatsScreen() {
                             {formatCurrency(cat.total ?? 0, currency)}
                           </Text>
                         </View>
-                        <View style={[styles.barTrack, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                        <View style={[styles.barTrack, { backgroundColor: theme.custom.trackBg, boxShadow: neuInset(theme) as any }]}>
                           <View
                             style={[
                               styles.barFill,
@@ -145,8 +159,32 @@ export default function StatsScreen() {
           </View>
         )}
 
+        {/* Premium Graph Reports */}
+        <View style={styles.cardWrap}>
+          <PremiumGate isPremium={isPremium} onUpgrade={() => setShowPremiumModal(true)}>
+            <DailySpendingChart dailyTotals={dailyTotals} month={selectedMonth} currency={currency} />
+            <View style={{ height: 16 }} />
+            <CategoryRingChart categoryTotals={categoryTotals} currency={currency} />
+          </PremiumGate>
+        </View>
+
+        {/* Compare Spending */}
+        <View style={styles.cardWrap}>
+          <CompareSpending currency={currency} isVisible={isFocused} />
+        </View>
+
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      <PremiumModal
+        visible={showPremiumModal}
+        onSubscribe={async () => {
+          await setPremium(true);
+          setShowPremiumModal(false);
+          load();
+        }}
+        onDismiss={() => setShowPremiumModal(false)}
+      />
     </ScreenContainer>
   );
 }

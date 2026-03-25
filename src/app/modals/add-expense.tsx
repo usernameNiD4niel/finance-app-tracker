@@ -7,11 +7,14 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '../../components/CategoryPicker';
+import { SourcePicker } from '../../components/SourcePicker';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useSourceStore } from '../../store/sourceStore';
 import { format } from 'date-fns';
-import type { Category } from '../../db/schema';
+import { neuButton, neuCard } from '../../theme/neumorphism';
+import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
 const schema = z.object({
@@ -29,8 +32,11 @@ export default function AddExpenseScreen() {
   const { currency } = useSettingsStore();
   const { categories, loadCategories } = useCategoryStore();
   const { expenses, addExpense, editExpense } = useExpenseStore();
+  const { sources, loadSources } = useSourceStore();
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+  const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const isEditing = !!id;
@@ -47,11 +53,16 @@ export default function AddExpenseScreen() {
 
   useEffect(() => {
     loadCategories();
+    loadSources();
     if (existing) {
       const cat = categories.find(c => c.id === existing.categoryId);
       if (cat) setSelectedCategory(cat);
+      if (existing.sourceId) {
+        const src = sources.find(s => s.id === existing.sourceId);
+        if (src) setSelectedSource(src);
+      }
     }
-  }, [categories.length]);
+  }, [categories.length, sources.length]);
 
   const onSubmit = async (data: FormData) => {
     if (!selectedCategory) {
@@ -63,6 +74,7 @@ export default function AddExpenseScreen() {
       const payload = {
         amount: Number(data.amount),
         categoryId: selectedCategory.id,
+        sourceId: selectedSource?.id ?? null,
         note: data.note || null,
         date: data.date,
       };
@@ -111,7 +123,7 @@ export default function AddExpenseScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
           onPress={() => setCategoryPickerVisible(true)}
         >
           {selectedCategory ? (
@@ -128,6 +140,31 @@ export default function AddExpenseScreen() {
               <MaterialCommunityIcons name="tag-outline" size={20} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
                 Select Category
+              </Text>
+            </>
+          )}
+          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
+        </TouchableOpacity>
+
+        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Source</Text>
+        <TouchableOpacity
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+          onPress={() => setSourcePickerVisible(true)}
+        >
+          {selectedSource ? (
+            <>
+              <View style={[styles.catIconWrap, { backgroundColor: selectedSource.color + '22' }]}>
+                <MaterialCommunityIcons name={selectedSource.icon as any} size={20} color={selectedSource.color} />
+              </View>
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+                {selectedSource.name}
+              </Text>
+            </>
+          ) : (
+            <>
+              <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                Select Source (optional)
               </Text>
             </>
           )}
@@ -172,13 +209,13 @@ export default function AddExpenseScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>
             {isEditing ? 'Save Changes' : 'Add Expense'}
           </Text>
         </TouchableOpacity>
@@ -190,6 +227,14 @@ export default function AddExpenseScreen() {
         selectedId={selectedCategory?.id ?? null}
         onSelect={setSelectedCategory}
         onClose={() => setCategoryPickerVisible(false)}
+      />
+
+      <SourcePicker
+        visible={sourcePickerVisible}
+        sources={sources}
+        selectedId={selectedSource?.id ?? null}
+        onSelect={setSelectedSource}
+        onClose={() => setSourcePickerVisible(false)}
       />
     </View>
   );
@@ -213,7 +258,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 16,
-    borderWidth: 1,
     gap: 10,
   },
   catIconWrap: {
@@ -228,9 +272,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 32,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

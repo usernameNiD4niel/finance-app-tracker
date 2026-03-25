@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { exportExpenses } from '../../services/export';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 type ExportFormat = 'csv' | 'json';
@@ -72,8 +73,8 @@ export default function ExportScreen() {
               style={[
                 styles.formatBtn,
                 {
-                  backgroundColor: exportFormat === f ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-                  borderColor: exportFormat === f ? theme.colors.primary : 'transparent',
+                  backgroundColor: exportFormat === f ? theme.colors.primary + '22' : theme.custom.cardBg,
+                  boxShadow: exportFormat === f ? (neuChip(theme) as any) : undefined,
                 },
               ]}
               onPress={() => setExportFormat(f)}
@@ -102,7 +103,7 @@ export default function ExportScreen() {
                 styles.rangeOption,
                 {
                   backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
-                  borderColor: isSelected ? theme.colors.primary : theme.custom.cardBorder,
+                  boxShadow: isSelected ? (neuCard(theme) as any) : undefined,
                 },
               ]}
               onPress={() => setRangeOption(opt.key)}
@@ -123,14 +124,14 @@ export default function ExportScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: exporting ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleExport}
           disabled={exporting}
         >
-          <MaterialCommunityIcons name="export" size={20} color="#fff" />
-          <Text variant="labelLarge" style={{ color: '#fff' }}>
+          <MaterialCommunityIcons name="export" size={20} color={theme.custom.buttonText} />
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>
             {exporting ? 'Exporting...' : `Export as ${exportFormat.toUpperCase()}`}
           </Text>
         </TouchableOpacity>
@@ -149,15 +150,14 @@ const styles = StyleSheet.create({
   formatRow: { flexDirection: 'row', gap: 12 },
   formatBtn: {
     flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 20, borderRadius: 16, borderWidth: 2,
+    paddingVertical: 20, borderRadius: 16,
   },
   rangeOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: 16, marginBottom: 8, borderWidth: 1.5,
+    padding: 16, borderRadius: 16, marginBottom: 8,
   },
   exportBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     borderRadius: 16, paddingVertical: 16, marginTop: 24,
-    shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
 });

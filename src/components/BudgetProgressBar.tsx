@@ -5,6 +5,7 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 import { useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatCurrency } from '../utils/currency';
+import { neuInset } from '../theme/neumorphism';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -51,7 +52,7 @@ export function BudgetProgressBar({ label, icon, iconColor, spent, limit, curren
           {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
         </Text>
       </View>
-      <View style={[styles.track, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+      <View style={[styles.track, { backgroundColor: theme.custom.trackBg, boxShadow: neuInset(theme) as any }]}>
         <Animated.View style={[styles.fill, { backgroundColor: barColor }, barStyle]} />
       </View>
       <Text variant="bodySmall" style={{ color: theme.custom.mutedText, marginTop: 2 }}>

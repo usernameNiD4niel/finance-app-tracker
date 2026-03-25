@@ -4,6 +4,7 @@ import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCategoryStore } from '../../store/categoryStore';
+import { neuButton, neuListItem, neuCardLg, neuChip } from '../../theme/neumorphism';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -82,7 +83,7 @@ export default function CategoriesScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
-          <View style={[styles.catRow, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+          <View style={[styles.catRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}>
             <View style={[styles.catIcon, { backgroundColor: item.color + '22' }]}>
               <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
             </View>
@@ -106,8 +107,8 @@ export default function CategoriesScreen() {
 
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.overlay}>
-          <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
+        <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
+          <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
             <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
             <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
               {editingId ? 'Edit Category' : 'New Category'}
@@ -126,8 +127,8 @@ export default function CategoriesScreen() {
                   <TouchableOpacity
                     key={icon}
                     style={[styles.iconOption, {
-                      backgroundColor: selectedIcon === icon ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-                      borderColor: selectedIcon === icon ? theme.colors.primary : 'transparent',
+                      backgroundColor: selectedIcon === icon ? theme.colors.primary + '22' : theme.custom.cardBg,
+                      boxShadow: selectedIcon === icon ? (neuChip(theme) as any) : undefined,
                     }]}
                     onPress={() => setSelectedIcon(icon)}
                   >
@@ -141,7 +142,7 @@ export default function CategoriesScreen() {
               {COLOR_OPTIONS.map(color => (
                 <TouchableOpacity
                   key={color}
-                  style={[styles.colorDot, { backgroundColor: color, borderWidth: selectedColor === color ? 3 : 0, borderColor: '#fff' }]}
+                  style={[styles.colorDot, { backgroundColor: color, borderWidth: selectedColor === color ? 3 : 0, borderColor: theme.custom.buttonText }]}
                   onPress={() => setSelectedColor(color)}
                 />
               ))}
@@ -155,12 +156,12 @@ export default function CategoriesScreen() {
                   styles.saveBtn,
                   {
                     backgroundColor: theme.colors.primary,
-                    shadowColor: theme.colors.primary,
+                    boxShadow: neuButton(theme) as any,
                   },
                 ]}
                 onPress={handleSave}
               >
-                <Text variant="labelLarge" style={{ color: '#fff' }}>Save</Text>
+                <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -177,14 +178,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
   },
   catRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1, padding: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, padding: 14,
   },
   catIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 12 },
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.75)' },
+  overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  iconOption: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  iconOption: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },
   colorDot: { width: 36, height: 36, borderRadius: 18 },
   modalActions: { flexDirection: 'row', gap: 12 },
@@ -194,9 +195,5 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

@@ -3,18 +3,18 @@ import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-nat
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { neuCardLg, neuChip } from '../theme/neumorphism';
-import type { Category } from '../db/schema';
+import type { MoneySource } from '../db/schema';
 import type { AppTheme } from '../theme';
 
 interface Props {
   visible: boolean;
-  categories: Category[];
+  sources: MoneySource[];
   selectedId: number | null;
-  onSelect: (category: Category) => void;
+  onSelect: (source: MoneySource) => void;
   onClose: () => void;
 }
 
-export function CategoryPicker({ visible, categories, selectedId, onSelect, onClose }: Props) {
+export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }: Props) {
   const theme = useTheme<AppTheme>();
 
   return (
@@ -23,36 +23,36 @@ export function CategoryPicker({ visible, categories, selectedId, onSelect, onCl
         <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
           <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
           <Text variant="titleLarge" style={{ color: theme.colors.onSurface, marginBottom: 16, fontWeight: '700' }}>
-            Select Category
+            Select Source
           </Text>
           <ScrollView showsVerticalScrollIndicator={false}>
             <View style={styles.grid}>
-              {categories.map((cat) => {
-                const isSelected = cat.id === selectedId;
+              {sources.filter(s => s.isActive).map((src) => {
+                const isSelected = src.id === selectedId;
                 return (
                   <TouchableOpacity
-                    key={cat.id}
+                    key={src.id}
                     style={[
                       styles.item,
                       {
-                        backgroundColor: isSelected ? cat.color + '22' : theme.custom.cardBg,
+                        backgroundColor: isSelected ? src.color + '22' : theme.custom.cardBg,
                         boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
                       },
                     ]}
-                    onPress={() => { onSelect(cat); onClose(); }}
+                    onPress={() => { onSelect(src); onClose(); }}
                     activeOpacity={0.7}
                   >
                     <MaterialCommunityIcons
-                      name={cat.icon as any}
+                      name={src.icon as any}
                       size={28}
-                      color={cat.color}
+                      color={src.color}
                     />
                     <Text
                       variant="labelSmall"
                       style={{ color: theme.colors.onSurface, marginTop: 4, textAlign: 'center' }}
                       numberOfLines={2}
                     >
-                      {cat.name}
+                      {src.name}
                     </Text>
                   </TouchableOpacity>
                 );

@@ -7,6 +7,7 @@ import { useTargetStore } from '../../store/targetStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getCurrentMonth } from '../../utils/date';
+import { neuButton, neuCard, neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function BudgetTargetsScreen() {
@@ -62,7 +63,7 @@ export default function BudgetTargetsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.card, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+        <View style={[styles.card, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
           <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
             Monthly Overall Limit
           </Text>
@@ -80,7 +81,7 @@ export default function BudgetTargetsScreen() {
           Per Category Limits
         </Text>
         {categories.map(cat => (
-          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}>
             <View style={[styles.catIcon, { backgroundColor: cat.color + '22' }]}>
               <MaterialCommunityIcons name={cat.icon as any} size={18} color={cat.color} />
             </View>
@@ -105,13 +106,13 @@ export default function BudgetTargetsScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: saving ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSave}
           disabled={saving}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>Save Targets</Text>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save Targets</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -125,17 +126,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
   },
   content: { padding: 20, gap: 12 },
-  card: { borderRadius: 18, borderWidth: 1, padding: 16, marginBottom: 4 },
-  catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, padding: 14 },
+  card: { borderRadius: 18, padding: 16, marginBottom: 4 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14 },
   catIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   saveBtn: {
     borderRadius: 16,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 16,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

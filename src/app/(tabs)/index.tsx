@@ -18,6 +18,7 @@ import { useTargetStore } from '../../store/targetStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentPeriodDates, getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
+import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
 
@@ -45,9 +46,9 @@ export default function DashboardScreen() {
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
 
   const [balanceData, setBalanceData] = useState<{
-    salary: number; spent: number; billsDue: number; balance: number; period: 'first' | 'fifteenth';
+    salary: number; spent: number; billsDue: number; walletBalance: number; balance: number; period: 'first' | 'fifteenth';
   }>({
-    salary: 0, spent: 0, billsDue: 0, balance: 0, period: 'first',
+    salary: 0, spent: 0, billsDue: 0, walletBalance: 0, balance: 0, period: 'first',
   });
   const [upcomingBills, setUpcomingBills] = useState<UpcomingBill[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +81,7 @@ export default function DashboardScreen() {
   const quickActions = [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
     { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
-    { icon: 'chart-bar', label: 'Stats', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/stats') },
+    { icon: 'wallet', label: 'Wallets', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/wallets') },
     { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
   ];
 
@@ -111,7 +112,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.notifBtn, { backgroundColor: theme.colors.surfaceVariant }]}
+            style={[styles.notifBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCircle(theme) as any }]}
             onPress={() => router.push('/modals/notifications')}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
@@ -122,6 +123,7 @@ export default function DashboardScreen() {
         <BalanceCard
           balance={balanceData.balance}
           salary={balanceData.salary}
+          walletBalance={balanceData.walletBalance}
           spent={balanceData.spent}
           billsDue={balanceData.billsDue}
           currency={currency}
@@ -147,7 +149,7 @@ export default function DashboardScreen() {
                     styles.upcomingBill,
                     {
                       backgroundColor: theme.custom.cardBg,
-                      borderColor: theme.custom.cardBorder,
+                      boxShadow: neuListItem(theme) as any,
                     },
                   ]}
                   onPress={() => router.push('/(tabs)/bills')}
@@ -213,7 +215,7 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet
@@ -295,7 +297,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 13,
     borderRadius: 18,
-    borderWidth: 1,
     marginBottom: 7,
     gap: 10,
   },
@@ -315,7 +316,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 36,
     borderRadius: 18,
-    borderWidth: 1,
     gap: 4,
   },
 });

@@ -11,12 +11,14 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useTabStore } from '../../store/tabStore';
+import { neuTabBar } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 const TAB_CONFIG = [
   { name: 'index',    icon: 'view-dashboard-outline', activeIcon: 'view-dashboard',  label: 'Home' },
   { name: 'expenses', icon: 'cash-multiple',           activeIcon: 'cash-multiple',   label: 'Expenses' },
   { name: 'bills',    icon: 'receipt-outline',         activeIcon: 'receipt',         label: 'Bills' },
+  { name: 'wallets',  icon: 'wallet-outline',          activeIcon: 'wallet',          label: 'Wallets' },
   { name: 'stats',    icon: 'chart-bar-stacked',       activeIcon: 'chart-bar',       label: 'Stats' },
   { name: 'settings', icon: 'cog-outline',             activeIcon: 'cog',             label: 'Settings' },
 ] as const;
@@ -91,10 +93,7 @@ function FloatingTabBar({ state, navigation }: any) {
           styles.bar,
           {
             backgroundColor: theme.custom.tabBarBg,
-            borderColor: theme.dark
-              ? theme.custom.cardBorder
-              : 'rgba(0,0,0,0.06)',
-            shadowColor: theme.dark ? '#000' : '#6366f1',
+            boxShadow: neuTabBar(theme) as any,
           },
         ]}
       >
@@ -159,11 +158,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingHorizontal: 6,
     paddingVertical: 8,
-    borderWidth: 1,
-    elevation: 28,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
   },
   tabItem: {
     flex: 1,

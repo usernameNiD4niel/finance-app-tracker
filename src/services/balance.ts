@@ -1,20 +1,22 @@
-import { getExpenses, getLatestSalaryByPeriod, getBills } from '../db/queries';
+import { getExpenses, getLatestSalaryByPeriod, getBills, getTotalSourceBalance } from '../db/queries';
 import { getCurrentPeriodDates, getCurrentPeriod, getDaysUntilDue } from '../utils/date';
 
 export async function calculateCurrentBalance(): Promise<{
   salary: number;
   spent: number;
   billsDue: number;
+  walletBalance: number;
   balance: number;
   period: 'first' | 'fifteenth';
 }> {
   const { start, end } = getCurrentPeriodDates();
   const period = getCurrentPeriod();
 
-  const [salaryRecord, periodExpenses, allBills] = await Promise.all([
+  const [salaryRecord, periodExpenses, allBills, walletBalance] = await Promise.all([
     getLatestSalaryByPeriod(period),
     getExpenses({ startDate: start, endDate: end }),
     getBills(),
+    getTotalSourceBalance(),
   ]);
 
   const salary = salaryRecord?.amount ?? 0;
@@ -36,9 +38,9 @@ export async function calculateCurrentBalance(): Promise<{
     })
     .reduce((sum, b) => sum + b.amount, 0);
 
-  const balance = salary - spent - billsDue;
+  const balance = walletBalance + salary - spent - billsDue;
 
-  return { salary, spent, billsDue, balance, period };
+  return { salary, spent, billsDue, walletBalance, balance, period };
 }
 
 export type UpcomingBill = {

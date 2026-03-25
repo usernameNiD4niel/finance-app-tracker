@@ -20,24 +20,31 @@ export const lightTheme = {
     secondary: customColors.secondary,
     tertiary: customColors.tertiary,
     error: customColors.error,
-    background: '#f8fafc',
-    surface: '#ffffff',
-    surfaceVariant: '#f1f5f9',
-    onSurface: '#0f172a',
-    onSurfaceVariant: '#475569',
-    outline: '#cbd5e1',
+    background: '#e3e6ec',
+    surface: '#e3e6ec',
+    surfaceVariant: '#dcdfe6',
+    onSurface: '#1e2030',
+    onSurfaceVariant: '#5b6178',
+    outline: '#c5c9d4',
   },
   custom: {
     ...customColors,
     income: '#22c55e',
     expense: '#ef4444',
-    cardBg: '#ffffff',
-    tabBarBg: '#ffffff',
+    cardBg: '#e3e6ec',
+    tabBarBg: '#e3e6ec',
     glowPrimary: '#6366f1',
     glowSecondary: '#7c3aed',
-    cardBorder: '#e2e8f0',
-    surfaceElevated: '#ffffff',
-    mutedText: '#9ca3af',
+    cardBorder: 'transparent',
+    surfaceElevated: '#eaecf2',
+    mutedText: '#8890a4',
+    shadowDark: '#c8ccd4',
+    shadowLight: '#ffffff',
+    trackBg: '#d6d9e0',
+    overlayBg: 'rgba(0,0,0,0.55)',
+    buttonText: '#ffffff',
+    onAccentSurface: 'rgba(255,255,255,0.9)',
+    onAccentSurfaceMuted: 'rgba(255,255,255,0.55)',
   },
 };
 
@@ -45,32 +52,74 @@ export const darkTheme = {
   ...MD3DarkTheme,
   colors: {
     ...MD3DarkTheme.colors,
-    primary: customColors.primary,
+    primary: '#818cf8',
     primaryContainer: '#3730a3',
     secondary: '#7c3aed',
     tertiary: customColors.tertiary,
     error: customColors.error,
-    background: '#0d0f14',
-    surface: '#13151c',
-    surfaceVariant: '#1a1d28',
-    onSurface: '#f1f5f9',
-    onSurfaceVariant: '#8b9ab4',
-    outline: '#1f2437',
+    background: '#2a2d3a',
+    surface: '#2a2d3a',
+    surfaceVariant: '#2f3244',
+    onSurface: '#e8eaf0',
+    onSurfaceVariant: '#9298b0',
+    outline: '#3a3e50',
   },
   custom: {
     ...customColors,
+    primary: '#818cf8',
     income: '#4ade80',
     expense: '#f87171',
     warning: '#fbbf24',
-    cardBg: '#13151c',
-    tabBarBg: '#0d0f14',
-    glowPrimary: '#6366f1',
+    cardBg: '#2a2d3a',
+    tabBarBg: '#2a2d3a',
+    glowPrimary: '#818cf8',
     glowSecondary: '#7c3aed',
-    cardBorder: '#1f2437',
-    surfaceElevated: '#16192a',
-    mutedText: '#4b5563',
+    cardBorder: 'transparent',
+    surfaceElevated: '#303342',
+    mutedText: '#636b84',
+    shadowDark: '#222530',
+    shadowLight: '#363a4a',
+    trackBg: '#232632',
+    overlayBg: 'rgba(0,0,0,0.65)',
+    buttonText: '#ffffff',
+    onAccentSurface: 'rgba(255,255,255,0.9)',
+    onAccentSurfaceMuted: 'rgba(255,255,255,0.55)',
   },
 };
+
+export const PRIMARY_COLORS = [
+  { name: 'Indigo', light: '#6366f1', dark: '#818cf8' },
+  { name: 'Pink', light: '#ec4899', dark: '#f472b6' },
+  { name: 'Rose', light: '#f43f5e', dark: '#fb7185' },
+  { name: 'Orange', light: '#f97316', dark: '#fb923c' },
+  { name: 'Amber', light: '#f59e0b', dark: '#fbbf24' },
+  { name: 'Emerald', light: '#10b981', dark: '#34d399' },
+  { name: 'Cyan', light: '#06b6d4', dark: '#22d3ee' },
+  { name: 'Blue', light: '#3b82f6', dark: '#60a5fa' },
+] as const;
+
+export function buildTheme(primaryColor: string, isDark: boolean): AppTheme {
+  const base = isDark ? darkTheme : lightTheme;
+  const entry = PRIMARY_COLORS.find(
+    (c) => c.light === primaryColor || c.dark === primaryColor,
+  );
+  const resolved = entry
+    ? isDark ? entry.dark : entry.light
+    : primaryColor;
+
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: resolved,
+    },
+    custom: {
+      ...base.custom,
+      primary: resolved,
+      glowPrimary: resolved,
+    },
+  };
+}
 
 const { LightTheme: navLight, DarkTheme: navDark } = adaptNavigationTheme({
   reactNavigationLight: NavigationLightTheme,

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CURRENCIES } from '../../utils/currency';
+import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function CurrencyPickerScreen() {
@@ -41,7 +42,7 @@ export default function CurrencyPickerScreen() {
                 styles.item,
                 {
                   backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
-                  borderColor: isSelected ? theme.colors.primary : theme.custom.cardBorder,
+                  boxShadow: neuListItem(theme) as any,
                 },
               ]}
               onPress={() => handleSelect(item.code)}
@@ -70,6 +71,6 @@ const styles = StyleSheet.create({
   },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 16, borderRadius: 16, borderWidth: 1.5,
+    padding: 16, borderRadius: 16,
   },
 });
