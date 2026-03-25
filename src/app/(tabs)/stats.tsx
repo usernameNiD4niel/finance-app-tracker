@@ -7,6 +7,10 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { RoundedCard } from '../../components/ui/RoundedCard';
 import { CompareSpending } from '../../components/CompareSpending';
+import { PremiumGate } from '../../components/PremiumGate';
+import { DailySpendingChart } from '../../components/DailySpendingChart';
+import { CategoryRingChart } from '../../components/CategoryRingChart';
+import { PremiumModal } from '../../components/PremiumModal';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
@@ -17,16 +21,20 @@ import type { AppTheme } from '../../theme';
 
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
-  const { currency } = useSettingsStore();
-  const { expenses, categoryTotals, loadExpenses, loadCategoryTotals } = useExpenseStore();
+  const { currency, isPremium, setPremium } = useSettingsStore();
+  const { expenses, categoryTotals, dailyTotals, loadExpenses, loadCategoryTotals, loadDailyTotals } = useExpenseStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [isFocused, setIsFocused] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const load = useCallback(async () => {
     const { start, end } = getMonthBounds(selectedMonth);
     await loadExpenses({ startDate: start, endDate: end });
     await loadCategoryTotals(start, end);
-  }, [selectedMonth]);
+    if (isPremium) {
+      await loadDailyTotals(start, end);
+    }
+  }, [selectedMonth, isPremium]);
 
   useFocusEffect(useCallback(() => {
     setIsFocused(true);
@@ -151,6 +159,15 @@ export default function StatsScreen() {
           </View>
         )}
 
+        {/* Premium Graph Reports */}
+        <View style={styles.cardWrap}>
+          <PremiumGate isPremium={isPremium} onUpgrade={() => setShowPremiumModal(true)}>
+            <DailySpendingChart dailyTotals={dailyTotals} month={selectedMonth} currency={currency} />
+            <View style={{ height: 16 }} />
+            <CategoryRingChart categoryTotals={categoryTotals} currency={currency} />
+          </PremiumGate>
+        </View>
+
         {/* Compare Spending */}
         <View style={styles.cardWrap}>
           <CompareSpending currency={currency} isVisible={isFocused} />
@@ -158,6 +175,16 @@ export default function StatsScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      <PremiumModal
+        visible={showPremiumModal}
+        onSubscribe={async () => {
+          await setPremium(true);
+          setShowPremiumModal(false);
+          load();
+        }}
+        onDismiss={() => setShowPremiumModal(false)}
+      />
     </ScreenContainer>
   );
 }

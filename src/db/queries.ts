@@ -112,6 +112,19 @@ export async function getExpenseTotal(
   return { total: result?.total ?? 0, count: result?.count ?? 0 };
 }
 
+export async function getDailyExpenseTotals(startDate: string, endDate: string) {
+  return db
+    .select({
+      date: expenses.date,
+      total: sql<number>`SUM(${expenses.amount})`,
+    })
+    .from(expenses)
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
+    .groupBy(expenses.date)
+    .orderBy(expenses.date)
+    .all();
+}
+
 // ─── Bills ──────────────────────────────────────────────────────────────────
 export async function getBills() {
   return db

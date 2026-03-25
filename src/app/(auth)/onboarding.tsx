@@ -22,7 +22,7 @@ type Step = 'welcome' | 'currency' | 'salary' | 'transactions' | 'pin' | 'confir
 export default function OnboardingScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { setCurrency, setPin, setOnboardingDone } = useSettingsStore();
+  const { setCurrency, setPin, setOnboardingDone, setPremium } = useSettingsStore();
   const { setSalary } = useSalaryStore();
   const { addExpense } = useExpenseStore();
   const { loadCategories, categories } = useCategoryStore();
@@ -70,7 +70,13 @@ export default function OnboardingScreen() {
     setShowPremium(true);
   };
 
-  const handlePremiumDone = () => {
+  const handlePremiumSubscribe = async () => {
+    await setPremium(true);
+    setShowPremium(false);
+    router.replace('/(tabs)');
+  };
+
+  const handlePremiumDismiss = () => {
     setShowPremium(false);
     router.replace('/(tabs)');
   };
@@ -411,8 +417,8 @@ export default function OnboardingScreen() {
 
       <PremiumModal
         visible={showPremium}
-        onSubscribe={handlePremiumDone}
-        onDismiss={handlePremiumDone}
+        onSubscribe={handlePremiumSubscribe}
+        onDismiss={handlePremiumDismiss}
       />
     </View>
   );

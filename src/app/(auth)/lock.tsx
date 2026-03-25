@@ -13,7 +13,7 @@ import type { AppTheme } from '../../theme';
 export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { pinHash } = useSettingsStore();
+  const { pinHash, setPremium } = useSettingsStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
@@ -35,7 +35,13 @@ export default function LockScreen() {
 
   const unlock = () => setShowPremium(true);
 
-  const handlePremiumDone = () => {
+  const handlePremiumSubscribe = async () => {
+    await setPremium(true);
+    setShowPremium(false);
+    router.replace('/(tabs)');
+  };
+
+  const handlePremiumDismiss = () => {
     setShowPremium(false);
     router.replace('/(tabs)');
   };
@@ -84,8 +90,8 @@ export default function LockScreen() {
 
       <PremiumModal
         visible={showPremium}
-        onSubscribe={handlePremiumDone}
-        onDismiss={handlePremiumDone}
+        onSubscribe={handlePremiumSubscribe}
+        onDismiss={handlePremiumDismiss}
       />
     </View>
   );

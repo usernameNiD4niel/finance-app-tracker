@@ -1,21 +1,24 @@
 import { create } from 'zustand';
 import {
   getExpenses, createExpense, updateExpense, deleteExpense, getExpenseTotalByCategory,
-  adjustSourceBalance,
+  getDailyExpenseTotals, adjustSourceBalance,
 } from '../db/queries';
 import type { Expense, NewExpense } from '../db/schema';
 
 export type ExpenseWithCategory = Awaited<ReturnType<typeof getExpenses>>[number];
 export type CategoryTotal = Awaited<ReturnType<typeof getExpenseTotalByCategory>>[number];
+export type DailyTotal = { date: string; total: number };
 
 interface ExpenseState {
   expenses: ExpenseWithCategory[];
   categoryTotals: CategoryTotal[];
+  dailyTotals: DailyTotal[];
   isLoading: boolean;
   filters: { startDate?: string; endDate?: string; categoryId?: number };
   setFilters: (filters: { startDate?: string; endDate?: string; categoryId?: number }) => void;
   loadExpenses: (filters?: { startDate?: string; endDate?: string; categoryId?: number }) => Promise<void>;
   loadCategoryTotals: (startDate: string, endDate: string) => Promise<void>;
+  loadDailyTotals: (startDate: string, endDate: string) => Promise<void>;
   addExpense: (data: NewExpense) => Promise<void>;
   editExpense: (id: number, data: Partial<NewExpense>) => Promise<void>;
   removeExpense: (id: number) => Promise<void>;
@@ -24,6 +27,7 @@ interface ExpenseState {
 export const useExpenseStore = create<ExpenseState>((set, get) => ({
   expenses: [],
   categoryTotals: [],
+  dailyTotals: [],
   isLoading: false,
   filters: {},
 
@@ -39,6 +43,11 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
   loadCategoryTotals: async (startDate, endDate) => {
     const data = await getExpenseTotalByCategory(startDate, endDate);
     set({ categoryTotals: data });
+  },
+
+  loadDailyTotals: async (startDate, endDate) => {
+    const data = await getDailyExpenseTotals(startDate, endDate);
+    set({ dailyTotals: data });
   },
 
   addExpense: async (data) => {
