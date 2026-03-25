@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { neuButton, neuInset } from '../theme/neumorphism';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -63,16 +64,13 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
               i < pin.length
                 ? {
                     backgroundColor: theme.colors.primary,
-                    borderColor: theme.colors.primary,
-                    shadowColor: theme.colors.primary,
-                    shadowOpacity: 0.6,
-                    shadowRadius: 6,
-                    shadowOffset: { width: 0, height: 0 },
-                    elevation: 4,
+                    boxShadow: [
+                      { offsetX: 0, offsetY: 0, blurRadius: 8, spreadDistance: 1, color: theme.colors.primary + '66' },
+                    ] as any,
                   }
                 : {
-                    backgroundColor: theme.colors.surfaceVariant,
-                    borderColor: theme.colors.outline,
+                    backgroundColor: theme.custom.trackBg,
+                    boxShadow: neuInset(theme) as any,
                   },
             ]}
           />
@@ -89,8 +87,7 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
                   styles.key,
                   {
                     backgroundColor: key === '' ? 'transparent' : theme.custom.cardBg,
-                    borderColor: key === '' ? 'transparent' : theme.custom.cardBorder,
-                    borderWidth: key === '' ? 0 : 1,
+                    boxShadow: key === '' ? undefined : (neuButton(theme) as any),
                   },
                 ]}
                 onPress={() => handleKey(key)}
@@ -119,8 +116,9 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: 32,
+    justifyContent: 'center',
     paddingHorizontal: 24,
   },
   dots: {
@@ -133,7 +131,6 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    borderWidth: 1.5,
   },
   keypad: {
     gap: 12,

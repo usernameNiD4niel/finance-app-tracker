@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSalaryStore } from '../../store/salaryStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { format } from 'date-fns';
+import { neuButton, neuCard } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function SalaryScreen() {
@@ -59,7 +60,7 @@ export default function SalaryScreen() {
           </Text>
         </View>
 
-        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
           <View style={styles.periodHeader}>
             <View style={[styles.badge, { backgroundColor: theme.custom.income + '22' }]}>
               <Text variant="labelSmall" style={{ color: theme.custom.income }}>1st Period</Text>
@@ -79,7 +80,7 @@ export default function SalaryScreen() {
           />
         </View>
 
-        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, borderColor: theme.custom.cardBorder }]}>
+        <View style={[styles.periodCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
           <View style={styles.periodHeader}>
             <View style={[styles.badge, { backgroundColor: theme.custom.income + '22' }]}>
               <Text variant="labelSmall" style={{ color: theme.custom.income }}>2nd Period</Text>
@@ -105,13 +106,13 @@ export default function SalaryScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: saving ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSave}
           disabled={saving}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>Save Salary</Text>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save Salary</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     borderRadius: 16, padding: 14,
   },
-  periodCard: { borderRadius: 18, borderWidth: 1, padding: 16 },
+  periodCard: { borderRadius: 18, padding: 16 },
   periodHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12,
   },
@@ -139,9 +140,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

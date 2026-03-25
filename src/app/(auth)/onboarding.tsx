@@ -7,6 +7,7 @@ import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { hashPin } from '../../services/auth';
 import { CURRENCIES } from '../../utils/currency';
+import { neuCardLg, neuButton, neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 type Step = 'welcome' | 'currency' | 'pin' | 'confirm-pin';
@@ -42,7 +43,7 @@ export default function OnboardingScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {step === 'welcome' && (
         <View style={styles.center}>
-          <View style={[styles.logoWrap, { backgroundColor: theme.colors.primaryContainer }]}>
+          <View style={[styles.logoWrap, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
             <MaterialCommunityIcons name="wallet" size={64} color={theme.colors.primary} />
           </View>
           <Text variant="displaySmall" style={[styles.title, { color: theme.colors.onSurface }]}>
@@ -52,10 +53,10 @@ export default function OnboardingScreen() {
             Track your expenses, manage bills, and stay on budget — all offline, all private.
           </Text>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
             onPress={() => setStep('currency')}
           >
-            <Text variant="labelLarge" style={{ color: '#fff' }}>Get Started</Text>
+            <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Get Started</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -77,8 +78,8 @@ export default function OnboardingScreen() {
                   style={[
                     styles.currencyItem,
                     {
-                      backgroundColor: isSelected ? theme.colors.primaryContainer : theme.colors.surface,
-                      borderColor: isSelected ? theme.colors.primary : theme.colors.outline,
+                      backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
+                      boxShadow: neuListItem(theme) as any,
                     },
                   ]}
                   onPress={() => setSelectedCurrency(c.code)}
@@ -97,10 +98,10 @@ export default function OnboardingScreen() {
             })}
           </ScrollView>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
             onPress={() => setStep('pin')}
           >
-            <Text variant="labelLarge" style={{ color: '#fff' }}>Continue</Text>
+            <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -158,13 +159,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
+    width: '100%',
   },
   currencyItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     borderRadius: 14,
-    borderWidth: 1.5,
     marginBottom: 8,
     gap: 12,
   },

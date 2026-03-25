@@ -10,6 +10,7 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { getPeriodProgress } from '../utils/date';
+import { neuCard, neuInset } from '../theme/neumorphism';
 import type { AppTheme } from '../theme';
 
 export function SalaryPeriodBar() {
@@ -40,7 +41,7 @@ export function SalaryPeriodBar() {
         styles.container,
         {
           backgroundColor: theme.custom.cardBg,
-          borderColor: theme.custom.cardBorder,
+          boxShadow: neuCard(theme) as any,
         },
       ]}
     >
@@ -54,7 +55,7 @@ export function SalaryPeriodBar() {
         </View>
       </View>
 
-      <View style={[styles.track, { backgroundColor: theme.custom.cardBorder }]}>
+      <View style={[styles.track, { backgroundColor: theme.custom.trackBg, boxShadow: neuInset(theme) as any }]}>
         <Animated.View style={[styles.fill, { backgroundColor: barColor }, barStyle]} />
       </View>
 
@@ -68,7 +69,6 @@ export function SalaryPeriodBar() {
 const styles = StyleSheet.create({
   container: {
     borderRadius: 22,
-    borderWidth: 1,
     padding: 16,
     marginHorizontal: 16,
     marginTop: 14,

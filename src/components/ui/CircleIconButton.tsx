@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTheme } from 'react-native-paper';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { neuCircle } from '../../theme/neumorphism';
+import type { AppTheme } from '../../theme';
 
 interface Props {
   icon: string;
@@ -15,6 +18,7 @@ interface Props {
 }
 
 export function CircleIconButton({ icon, label, color, onPress }: Props) {
+  const theme = useTheme<AppTheme>();
   const scale = useSharedValue(1);
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -33,8 +37,8 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
             style={[
               styles.circle,
               {
-                backgroundColor: color + '22',
-                borderColor: color + '33',
+                backgroundColor: theme.custom.cardBg,
+                boxShadow: neuCircle(theme) as any,
               },
             ]}
           >
@@ -59,7 +63,6 @@ const styles = StyleSheet.create({
     width: 62,
     height: 62,
     borderRadius: 31,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

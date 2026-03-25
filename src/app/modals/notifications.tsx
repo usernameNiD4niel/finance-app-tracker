@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getUpcomingBills } from '../../services/balance';
 import { formatCurrency } from '../../utils/currency';
 import { useSettingsStore } from '../../store/settingsStore';
+import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
 
@@ -21,7 +22,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: theme.custom.cardBorder }]}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -54,9 +55,7 @@ export default function NotificationsScreen() {
                   styles.card,
                   {
                     backgroundColor: theme.custom.cardBg,
-                    borderColor: bill.daysUntilDue <= 3
-                      ? theme.custom.expense + '44'
-                      : theme.custom.cardBorder,
+                    boxShadow: neuListItem(theme) as any,
                   },
                 ]}
               >
@@ -109,7 +108,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 16,
-    borderBottomWidth: 1,
   },
   content: { padding: 20, gap: 10 },
   sectionLabel: {
@@ -128,7 +126,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 18,
-    borderWidth: 1,
     gap: 12,
   },
   iconWrap: {

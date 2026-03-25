@@ -11,6 +11,7 @@ import { useCategoryStore } from '../../store/categoryStore';
 import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { scheduleBillNotification, cancelNotification } from '../../services/notifications';
+import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -138,7 +139,7 @@ export default function AddBillScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
           onPress={() => setCategoryPickerVisible(true)}
         >
           {selectedCategory ? (
@@ -165,8 +166,8 @@ export default function AddBillScreen() {
               style={[
                 styles.freqBtn,
                 {
-                  backgroundColor: frequency === f ? theme.colors.primaryContainer : theme.colors.surfaceVariant,
-                  borderColor: frequency === f ? theme.colors.primary : 'transparent',
+                  backgroundColor: frequency === f ? theme.colors.primary + '22' : theme.custom.cardBg,
+                  boxShadow: frequency === f ? (neuChip(theme) as any) : undefined,
                 },
               ]}
               onPress={() => setFrequency(f)}
@@ -211,13 +212,13 @@ export default function AddBillScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>
             {isEditing ? 'Save Changes' : 'Add Bill'}
           </Text>
         </TouchableOpacity>
@@ -244,12 +245,12 @@ const styles = StyleSheet.create({
   label: { marginBottom: 6, marginTop: 16 },
   input: { marginBottom: 4 },
   categoryBtn: {
-    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1, gap: 10,
+    flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, gap: 10,
   },
   catIconWrap: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   freqRow: { flexDirection: 'row', gap: 10 },
   freqBtn: {
-    flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12, borderWidth: 1.5,
+    flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 12,
   },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 },
   submitBtn: {
@@ -257,9 +258,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 32,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

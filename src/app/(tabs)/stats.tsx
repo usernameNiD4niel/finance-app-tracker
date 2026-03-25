@@ -11,6 +11,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
+import { neuChip, neuInset } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function StatsScreen() {
@@ -52,9 +53,8 @@ export default function StatsScreen() {
                 style={[
                   styles.monthChip,
                   {
-                    backgroundColor: isSelected ? primary + '22' : theme.colors.surfaceVariant,
-                    borderColor: isSelected ? primary : 'transparent',
-                    borderWidth: 1.5,
+                    backgroundColor: isSelected ? primary + '22' : theme.custom.cardBg,
+                    boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
                   },
                 ]}
                 onPress={() => setSelectedMonth(m)}
@@ -116,7 +116,7 @@ export default function StatsScreen() {
                             {formatCurrency(cat.total ?? 0, currency)}
                           </Text>
                         </View>
-                        <View style={[styles.barTrack, { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+                        <View style={[styles.barTrack, { backgroundColor: theme.custom.trackBg, boxShadow: neuInset(theme) as any }]}>
                           <View
                             style={[
                               styles.barFill,

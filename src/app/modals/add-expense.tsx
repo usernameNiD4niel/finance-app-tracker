@@ -11,6 +11,7 @@ import { useCategoryStore } from '../../store/categoryStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { format } from 'date-fns';
+import { neuButton, neuCard } from '../../theme/neumorphism';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -111,7 +112,7 @@ export default function AddExpenseScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.colors.surfaceVariant, borderColor: theme.colors.outline }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
           onPress={() => setCategoryPickerVisible(true)}
         >
           {selectedCategory ? (
@@ -172,13 +173,13 @@ export default function AddExpenseScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              shadowColor: theme.colors.primary,
+              boxShadow: neuButton(theme) as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
           disabled={submitting}
         >
-          <Text variant="labelLarge" style={{ color: '#fff' }}>
+          <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>
             {isEditing ? 'Save Changes' : 'Add Expense'}
           </Text>
         </TouchableOpacity>
@@ -213,7 +214,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 16,
-    borderWidth: 1,
     gap: 10,
   },
   catIconWrap: {
@@ -228,9 +228,5 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 32,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
 });

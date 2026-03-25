@@ -6,6 +6,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -32,7 +33,7 @@ export function ListRowCard({ children, onPress, onLongPress, index = 0, style }
             styles.card,
             {
               backgroundColor: theme.custom.cardBg,
-              borderColor: theme.custom.cardBorder,
+              boxShadow: neuListItem(theme) as any,
             },
             style,
           ]}
@@ -51,11 +52,5 @@ export function ListRowCard({ children, onPress, onLongPress, index = 0, style }
 const styles = StyleSheet.create({
   card: {
     borderRadius: 18,
-    borderWidth: 1,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
 });

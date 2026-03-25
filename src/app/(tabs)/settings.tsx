@@ -7,6 +7,7 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
+import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 interface SettingRowProps {
@@ -26,7 +27,7 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
         styles.row,
         {
           backgroundColor: theme.custom.cardBg,
-          borderColor: theme.custom.cardBorder,
+          boxShadow: neuListItem(theme) as any,
         },
       ]}
       onPress={onPress}
@@ -155,9 +156,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginHorizontal: 16,
-    marginBottom: 2,
+    marginBottom: 6,
     borderRadius: 16,
-    borderWidth: 1,
     gap: 12,
   },
   rowIcon: {

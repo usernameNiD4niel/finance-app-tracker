@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 interface Chip {
@@ -29,8 +30,8 @@ export function SegmentedChips({ chips, selectedKey, onSelect }: Props) {
             style={[
               styles.chip,
               {
-                backgroundColor: isActive ? primary + '22' : theme.colors.surfaceVariant,
-                borderColor: isActive ? primary : 'transparent',
+                backgroundColor: isActive ? primary + '22' : theme.custom.cardBg,
+                boxShadow: isActive ? (neuChip(theme) as any) : undefined,
               },
             ]}
           >
@@ -58,7 +59,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1.5,
   },
   label: {
     fontSize: 13,

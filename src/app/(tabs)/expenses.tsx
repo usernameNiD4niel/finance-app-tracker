@@ -12,6 +12,7 @@ import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
+import { neuChip, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function ExpensesScreen() {
@@ -63,8 +64,8 @@ export default function ExpensesScreen() {
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: isActive ? primary + '22' : theme.colors.surfaceVariant,
-                    borderColor: isActive ? primary : 'transparent',
+                    backgroundColor: isActive ? primary + '22' : theme.custom.cardBg,
+                    boxShadow: isActive ? (neuChip(theme) as any) : undefined,
                   },
                 ]}
               >
@@ -121,10 +122,10 @@ export default function ExpensesScreen() {
           {
             bottom: insets.bottom + 90,
             backgroundColor: theme.colors.primary,
-            shadowColor: theme.colors.primary,
+            boxShadow: neuButton(theme) as any,
           },
         ]}
-        color="#fff"
+        color={theme.custom.buttonText}
         onPress={() => router.push('/modals/add-expense')}
       />
     </ScreenContainer>
@@ -139,7 +140,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1.5,
   },
   chipLabel: {
     fontSize: 13,
@@ -153,9 +153,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     borderRadius: 20,
-    elevation: 8,
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
   },
 });

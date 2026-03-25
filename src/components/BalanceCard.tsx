@@ -4,6 +4,7 @@ import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '../utils/currency';
+import { neuHero } from '../theme/neumorphism';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -18,19 +19,20 @@ interface Props {
 export function BalanceCard({ balance, salary, spent, billsDue, currency, period }: Props) {
   const theme = useTheme<AppTheme>();
   const isDark = theme.dark;
+  const accent = theme.custom.onAccentSurface;
+  const accentMuted = theme.custom.onAccentSurfaceMuted;
 
   return (
     <View
       style={[
         styles.card,
         {
-          shadowColor: theme.custom.glowSecondary,
-          borderColor: isDark ? 'rgba(99,102,241,0.2)' : 'rgba(99,102,241,0.15)',
+          boxShadow: neuHero(theme) as any,
         },
       ]}
     >
       <LinearGradient
-        colors={isDark ? ['#16192a', '#0f1219'] : [theme.colors.primary, theme.colors.primaryContainer]}
+        colors={isDark ? ['#2e3148', '#252839'] : [theme.colors.primary, theme.colors.primaryContainer]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -46,20 +48,20 @@ export function BalanceCard({ balance, salary, spent, billsDue, currency, period
       {/* Period header */}
       <View style={styles.header}>
         <View style={styles.periodRow}>
-          <MaterialCommunityIcons name="calendar-range" size={13} color="rgba(255,255,255,0.55)" />
-          <Text style={styles.periodLabel}>
+          <MaterialCommunityIcons name="calendar-range" size={13} color={accentMuted} />
+          <Text style={[styles.periodLabel, { color: accentMuted }]}>
             {period === 'first' ? '1st – 14th' : '15th – End of Month'}
           </Text>
         </View>
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>Active Period</Text>
+          <Text style={[styles.badgeText, { color: accent }]}>Active Period</Text>
         </View>
       </View>
 
       {/* Balance label */}
-      <Text style={styles.balanceLabel}>Total Balance</Text>
+      <Text style={[styles.balanceLabel, { color: accentMuted }]}>Total Balance</Text>
 
-      <Text style={styles.balanceAmount} numberOfLines={1} adjustsFontSizeToFit>
+      <Text style={[styles.balanceAmount, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
         {formatCurrency(balance, currency)}
       </Text>
 
@@ -72,30 +74,36 @@ export function BalanceCard({ balance, salary, spent, billsDue, currency, period
           icon="arrow-down-circle-outline"
           label="Salary"
           value={formatCurrency(salary, currency)}
+          accentMuted={accentMuted}
+          accent={accent}
         />
         <View style={styles.statSeparator} />
         <BalanceStat
           icon="arrow-up-circle-outline"
           label="Spent"
           value={formatCurrency(spent, currency)}
+          accentMuted={accentMuted}
+          accent={accent}
         />
         <View style={styles.statSeparator} />
         <BalanceStat
           icon="calendar-clock-outline"
           label="Bills Due"
           value={formatCurrency(billsDue, currency)}
+          accentMuted={accentMuted}
+          accent={accent}
         />
       </View>
     </View>
   );
 }
 
-function BalanceStat({ icon, label, value }: { icon: string; label: string; value: string }) {
+function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string; label: string; value: string; accentMuted: string; accent: string }) {
   return (
     <View style={styles.stat}>
-      <MaterialCommunityIcons name={icon as any} size={17} color="rgba(255,255,255,0.65)" />
-      <Text style={styles.statLabel}>{label}</Text>
-      <Text style={styles.statValue}>{value}</Text>
+      <MaterialCommunityIcons name={icon as any} size={17} color={accentMuted} />
+      <Text style={[styles.statLabel, { color: accentMuted }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
     </View>
   );
 }
@@ -107,11 +115,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     overflow: 'hidden',
-    elevation: 10,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
-    borderWidth: 1,
   },
   // Gradient blobs
   blob: {
@@ -163,7 +166,6 @@ const styles = StyleSheet.create({
   },
   periodLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
     fontWeight: '500',
   },
   badge: {
@@ -176,13 +178,11 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
     letterSpacing: 0.3,
   },
   balanceLabel: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
     marginTop: 18,
     fontWeight: '400',
     letterSpacing: 0.5,
@@ -191,7 +191,6 @@ const styles = StyleSheet.create({
   balanceAmount: {
     fontSize: 44,
     fontWeight: '800',
-    color: '#ffffff',
     marginTop: 5,
     letterSpacing: -1,
   },
@@ -215,14 +214,12 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.55)',
     marginTop: 3,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
   statValue: {
     fontSize: 13,
-    color: '#ffffff',
     fontWeight: '700',
   },
 });
