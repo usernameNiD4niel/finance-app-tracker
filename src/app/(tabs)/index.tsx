@@ -46,9 +46,9 @@ export default function DashboardScreen() {
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
 
   const [balanceData, setBalanceData] = useState<{
-    salary: number; spent: number; billsDue: number; balance: number; period: 'first' | 'fifteenth';
+    salary: number; spent: number; billsDue: number; walletBalance: number; balance: number; period: 'first' | 'fifteenth';
   }>({
-    salary: 0, spent: 0, billsDue: 0, balance: 0, period: 'first',
+    salary: 0, spent: 0, billsDue: 0, walletBalance: 0, balance: 0, period: 'first',
   });
   const [upcomingBills, setUpcomingBills] = useState<UpcomingBill[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,6 +123,7 @@ export default function DashboardScreen() {
         <BalanceCard
           balance={balanceData.balance}
           salary={balanceData.salary}
+          walletBalance={balanceData.walletBalance}
           spent={balanceData.spent}
           billsDue={balanceData.billsDue}
           currency={currency}

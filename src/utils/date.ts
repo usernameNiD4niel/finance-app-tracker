@@ -1,4 +1,7 @@
-import { format, startOfMonth, endOfMonth, getDate, getDaysInMonth } from 'date-fns';
+import {
+  format, startOfMonth, endOfMonth, getDate, getDaysInMonth,
+  startOfWeek, endOfWeek, subDays, subWeeks, subMonths,
+} from 'date-fns';
 
 export type SalaryPeriod = 'first' | 'fifteenth';
 
@@ -36,6 +39,18 @@ export function getMonthBounds(date = new Date()): { start: string; end: string 
   return {
     start: format(startOfMonth(date), 'yyyy-MM-dd'),
     end: format(endOfMonth(date), 'yyyy-MM-dd'),
+  };
+}
+
+export function getDayBounds(date = new Date()): { start: string; end: string } {
+  const d = format(date, 'yyyy-MM-dd');
+  return { start: d, end: d };
+}
+
+export function getWeekBounds(date = new Date()): { start: string; end: string } {
+  return {
+    start: format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    end: format(endOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
   };
 }
 

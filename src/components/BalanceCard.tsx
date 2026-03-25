@@ -10,13 +10,14 @@ import type { AppTheme } from '../theme';
 interface Props {
   balance: number;
   salary: number;
+  walletBalance: number;
   spent: number;
   billsDue: number;
   currency: string;
   period: 'first' | 'fifteenth';
 }
 
-export function BalanceCard({ balance, salary, spent, billsDue, currency, period }: Props) {
+export function BalanceCard({ balance, salary, walletBalance, spent, billsDue, currency, period }: Props) {
   const theme = useTheme<AppTheme>();
   const isDark = theme.dark;
   const accent = theme.custom.onAccentSurface;
@@ -72,8 +73,8 @@ export function BalanceCard({ balance, salary, spent, billsDue, currency, period
       <View style={styles.statsRow}>
         <BalanceStat
           icon="arrow-down-circle-outline"
-          label="Salary"
-          value={formatCurrency(salary, currency)}
+          label="Income"
+          value={formatCurrency(salary + walletBalance, currency)}
           accentMuted={accentMuted}
           accent={accent}
         />

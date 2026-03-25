@@ -6,6 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { RoundedCard } from '../../components/ui/RoundedCard';
+import { CompareSpending } from '../../components/CompareSpending';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
@@ -19,6 +20,7 @@ export default function StatsScreen() {
   const { currency } = useSettingsStore();
   const { expenses, categoryTotals, loadExpenses, loadCategoryTotals } = useExpenseStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [isFocused, setIsFocused] = useState(false);
 
   const load = useCallback(async () => {
     const { start, end } = getMonthBounds(selectedMonth);
@@ -26,7 +28,11 @@ export default function StatsScreen() {
     await loadCategoryTotals(start, end);
   }, [selectedMonth]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    setIsFocused(true);
+    load();
+    return () => setIsFocused(false);
+  }, [load]));
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
   const maxCategoryTotal = Math.max(...categoryTotals.map(c => c.total ?? 0), 1);
@@ -144,6 +150,11 @@ export default function StatsScreen() {
             </Text>
           </View>
         )}
+
+        {/* Compare Spending */}
+        <View style={styles.cardWrap}>
+          <CompareSpending currency={currency} isVisible={isFocused} />
+        </View>
 
         <View style={{ height: 120 }} />
       </ScrollView>

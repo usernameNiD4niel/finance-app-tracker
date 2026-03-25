@@ -98,6 +98,20 @@ export async function getExpenseTotalByCategory(startDate: string, endDate: stri
     .all();
 }
 
+export async function getExpenseTotal(
+  startDate: string, endDate: string
+): Promise<{ total: number; count: number }> {
+  const result = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
+      count: sql<number>`COUNT(${expenses.id})`,
+    })
+    .from(expenses)
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
+    .get();
+  return { total: result?.total ?? 0, count: result?.count ?? 0 };
+}
+
 // ─── Bills ──────────────────────────────────────────────────────────────────
 export async function getBills() {
   return db
