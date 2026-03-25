@@ -4,14 +4,14 @@ import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { lightTheme, darkTheme } from '../theme';
+import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { theme, loadSettings, isLoaded } = useSettingsStore();
+  const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
 
   useEffect(() => {
     (async () => {
@@ -26,10 +26,12 @@ export default function RootLayout() {
     })();
   }, []);
 
-  const resolvedTheme =
+  const isDark =
     theme === 'system'
-      ? colorScheme === 'dark' ? darkTheme : lightTheme
-      : theme === 'dark' ? darkTheme : lightTheme;
+      ? colorScheme === 'dark'
+      : theme === 'dark';
+
+  const resolvedTheme = buildTheme(primaryColor, isDark);
 
   if (!isLoaded) {
     return (

@@ -38,7 +38,7 @@ export const lightTheme = {
     cardBorder: 'transparent',
     surfaceElevated: '#eaecf2',
     mutedText: '#8890a4',
-    shadowDark: '#b8bcc4',
+    shadowDark: '#c8ccd4',
     shadowLight: '#ffffff',
     trackBg: '#d6d9e0',
     overlayBg: 'rgba(0,0,0,0.55)',
@@ -77,7 +77,7 @@ export const darkTheme = {
     cardBorder: 'transparent',
     surfaceElevated: '#303342',
     mutedText: '#636b84',
-    shadowDark: '#1e2030',
+    shadowDark: '#222530',
     shadowLight: '#363a4a',
     trackBg: '#232632',
     overlayBg: 'rgba(0,0,0,0.65)',
@@ -86,6 +86,40 @@ export const darkTheme = {
     onAccentSurfaceMuted: 'rgba(255,255,255,0.55)',
   },
 };
+
+export const PRIMARY_COLORS = [
+  { name: 'Indigo', light: '#6366f1', dark: '#818cf8' },
+  { name: 'Pink', light: '#ec4899', dark: '#f472b6' },
+  { name: 'Rose', light: '#f43f5e', dark: '#fb7185' },
+  { name: 'Orange', light: '#f97316', dark: '#fb923c' },
+  { name: 'Amber', light: '#f59e0b', dark: '#fbbf24' },
+  { name: 'Emerald', light: '#10b981', dark: '#34d399' },
+  { name: 'Cyan', light: '#06b6d4', dark: '#22d3ee' },
+  { name: 'Blue', light: '#3b82f6', dark: '#60a5fa' },
+] as const;
+
+export function buildTheme(primaryColor: string, isDark: boolean): AppTheme {
+  const base = isDark ? darkTheme : lightTheme;
+  const entry = PRIMARY_COLORS.find(
+    (c) => c.light === primaryColor || c.dark === primaryColor,
+  );
+  const resolved = entry
+    ? isDark ? entry.dark : entry.light
+    : primaryColor;
+
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: resolved,
+    },
+    custom: {
+      ...base.custom,
+      primary: resolved,
+      glowPrimary: resolved,
+    },
+  };
+}
 
 const { LightTheme: navLight, DarkTheme: navDark } = adaptNavigationTheme({
   reactNavigationLight: NavigationLightTheme,

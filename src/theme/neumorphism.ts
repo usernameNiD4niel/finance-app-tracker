@@ -37,37 +37,37 @@ function dual(
   ];
 }
 
-/** Standard card — moderate extrusion */
+/** Standard card — subtle elevation */
 export const neuCard = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 4, 8, 0);
+  dual(theme, 2, 4, 0);
 
-/** Large card — stronger extrusion */
+/** Large card — moderate elevation */
 export const neuCardLg = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 6, 14, 0);
-
-/** List item row — subtle extrusion */
-export const neuListItem = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 3, 6, 0);
-
-/** Small chip — light extrusion */
-export const neuChip = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 2, 5, 0);
-
-/** Button — medium extrusion */
-export const neuButton = (theme: AppTheme): BoxShadow[] =>
   dual(theme, 3, 7, 0);
 
-/** Circle icon — medium extrusion */
+/** List item row — very subtle elevation */
+export const neuListItem = (theme: AppTheme): BoxShadow[] =>
+  dual(theme, 1.5, 3, 0);
+
+/** Small chip — light elevation */
+export const neuChip = (theme: AppTheme): BoxShadow[] =>
+  dual(theme, 1, 3, 0);
+
+/** Button — light elevation */
+export const neuButton = (theme: AppTheme): BoxShadow[] =>
+  dual(theme, 1.5, 4, 0);
+
+/** Circle icon — subtle elevation */
 export const neuCircle = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 4, 8, 0);
+  dual(theme, 2, 4, 0);
 
 /** Inset / groove — for tracks & empty dots */
 export const neuInset = (theme: AppTheme): BoxShadow[] => {
   const light = theme.custom?.shadowLight ?? FALLBACK_LIGHT;
   const dark = theme.custom?.shadowDark ?? FALLBACK_DARK;
   return [
-    { offsetX: 2, offsetY: 2, blurRadius: 4, spreadDistance: -1, color: dark },
-    { offsetX: -2, offsetY: -2, blurRadius: 4, spreadDistance: -1, color: light },
+    { offsetX: 1, offsetY: 1, blurRadius: 2, spreadDistance: -1, color: dark },
+    { offsetX: -1, offsetY: -1, blurRadius: 2, spreadDistance: -1, color: light },
   ];
 };
 
@@ -76,15 +76,15 @@ export const neuPressed = (theme: AppTheme): BoxShadow[] => {
   const light = theme.custom?.shadowLight ?? FALLBACK_LIGHT;
   const dark = theme.custom?.shadowDark ?? FALLBACK_DARK;
   return [
-    { offsetX: 1, offsetY: 1, blurRadius: 2, spreadDistance: 0, color: dark },
-    { offsetX: -1, offsetY: -1, blurRadius: 2, spreadDistance: 0, color: light },
+    { offsetX: 0.5, offsetY: 0.5, blurRadius: 1, spreadDistance: 0, color: dark },
+    { offsetX: -0.5, offsetY: -0.5, blurRadius: 1, spreadDistance: 0, color: light },
   ];
 };
 
-/** Tab bar — prominent float */
+/** Tab bar — moderate float */
 export const neuTabBar = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 6, 16, 0);
+  dual(theme, 3, 8, 0);
 
-/** Hero card (BalanceCard) — strong extrusion */
+/** Hero card (BalanceCard) — moderate elevation */
 export const neuHero = (theme: AppTheme): BoxShadow[] =>
-  dual(theme, 8, 18, 0);
+  dual(theme, 4, 9, 0);
