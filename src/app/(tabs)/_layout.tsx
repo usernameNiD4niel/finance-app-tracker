@@ -18,6 +18,7 @@ const TAB_CONFIG = [
   { name: 'index',    icon: 'view-dashboard-outline', activeIcon: 'view-dashboard',  label: 'Home' },
   { name: 'expenses', icon: 'cash-multiple',           activeIcon: 'cash-multiple',   label: 'Expenses' },
   { name: 'bills',    icon: 'receipt-outline',         activeIcon: 'receipt',         label: 'Bills' },
+  { name: 'wallets',  icon: 'wallet-outline',          activeIcon: 'wallet',          label: 'Wallets' },
   { name: 'stats',    icon: 'chart-bar-stacked',       activeIcon: 'chart-bar',       label: 'Stats' },
   { name: 'settings', icon: 'cog-outline',             activeIcon: 'cog',             label: 'Settings' },
 ] as const;

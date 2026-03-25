@@ -81,7 +81,7 @@ export default function DashboardScreen() {
   const quickActions = [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
     { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
-    { icon: 'chart-bar', label: 'Stats', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/stats') },
+    { icon: 'wallet', label: 'Wallets', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/wallets') },
     { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
   ];
 

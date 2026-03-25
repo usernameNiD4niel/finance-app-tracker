@@ -6,7 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { lightTheme, darkTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
-import { runMigrations, seedCategories } from '../db/migrations';
+import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
@@ -18,6 +18,7 @@ export default function RootLayout() {
       try {
         runMigrations();
         seedCategories();
+        seedMoneySources();
         await loadSettings();
       } catch (e) {
         console.error('[startup] init failed:', e);

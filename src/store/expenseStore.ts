@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   getExpenses, createExpense, updateExpense, deleteExpense, getExpenseTotalByCategory,
+  adjustSourceBalance,
 } from '../db/queries';
 import type { Expense, NewExpense } from '../db/schema';
 
@@ -42,15 +43,33 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
 
   addExpense: async (data) => {
     await createExpense(data);
+    if (data.sourceId) {
+      await adjustSourceBalance(data.sourceId, -data.amount);
+    }
     await get().loadExpenses();
   },
 
   editExpense: async (id, data) => {
+    const old = get().expenses.find(e => e.id === id);
+    // Restore old source balance
+    if (old?.sourceId) {
+      await adjustSourceBalance(old.sourceId, old.amount);
+    }
     await updateExpense(id, data);
+    // Deduct from new source
+    const newSourceId = data.sourceId !== undefined ? data.sourceId : old?.sourceId;
+    const newAmount = data.amount ?? old?.amount;
+    if (newSourceId && newAmount) {
+      await adjustSourceBalance(newSourceId, -newAmount);
+    }
     await get().loadExpenses();
   },
 
   removeExpense: async (id) => {
+    const old = get().expenses.find(e => e.id === id);
+    if (old?.sourceId) {
+      await adjustSourceBalance(old.sourceId, old.amount);
+    }
     await deleteExpense(id);
     await get().loadExpenses();
   },

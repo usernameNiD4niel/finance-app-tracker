@@ -62,7 +62,23 @@ export function runMigrations() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS money_sources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      color TEXT NOT NULL,
+      balance REAL NOT NULL DEFAULT 0,
+      is_custom INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+
+  // Add source_id columns (ignore if already exists)
+  try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
+  try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -87,6 +103,28 @@ export function seedCategories() {
   );
   for (const cat of PREDEFINED_CATEGORIES) {
     stmt.executeSync(cat.name, cat.icon, cat.color);
+  }
+  stmt.finalizeSync();
+}
+
+const PREDEFINED_SOURCES = [
+  { name: 'BDO', type: 'bank', icon: 'bank', color: '#0033a0' },
+  { name: 'BPI', type: 'bank', icon: 'bank', color: '#d4212c' },
+  { name: 'GCash', type: 'e_wallet', icon: 'cellphone', color: '#007dfe' },
+  { name: 'PayPal', type: 'e_wallet', icon: 'wallet-outline', color: '#003087' },
+];
+
+export function seedMoneySources() {
+  const existing = sqlite.getFirstSync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0'
+  );
+  if (existing && existing.count > 0) return;
+
+  const stmt = sqlite.prepareSync(
+    'INSERT INTO money_sources (name, type, icon, color, is_custom) VALUES (?, ?, ?, ?, 0)'
+  );
+  for (const src of PREDEFINED_SOURCES) {
+    stmt.executeSync(src.name, src.type, src.icon, src.color);
   }
   stmt.finalizeSync();
 }
