@@ -74,11 +74,32 @@ export function runMigrations() {
       is_active INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS lends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      amount REAL NOT NULL,
+      source_id INTEGER NOT NULL,
+      borrower_name TEXT NOT NULL,
+      note TEXT,
+      lend_date TEXT NOT NULL,
+      expected_pay_date TEXT NOT NULL,
+      is_paid INTEGER NOT NULL DEFAULT 0,
+      paid_date TEXT,
+      has_interest INTEGER NOT NULL DEFAULT 0,
+      interest_type TEXT,
+      interest_value REAL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Add source_id columns (ignore if already exists)
   try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
+
+  // Add interest columns to lends (ignore if already exists)
+  try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN has_interest INTEGER NOT NULL DEFAULT 0`); } catch (_e) { /* column exists */ }
+  try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_type TEXT`); } catch (_e) { /* column exists */ }
+  try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_value REAL`); } catch (_e) { /* column exists */ }
 }
 
 const PREDEFINED_CATEGORIES = [

@@ -58,7 +58,8 @@
           "color": "#6366f1"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker"
     ],
     "scheme": "financetracker",
     "extra": {

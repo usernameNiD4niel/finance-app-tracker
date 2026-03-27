@@ -1,9 +1,9 @@
 import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import {
-  categories, expenses, bills, salary, targets, categoryTargets, settings, moneySources,
+  categories, expenses, bills, salary, targets, categoryTargets, settings, moneySources, lends,
   type NewCategory, type NewExpense, type NewBill, type NewSalary,
-  type NewTarget, type NewCategoryTarget, type NewMoneySource,
+  type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
 } from './schema';
 
 // ─── Settings ──────────────────────────────────────────────────────────────
@@ -290,6 +290,76 @@ export async function getTotalSourceBalance(): Promise<number> {
     .select({ total: sql<number>`COALESCE(SUM(${moneySources.balance}), 0)` })
     .from(moneySources)
     .where(eq(moneySources.isActive, true))
+    .get();
+  return result?.total ?? 0;
+}
+
+// ─── Lends ──────────────────────────────────────────────────────────────────
+const lendSelectColumns = {
+  id: lends.id,
+  amount: lends.amount,
+  sourceId: lends.sourceId,
+  borrowerName: lends.borrowerName,
+  note: lends.note,
+  lendDate: lends.lendDate,
+  expectedPayDate: lends.expectedPayDate,
+  isPaid: lends.isPaid,
+  paidDate: lends.paidDate,
+  hasInterest: lends.hasInterest,
+  interestType: lends.interestType,
+  interestValue: lends.interestValue,
+  createdAt: lends.createdAt,
+  sourceName: moneySources.name,
+  sourceIcon: moneySources.icon,
+  sourceColor: moneySources.color,
+};
+
+export async function getLends() {
+  return db
+    .select(lendSelectColumns)
+    .from(lends)
+    .leftJoin(moneySources, eq(lends.sourceId, moneySources.id))
+    .orderBy(desc(lends.lendDate), desc(lends.createdAt))
+    .all();
+}
+
+export async function getActiveLends() {
+  return db
+    .select(lendSelectColumns)
+    .from(lends)
+    .leftJoin(moneySources, eq(lends.sourceId, moneySources.id))
+    .where(eq(lends.isPaid, false))
+    .orderBy(desc(lends.lendDate), desc(lends.createdAt))
+    .all();
+}
+
+export async function createLend(data: NewLend) {
+  return db.insert(lends).values(data).returning().get();
+}
+
+export async function updateLend(id: number, data: Partial<NewLend>) {
+  return db.update(lends).set(data).where(eq(lends.id, id)).returning().get();
+}
+
+export async function deleteLend(id: number) {
+  await db.delete(lends).where(eq(lends.id, id));
+}
+
+export async function markLendPaid(id: number) {
+  const today = new Date().toISOString().split('T')[0];
+  return db
+    .update(lends)
+    .set({ isPaid: true, paidDate: today })
+    .where(eq(lends.id, id))
+    .returning()
+    .get();
+}
+
+export async function getTotalActiveLendAmount(): Promise<number> {
+  const result = await db
+    .select({ total: sql<number>`COALESCE(SUM(${lends.amount}), 0)` })
+    .from(lends)
+    .where(eq(lends.isPaid, false))
     .get();
   return result?.total ?? 0;
 }

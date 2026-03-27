@@ -65,6 +65,8 @@ export default function RootLayout() {
           <Stack.Screen name="modals/change-pin" options={modalScreenOptions} />
           <Stack.Screen name="modals/currency-picker" options={modalScreenOptions} />
           <Stack.Screen name="modals/notifications" options={modalScreenOptions} />
+          <Stack.Screen name="modals/add-lend" options={modalScreenOptions} />
+          <Stack.Screen name="modals/lends" options={modalScreenOptions} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

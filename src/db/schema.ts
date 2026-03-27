@@ -67,6 +67,22 @@ export const categoryTargets = sqliteTable('category_targets', {
   limitAmount: real('limit_amount').notNull(),
 });
 
+export const lends = sqliteTable('lends', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  amount: real('amount').notNull(),
+  sourceId: integer('source_id').notNull(),
+  borrowerName: text('borrower_name').notNull(),
+  note: text('note'),
+  lendDate: text('lend_date').notNull(),
+  expectedPayDate: text('expected_pay_date').notNull(),
+  isPaid: integer('is_paid', { mode: 'boolean' }).notNull().default(false),
+  paidDate: text('paid_date'),
+  hasInterest: integer('has_interest', { mode: 'boolean' }).notNull().default(false),
+  interestType: text('interest_type'), // 'fixed' or 'percentage'
+  interestValue: real('interest_value'), // exact amount or percentage
+  createdAt: text('created_at').notNull().default(new Date().toISOString()),
+});
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
@@ -86,3 +102,5 @@ export type CategoryTarget = typeof categoryTargets.$inferSelect;
 export type NewCategoryTarget = typeof categoryTargets.$inferInsert;
 export type MoneySource = typeof moneySources.$inferSelect;
 export type NewMoneySource = typeof moneySources.$inferInsert;
+export type Lend = typeof lends.$inferSelect;
+export type NewLend = typeof lends.$inferInsert;

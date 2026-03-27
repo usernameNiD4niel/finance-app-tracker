@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '../../components/CategoryPicker';
 import { SourcePicker } from '../../components/SourcePicker';
+import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';

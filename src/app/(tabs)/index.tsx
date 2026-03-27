@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../../components/BalanceCard';
 import { SalaryPeriodBar } from '../../components/SalaryPeriodBar';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
+import { LendCard } from '../../components/LendCard';
 import { BudgetProgressBar } from '../../components/BudgetProgressBar';
+import { PremiumModal } from '../../components/PremiumModal';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { ActionButtonRow } from '../../components/ui/ActionButtonRow';
@@ -15,6 +17,7 @@ import { RoundedCard } from '../../components/ui/RoundedCard';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
+import { useLendStore } from '../../store/lendStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentPeriodDates, getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
@@ -41,9 +44,11 @@ export default function DashboardScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currency } = useSettingsStore();
+  const { currency, isPremium } = useSettingsStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
+  const { activeLends, loadActiveLends, markPaid } = useLendStore();
+  const [premiumVisible, setPremiumVisible] = useState(false);
 
   const [balanceData, setBalanceData] = useState<{
     salary: number; spent: number; billsDue: number; walletBalance: number; balance: number; period: 'first' | 'fifteenth';
@@ -56,17 +61,21 @@ export default function DashboardScreen() {
   const load = useCallback(async () => {
     const { start, end } = getCurrentPeriodDates();
     const month = getCurrentMonth();
-    await Promise.all([
+    const promises: Promise<any>[] = [
       loadExpenses({ startDate: start, endDate: end }),
       loadTargets(month),
-    ]);
+    ];
+    if (isPremium) {
+      promises.push(loadActiveLends());
+    }
+    await Promise.all(promises);
     const [balance, bills] = await Promise.all([
       calculateCurrentBalance(),
       getUpcomingBills(7),
     ]);
     setBalanceData(balance);
     setUpcomingBills(bills);
-  }, []);
+  }, [isPremium]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -81,7 +90,10 @@ export default function DashboardScreen() {
   const quickActions = [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
     { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
-    { icon: 'wallet', label: 'Wallets', color: theme.colors.tertiary, onPress: () => router.push('/(tabs)/wallets') },
+    {
+      icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary,
+      onPress: () => isPremium ? router.push('/modals/add-lend') : setPremiumVisible(true),
+    },
     { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
   ];
 
@@ -211,6 +223,47 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Active Lends (Premium) */}
+        {isPremium && (
+          <View style={styles.section}>
+            <SectionHeader title="Active Lends" onSeeAll={() => router.push('/modals/lends')} />
+            {activeLends.length === 0 ? (
+              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+                <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
+                  No active lends
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4 }}>
+                  Tap Lend to track money you've lent out
+                </Text>
+              </View>
+            ) : (
+              activeLends.slice(0, 3).map((lend, i) => (
+                <LendCard
+                  key={lend.id}
+                  id={lend.id}
+                  amount={lend.amount}
+                  borrowerName={lend.borrowerName}
+                  note={lend.note}
+                  lendDate={lend.lendDate}
+                  expectedPayDate={lend.expectedPayDate}
+                  isPaid={lend.isPaid}
+                  paidDate={lend.paidDate}
+                  hasInterest={lend.hasInterest}
+                  interestType={lend.interestType}
+                  interestValue={lend.interestValue}
+                  sourceName={lend.sourceName}
+                  sourceIcon={lend.sourceIcon}
+                  sourceColor={lend.sourceColor}
+                  currency={currency}
+                  onMarkPaid={markPaid}
+                  index={i}
+                />
+              ))
+            )}
+          </View>
+        )}
+
         {/* Recent Expenses */}
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
@@ -246,6 +299,12 @@ export default function DashboardScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      <PremiumModal
+        visible={premiumVisible}
+        onSubscribe={() => setPremiumVisible(false)}
+        onDismiss={() => setPremiumVisible(false)}
+      />
     </ScreenContainer>
   );
 }

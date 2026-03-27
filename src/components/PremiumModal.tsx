@@ -27,6 +27,11 @@ const FEATURES = [
     title: 'Multiple Themes',
     desc: 'Unlock extra themes and primary colors',
   },
+  {
+    icon: 'hand-coin' as const,
+    title: 'Lend Tracking',
+    desc: 'Track money lent to others and get paid back',
+  },
 ];
 
 export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
