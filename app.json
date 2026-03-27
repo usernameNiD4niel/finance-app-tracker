@@ -15,7 +15,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.financetracker.app",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to unlock the app"
+        "NSFaceIDUsageDescription": "Use Face ID to unlock the app",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

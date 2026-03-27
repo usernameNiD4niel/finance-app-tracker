@@ -45,7 +45,6 @@ export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
             styles.card,
             {
               backgroundColor: theme.custom.cardBg,
-              boxShadow: neuCardLg(theme) as any,
             },
           ]}
         >

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,8 +26,27 @@ export default function BillsScreen() {
   const activeBills = bills.filter(b => b.isActive);
   const monthlyTotal = activeBills.reduce((sum, b) => sum + b.amount, 0);
 
-  const handleToggle = async (id: number, active: boolean) => {
-    await editBill(id, { isActive: active });
+  const handleToggle = (id: number, active: boolean) => {
+    if (!active) {
+      Alert.alert(
+        'Disable Bill',
+        'Are you sure? You will no longer be notified about this bill and it will be excluded from your totals.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Disable',
+            style: 'destructive',
+            onPress: async () => {
+              const bill = bills.find(b => b.id === id);
+              if (bill?.notificationId) await cancelNotification(bill.notificationId);
+              await editBill(id, { isActive: false, notificationId: null });
+            },
+          },
+        ],
+      );
+    } else {
+      editBill(id, { isActive: true });
+    }
   };
 
   const handleDelete = async (id: number) => {

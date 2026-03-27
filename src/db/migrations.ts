@@ -100,6 +100,7 @@ export function runMigrations() {
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN has_interest INTEGER NOT NULL DEFAULT 0`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_type TEXT`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_value REAL`); } catch (_e) { /* column exists */ }
+  try { sqlite.execSync(`ALTER TABLE salary ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
 }
 
 const PREDEFINED_CATEGORIES = [

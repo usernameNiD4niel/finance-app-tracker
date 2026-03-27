@@ -202,7 +202,7 @@ export default function WalletsScreen() {
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setEditModalVisible(false); }}>
-            <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]} onPress={Keyboard.dismiss}>
+            <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
               <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
                 {editingId ? 'Edit Source' : 'New Source'}
@@ -305,7 +305,7 @@ export default function WalletsScreen() {
       <Modal visible={amountModalVisible} animationType="slide" transparent onRequestClose={() => { Keyboard.dismiss(); setAmountModalVisible(false); }}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setAmountModalVisible(false); }}>
-            <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]} onPress={Keyboard.dismiss}>
+            <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
               <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 8 }}>
                 {amountModalMode === 'deposit' ? 'Deposit' : 'Withdraw'}

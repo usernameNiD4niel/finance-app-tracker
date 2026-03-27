@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getSalary, getLatestSalaryByPeriod, upsertSalary } from '../db/queries';
+import { useSourceStore } from './sourceStore';
 import type { Salary, NewSalary } from '../db/schema';
 
 interface SalaryState {
@@ -33,5 +34,6 @@ export const useSalaryStore = create<SalaryState>((set) => ({
     const updated = await getLatestSalaryByPeriod(data.period);
     if (data.period === 'first') set({ salaryFirst: updated ?? null });
     else set({ salaryFifteenth: updated ?? null });
+    await useSourceStore.getState().loadSources();
   },
 }));
