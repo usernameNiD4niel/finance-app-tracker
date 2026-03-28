@@ -4,6 +4,7 @@ import {
   upsertCategoryTarget, deleteCategoryTarget,
 } from '../db/queries';
 import type { Target } from '../db/schema';
+import { triggerAutoSync } from '../services/autoSync';
 
 type CategoryTargetRow = Awaited<ReturnType<typeof getCategoryTargetsForMonth>>[number];
 
@@ -34,15 +35,18 @@ export const useTargetStore = create<TargetState>((set, get) => ({
   setOverallTarget: async (month, limit) => {
     await upsertTarget(month, limit);
     await get().loadTargets(month);
+    triggerAutoSync();
   },
 
   setCategoryTarget: async (month, categoryId, limit) => {
     await upsertCategoryTarget(month, categoryId, limit);
     await get().loadTargets(month);
+    triggerAutoSync();
   },
 
   removeCategoryTarget: async (id, month) => {
     await deleteCategoryTarget(id);
     await get().loadTargets(month);
+    triggerAutoSync();
   },
 }));

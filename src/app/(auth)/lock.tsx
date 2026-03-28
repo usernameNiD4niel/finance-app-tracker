@@ -3,8 +3,10 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import NetInfo from '@react-native-community/netinfo';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
 import { PremiumModal } from '../../components/PremiumModal';
 import { neuCardLg, neuButton } from '../../theme/neumorphism';
@@ -14,6 +16,7 @@ export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const { pinHash, setPremium } = useSettingsStore();
+  const { isAuthenticated } = useAuthStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
@@ -35,15 +38,27 @@ export default function LockScreen() {
 
   const unlock = () => setShowPremium(true);
 
+  async function navigateAfterUnlock() {
+    const state = await NetInfo.fetch();
+    const isOnline = state.isConnected === true && state.isInternetReachable !== false;
+
+    if (isOnline && !isAuthenticated) {
+      // Online but not signed in → force cloud auth before entering app
+      router.replace('/modals/cloud-auth' as any);
+    } else {
+      router.replace('/(tabs)');
+    }
+  }
+
   const handlePremiumSubscribe = async () => {
     await setPremium(true);
     setShowPremium(false);
-    router.replace('/(tabs)');
+    await navigateAfterUnlock();
   };
 
-  const handlePremiumDismiss = () => {
+  const handlePremiumDismiss = async () => {
     setShowPremium(false);
-    router.replace('/(tabs)');
+    await navigateAfterUnlock();
   };
 
   const handlePin = async (pin: string) => {

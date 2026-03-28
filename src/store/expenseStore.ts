@@ -4,6 +4,7 @@ import {
   getDailyExpenseTotals, adjustSourceBalance,
 } from '../db/queries';
 import type { Expense, NewExpense } from '../db/schema';
+import { triggerAutoSync } from '../services/autoSync';
 
 export type ExpenseWithCategory = Awaited<ReturnType<typeof getExpenses>>[number];
 export type CategoryTotal = Awaited<ReturnType<typeof getExpenseTotalByCategory>>[number];
@@ -56,6 +57,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       await adjustSourceBalance(data.sourceId, -data.amount);
     }
     await get().loadExpenses();
+    triggerAutoSync();
   },
 
   editExpense: async (id, data) => {
@@ -72,6 +74,7 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       await adjustSourceBalance(newSourceId, -newAmount);
     }
     await get().loadExpenses();
+    triggerAutoSync();
   },
 
   removeExpense: async (id) => {
@@ -81,5 +84,6 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     }
     await deleteExpense(id);
     await get().loadExpenses();
+    triggerAutoSync();
   },
 }));

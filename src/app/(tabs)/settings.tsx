@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Text, Switch, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,6 +7,9 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
+import { runSync } from '../../services/syncEngine';
+import { refreshAllStores } from '../../store';
 import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import { PRIMARY_COLORS } from '../../theme';
@@ -57,10 +60,39 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
 export default function SettingsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor } = useSettingsStore();
+  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor, setCloudSyncEnabled, setLastSyncedAt } = useSettingsStore();
+  const { isAuthenticated, user, signOut } = useAuthStore();
 
   const isDark = currentTheme === 'dark';
   const [showColors, setShowColors] = React.useState(false);
+  const [syncing, setSyncing] = React.useState(false);
+
+  async function handleSyncNow() {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const result = await runSync(user.uid);
+      if (result.pulled > 0) await refreshAllStores();
+      await setLastSyncedAt(new Date().toISOString());
+      Alert.alert('Sync complete', `Pushed ${result.pushed}, pulled ${result.pulled} changes.`);
+    } catch (e) {
+      Alert.alert('Sync failed', 'Could not sync. Check your connection and try again.');
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleSignOut() {
+    Alert.alert('Sign out of cloud?', 'Your local data stays on this device. You can sign back in anytime.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out', style: 'destructive', onPress: async () => {
+          await signOut();
+          await setCloudSyncEnabled(false);
+        }
+      },
+    ]);
+  }
 
   const handleThemeToggle = async (val: boolean) => {
     await setTheme(val ? 'dark' : 'light');
@@ -152,6 +184,39 @@ export default function SettingsScreen() {
           label="Change PIN"
           onPress={() => router.push('/modals/change-pin')}
         />
+
+        {/* Cloud Sync */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Cloud Sync</MutedLabel>
+        {isAuthenticated && user ? (
+          <>
+            <SettingRow
+              icon="account-circle-outline"
+              iconColor={theme.colors.primary}
+              label="Signed in as"
+              value={user.email?.split('@')[0] ?? 'Account'}
+            />
+            <SettingRow
+              icon={syncing ? 'loading' : 'sync'}
+              iconColor={theme.colors.secondary}
+              label={syncing ? 'Syncing…' : 'Sync Now'}
+              onPress={syncing ? undefined : handleSyncNow}
+            />
+            <SettingRow
+              icon="logout"
+              iconColor={theme.colors.error}
+              label="Sign Out of Cloud"
+              onPress={handleSignOut}
+            />
+          </>
+        ) : (
+          <SettingRow
+            icon="cloud-upload-outline"
+            iconColor={theme.colors.primary}
+            label="Connect Cloud Account"
+            value="Off"
+            onPress={() => router.push('/modals/cloud-auth')}
+          />
+        )}
 
         {/* About */}
         <MutedLabel uppercase style={styles.sectionTitle}>About</MutedLabel>

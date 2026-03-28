@@ -4,6 +4,7 @@ import {
   markLendPaid, getTotalActiveLendAmount, adjustSourceBalance,
 } from '../db/queries';
 import type { NewLend } from '../db/schema';
+import { triggerAutoSync } from '../services/autoSync';
 
 export type LendWithSource = Awaited<ReturnType<typeof getLends>>[number];
 
@@ -49,6 +50,7 @@ export const useLendStore = create<LendState>((set, get) => ({
     await createLend(data);
     await adjustSourceBalance(data.sourceId, -data.amount);
     await get().loadLends();
+    triggerAutoSync();
   },
 
   editLend: async (id, data) => {
@@ -66,6 +68,7 @@ export const useLendStore = create<LendState>((set, get) => ({
       await adjustSourceBalance(newSourceId, -newAmount);
     }
     await get().loadLends();
+    triggerAutoSync();
   },
 
   removeLend: async (id) => {
@@ -76,6 +79,7 @@ export const useLendStore = create<LendState>((set, get) => ({
     }
     await deleteLend(id);
     await get().loadLends();
+    triggerAutoSync();
   },
 
   markPaid: async (id) => {
@@ -93,6 +97,7 @@ export const useLendStore = create<LendState>((set, get) => ({
     }
     await adjustSourceBalance(lend.sourceId, returnAmount);
     await get().loadLends();
+    triggerAutoSync();
   },
 
   refreshTotal: async () => {

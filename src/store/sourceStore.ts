@@ -6,6 +6,7 @@ import {
   executeTransfer,
 } from '../db/queries';
 import type { MoneySource, NewMoneySource, RecurringTransaction, NewRecurringTransaction } from '../db/schema';
+import { triggerAutoSync } from '../services/autoSync';
 
 interface SourceState {
   sources: MoneySource[];
@@ -43,26 +44,31 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   addSource: async (data) => {
     await createMoneySource(data);
     await get().loadSources();
+    triggerAutoSync();
   },
 
   editSource: async (id, data) => {
     await updateMoneySource(id, data);
     await get().loadSources();
+    triggerAutoSync();
   },
 
   removeSource: async (id) => {
     await deleteMoneySource(id);
     await get().loadSources();
+    triggerAutoSync();
   },
 
   deposit: async (id, amount) => {
     await adjustSourceBalance(id, amount);
     await get().loadSources();
+    triggerAutoSync();
   },
 
   withdraw: async (id, amount) => {
     await adjustSourceBalance(id, -amount);
     await get().loadSources();
+    triggerAutoSync();
   },
 
   refreshTotalBalance: async () => {
@@ -78,15 +84,18 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   addRecurring: async (data) => {
     await createRecurringTransaction(data);
     await get().loadRecurring(data.sourceId);
+    triggerAutoSync();
   },
 
   removeRecurring: async (id, sourceId) => {
     await deleteRecurringTransaction(id);
     await get().loadRecurring(sourceId);
+    triggerAutoSync();
   },
 
   transfer: async (fromId, toId, amount, fee, note, date) => {
     await executeTransfer(fromId, toId, amount, fee, note, date);
     await get().loadSources();
+    triggerAutoSync();
   },
 }));

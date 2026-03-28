@@ -10,12 +10,16 @@ import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
 import { configureGoogleSignIn } from '../services/firebaseAuth';
+import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
   const { initAuthListener, isAuthLoading } = useAuthStore();
+
+  // Triggers background sync on reconnect when signed in
+  useNetworkSync();
 
   useEffect(() => {
     // Configure Google Sign-In once at startup
@@ -79,6 +83,7 @@ export default function RootLayout() {
           <Stack.Screen name="modals/notifications" options={modalScreenOptions} />
           <Stack.Screen name="modals/add-lend" options={modalScreenOptions} />
           <Stack.Screen name="modals/lends" options={modalScreenOptions} />
+          <Stack.Screen name="modals/cloud-auth" options={modalScreenOptions} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>
