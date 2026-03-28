@@ -25,6 +25,7 @@ interface Props {
   currency: string;
   onDeposit: (id: number) => void;
   onWithdraw: (id: number) => void;
+  onTransfer: (id: number) => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
   index?: number;
@@ -32,7 +33,7 @@ interface Props {
 
 export function SourceCard({
   id, name, type, icon, color, balance, isCustom, isActive,
-  currency, onDeposit, onWithdraw, onEdit, onDelete, index = 0,
+  currency, onDeposit, onWithdraw, onTransfer, onEdit, onDelete, index = 0,
 }: Props) {
   const theme = useTheme<AppTheme>();
 
@@ -83,6 +84,13 @@ export function SourceCard({
           activeOpacity={0.6}
         >
           <MaterialCommunityIcons name="minus" size={18} color={theme.custom.expense} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionBtn, { backgroundColor: theme.colors.primary + '1a' }]}
+          onPress={() => onTransfer(id)}
+          activeOpacity={0.6}
+        >
+          <MaterialCommunityIcons name="bank-transfer" size={18} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
     </ListRowCard>

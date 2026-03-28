@@ -72,6 +72,10 @@ export default function AddExpenseScreen() {
       Alert.alert('Category Required', 'Please select a category.');
       return;
     }
+    if (!selectedSource) {
+      Alert.alert('Source Required', 'Please select a wallet source.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -167,7 +171,7 @@ export default function AddExpenseScreen() {
             <>
               <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                Select Source (optional)
+                Select Source
               </Text>
             </>
           )}

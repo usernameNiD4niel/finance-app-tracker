@@ -1,7 +1,7 @@
 import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import {
-  categories, expenses, bills, recurringTransactions, targets, categoryTargets, settings, moneySources, lends,
+  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends,
   type NewCategory, type NewExpense, type NewBill,
   type NewRecurringTransaction, type RecurringTransaction,
   type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
@@ -165,6 +165,54 @@ export async function updateBill(id: number, data: Partial<NewBill>) {
 
 export async function deleteBill(id: number) {
   await db.delete(bills).where(eq(bills.id, id));
+}
+
+// ─── Transfers ───────────────────────────────────────────────────────────────
+export async function executeTransfer(
+  fromSourceId: number,
+  toSourceId: number,
+  amount: number,
+  fee: number,
+  note: string | null,
+  transferDate: string,
+) {
+  await adjustSourceBalance(fromSourceId, -(amount + fee));
+  await adjustSourceBalance(toSourceId, amount);
+  return db.insert(transfers).values({
+    fromSourceId,
+    toSourceId,
+    amount,
+    fee,
+    note,
+    transferDate,
+    createdAt: new Date().toISOString(),
+  }).returning().get();
+}
+
+export async function getTransfers(sourceId?: number) {
+  const rows = await db
+    .select({
+      id: transfers.id,
+      fromSourceId: transfers.fromSourceId,
+      toSourceId: transfers.toSourceId,
+      amount: transfers.amount,
+      fee: transfers.fee,
+      note: transfers.note,
+      transferDate: transfers.transferDate,
+      createdAt: transfers.createdAt,
+      fromSourceName: sql<string>`fs.name`,
+      fromSourceIcon: sql<string>`fs.icon`,
+      fromSourceColor: sql<string>`fs.color`,
+      toSourceName: sql<string>`ts.name`,
+      toSourceIcon: sql<string>`ts.icon`,
+      toSourceColor: sql<string>`ts.color`,
+    })
+    .from(transfers)
+    .leftJoin(sql`money_sources fs`, sql`${transfers.fromSourceId} = fs.id`)
+    .leftJoin(sql`money_sources ts`, sql`${transfers.toSourceId} = ts.id`)
+    .orderBy(desc(transfers.transferDate), desc(transfers.createdAt))
+    .all();
+  return rows;
 }
 
 // ─── Recurring Transactions ──────────────────────────────────────────────────

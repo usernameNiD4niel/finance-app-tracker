@@ -89,6 +89,17 @@ export const lends = sqliteTable('lends', {
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
+export const transfers = sqliteTable('transfers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  fromSourceId: integer('from_source_id').notNull(),
+  toSourceId: integer('to_source_id').notNull(),
+  amount: real('amount').notNull(),
+  fee: real('fee').notNull().default(0),
+  note: text('note'),
+  transferDate: text('transfer_date').notNull(),
+  createdAt: text('created_at').notNull().default(new Date().toISOString()),
+});
+
 export const settings = sqliteTable('settings', {
   key: text('key').primaryKey(),
   value: text('value').notNull(),
@@ -110,3 +121,5 @@ export type MoneySource = typeof moneySources.$inferSelect;
 export type NewMoneySource = typeof moneySources.$inferInsert;
 export type Lend = typeof lends.$inferSelect;
 export type NewLend = typeof lends.$inferInsert;
+export type Transfer = typeof transfers.$inferSelect;
+export type NewTransfer = typeof transfers.$inferInsert;

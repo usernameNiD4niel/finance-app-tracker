@@ -3,6 +3,7 @@ import {
   getMoneySources, getActiveMoneySources, createMoneySource,
   updateMoneySource, deleteMoneySource, adjustSourceBalance, getTotalSourceBalance,
   getRecurringTransactions, createRecurringTransaction, deleteRecurringTransaction,
+  executeTransfer,
 } from '../db/queries';
 import type { MoneySource, NewMoneySource, RecurringTransaction, NewRecurringTransaction } from '../db/schema';
 
@@ -21,6 +22,7 @@ interface SourceState {
   loadRecurring: (sourceId: number) => Promise<void>;
   addRecurring: (data: NewRecurringTransaction) => Promise<void>;
   removeRecurring: (id: number, sourceId: number) => Promise<void>;
+  transfer: (fromId: number, toId: number, amount: number, fee: number, note: string | null, date: string) => Promise<void>;
 }
 
 export const useSourceStore = create<SourceState>((set, get) => ({
@@ -81,5 +83,10 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   removeRecurring: async (id, sourceId) => {
     await deleteRecurringTransaction(id);
     await get().loadRecurring(sourceId);
+  },
+
+  transfer: async (fromId, toId, amount, fee, note, date) => {
+    await executeTransfer(fromId, toId, amount, fee, note, date);
+    await get().loadSources();
   },
 }));

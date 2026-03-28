@@ -16,7 +16,7 @@ import { formatCurrency } from '../../utils/currency';
 import { buildInitialNextRunDate } from '../../services/recurring';
 import { neuButton, neuCardLg, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
-import type { RecurringTransaction } from '../../db/schema';
+import type { MoneySource, RecurringTransaction } from '../../db/schema';
 
 const SOURCE_TYPES = [
   { value: 'bank', label: 'Bank' },
@@ -54,7 +54,7 @@ const FREQ_LABELS: Record<string, string> = {
 };
 
 // ─── Sheet pages ─────────────────────────────────────────────────────────────
-type SheetPage = 'detail' | 'dw' | 'add-recurring';
+type SheetPage = 'detail' | 'dw' | 'add-recurring' | 'transfer';
 
 export default function WalletsScreen() {
   const theme = useTheme<AppTheme>();
@@ -64,6 +64,7 @@ export default function WalletsScreen() {
     sources, totalBalance, loadSources,
     addSource, editSource, removeSource, deposit, withdraw,
     recurringMap, loadRecurring, addRecurring, removeRecurring,
+    transfer,
   } = useSourceStore();
 
   // ── Detail bottom sheet ───────────────────────────────────────────────────
@@ -77,6 +78,12 @@ export default function WalletsScreen() {
   const [dwRecurring, setDwRecurring] = useState(false);
   const [dwFrequency, setDwFrequency] = useState<string>('monthly');
   const [dwDayOfMonth, setDwDayOfMonth] = useState('1');
+
+  // ── Transfer state ────────────────────────────────────────────────────────
+  const [trToSource, setTrToSource] = useState<MoneySource | null>(null);
+  const [trAmount, setTrAmount] = useState('');
+  const [trFee, setTrFee] = useState('');
+  const [trNote, setTrNote] = useState('');
 
   // ── Add Recurring form state ──────────────────────────────────────────────
   const [arType, setArType] = useState<'deposit' | 'withdraw'>('deposit');
@@ -166,6 +173,24 @@ export default function WalletsScreen() {
     });
     setArAmount('');
     setArNote('');
+    setSheetPage('detail');
+  };
+
+  const openTransfer = () => {
+    setTrToSource(null);
+    setTrAmount('');
+    setTrFee('');
+    setTrNote('');
+    setSheetPage('transfer');
+  };
+
+  const handleTransferConfirm = async () => {
+    const amount = Number(trAmount);
+    if (!amount || amount <= 0 || !sheetSourceId || !trToSource) return;
+    Keyboard.dismiss();
+    const fee = Number(trFee) || 0;
+    const today = new Date().toISOString().split('T')[0];
+    await transfer(sheetSourceId, trToSource.id, amount, fee, trNote.trim() || null, today);
     setSheetPage('detail');
   };
 
@@ -269,6 +294,13 @@ export default function WalletsScreen() {
         >
           <MaterialCommunityIcons name="arrow-up-circle-outline" size={20} color={theme.custom.expense} />
           <Text variant="labelLarge" style={{ color: theme.custom.expense, marginLeft: 6 }}>Withdraw</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.dwBtn, { backgroundColor: theme.colors.primary + '1a' }]}
+          onPress={openTransfer}
+        >
+          <MaterialCommunityIcons name="bank-transfer" size={20} color={theme.colors.primary} />
+          <Text variant="labelLarge" style={{ color: theme.colors.primary, marginLeft: 6 }}>Transfer</Text>
         </TouchableOpacity>
       </View>
 
@@ -557,6 +589,148 @@ export default function WalletsScreen() {
     </View>
   );
 
+  const renderTransferPage = () => {
+    const otherSources = activeSources.filter(s => s.id !== sheetSourceId);
+    const totalDeducted = (Number(trAmount) || 0) + (Number(trFee) || 0);
+
+    return (
+      <View>
+        <TouchableOpacity onPress={() => setSheetPage('detail')} style={styles.backBtn}>
+          <MaterialCommunityIcons name="arrow-left" size={20} color={theme.colors.onSurface} />
+          <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginLeft: 6 }}>Back</Text>
+        </TouchableOpacity>
+
+        <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 4 }}>
+          Transfer Money
+        </Text>
+        {sheetSource && (
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
+            From: {sheetSource.name} · {formatCurrency(sheetSource.balance, currency)}
+          </Text>
+        )}
+
+        <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+          To Wallet
+        </Text>
+        {otherSources.length === 0 ? (
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 16 }}>
+            No other wallets available
+          </Text>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {otherSources.map(src => {
+                const isSelected = trToSource?.id === src.id;
+                return (
+                  <TouchableOpacity
+                    key={src.id}
+                    style={[
+                      styles.walletChip,
+                      {
+                        backgroundColor: isSelected ? src.color + '22' : theme.custom.cardBg,
+                        borderWidth: isSelected ? 1.5 : 0,
+                        borderColor: isSelected ? src.color : 'transparent',
+                      },
+                    ]}
+                    onPress={() => setTrToSource(src)}
+                  >
+                    <View style={[styles.walletChipIcon, { backgroundColor: src.color + '22' }]}>
+                      <MaterialCommunityIcons name={src.icon as any} size={16} color={src.color} />
+                    </View>
+                    <View>
+                      <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+                        {src.name}
+                      </Text>
+                      <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                        {formatCurrency(src.balance, currency)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
+
+        <TextInput
+          value={trAmount}
+          onChangeText={setTrAmount}
+          keyboardType="decimal-pad"
+          mode="outlined"
+          label="Amount"
+          placeholder="0.00"
+          left={<TextInput.Affix text={currency} />}
+          style={{ marginBottom: 12 }}
+        />
+
+        <TextInput
+          value={trFee}
+          onChangeText={setTrFee}
+          keyboardType="decimal-pad"
+          mode="outlined"
+          label="Transfer Fee (optional)"
+          placeholder="0.00"
+          left={<TextInput.Affix text={currency} />}
+          style={{ marginBottom: 12 }}
+        />
+
+        <TextInput
+          value={trNote}
+          onChangeText={setTrNote}
+          mode="outlined"
+          label="Note (optional)"
+          style={{ marginBottom: 12 }}
+        />
+
+        {totalDeducted > 0 && trToSource && (
+          <View style={[styles.transferSummary, { backgroundColor: theme.colors.primary + '10' }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Amount received</Text>
+              <Text variant="bodySmall" style={{ color: theme.custom.income, fontWeight: '700' }}>
+                +{formatCurrency(Number(trAmount) || 0, currency)}
+              </Text>
+            </View>
+            {Number(trFee) > 0 && (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>Transfer fee</Text>
+                <Text variant="bodySmall" style={{ color: theme.custom.expense, fontWeight: '700' }}>
+                  -{formatCurrency(Number(trFee), currency)}
+                </Text>
+              </View>
+            )}
+            <View style={[styles.transferSummaryDivider, { backgroundColor: theme.colors.outline }]} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text variant="bodySmall" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>Total deducted</Text>
+              <Text variant="bodySmall" style={{ color: theme.custom.expense, fontWeight: '700' }}>
+                -{formatCurrency(totalDeducted, currency)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={[styles.modalActions, { marginTop: 16 }]}>
+          <TouchableOpacity
+            style={[styles.cancelBtn, { backgroundColor: theme.colors.surfaceVariant }]}
+            onPress={() => setSheetPage('detail')}
+          >
+            <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.saveBtn, {
+              backgroundColor: !trToSource || !Number(trAmount) ? theme.colors.surfaceVariant : theme.colors.primary,
+              boxShadow: trToSource && Number(trAmount) ? (neuButton(theme) as any) : undefined,
+              opacity: !trToSource || !Number(trAmount) ? 0.5 : 1,
+            }]}
+            onPress={handleTransferConfirm}
+            disabled={!trToSource || !Number(trAmount)}
+          >
+            <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Transfer</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScreenContainer>
       <TopHeader
@@ -588,6 +762,7 @@ export default function WalletsScreen() {
               currency={currency}
               onDeposit={(id) => { openDetail(id); setTimeout(() => openDw('deposit'), 50); }}
               onWithdraw={(id) => { openDetail(id); setTimeout(() => openDw('withdraw'), 50); }}
+              onTransfer={(id) => { openDetail(id); setTimeout(() => openTransfer(), 50); }}
               onEdit={openEdit}
               onDelete={handleDelete}
               index={index}
@@ -636,6 +811,7 @@ export default function WalletsScreen() {
                 {sheetPage === 'detail' && renderDetailPage()}
                 {sheetPage === 'dw' && renderDwPage()}
                 {sheetPage === 'add-recurring' && renderAddRecurringPage()}
+                {sheetPage === 'transfer' && renderTransferPage()}
                 <View style={{ height: 20 }} />
               </ScrollView>
             </Pressable>
@@ -862,5 +1038,29 @@ const styles = StyleSheet.create({
   colorDot: { width: 36, height: 36, borderRadius: 18 },
   modalActions: { flexDirection: 'row', gap: 12 },
   cancelBtn: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
+  walletChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+  },
+  walletChipIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transferSummary: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 4,
+  },
+  transferSummaryDivider: {
+    height: 1,
+    marginVertical: 6,
+  },
   saveBtn: { flex: 1, borderRadius: 16, paddingVertical: 14, alignItems: 'center' },
 });

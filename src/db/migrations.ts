@@ -120,6 +120,22 @@ export function runMigrations() {
     }
   } catch (_e) { /* salary table already gone */ }
 
+  // Create transfers table
+  try {
+    sqlite.execSync(`
+      CREATE TABLE IF NOT EXISTS transfers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        from_source_id INTEGER NOT NULL,
+        to_source_id INTEGER NOT NULL,
+        amount REAL NOT NULL,
+        fee REAL NOT NULL DEFAULT 0,
+        note TEXT,
+        transfer_date TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+  } catch (_e) { /* table exists */ }
+
   // Create recurring_transactions table
   try {
     sqlite.execSync(`

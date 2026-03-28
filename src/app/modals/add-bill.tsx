@@ -82,6 +82,10 @@ export default function AddBillScreen() {
       Alert.alert('Category Required', 'Please select a category.');
       return;
     }
+    if (!selectedSource) {
+      Alert.alert('Source Required', 'Please select a wallet source.');
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -186,7 +190,7 @@ export default function AddBillScreen() {
           ) : (
             <>
               <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
-              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>Select Source (optional)</Text>
+              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>Select Source</Text>
             </>
           )}
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
