@@ -1,46 +1,32 @@
-import { getExpenses, getLatestSalaryByPeriod, getBills, getTotalSourceBalance } from '../db/queries';
-import { getCurrentPeriodDates, getCurrentPeriod, getDaysUntilDue } from '../utils/date';
+import { getExpenses, getBills, getTotalSourceBalance } from '../db/queries';
+import { getDaysUntilDue } from '../utils/date';
 
 export async function calculateCurrentBalance(): Promise<{
-  salary: number;
   spent: number;
   billsDue: number;
   walletBalance: number;
   balance: number;
-  period: 'first' | 'fifteenth';
 }> {
-  const { start, end } = getCurrentPeriodDates();
-  const period = getCurrentPeriod();
+  const today = new Date();
+  const startOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    .toISOString().split('T')[0];
 
-  const [salaryRecord, periodExpenses, allBills, walletBalance] = await Promise.all([
-    getLatestSalaryByPeriod(period),
-    getExpenses({ startDate: start, endDate: end }),
+  const [monthExpenses, allBills, walletBalance] = await Promise.all([
+    getExpenses({ startDate: startOfMonth, endDate: endOfMonth }),
     getBills(),
     getTotalSourceBalance(),
   ]);
 
-  const salary = salaryRecord?.amount ?? 0;
-  const spent = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const spent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-  const today = new Date();
-  const currentDay = today.getDate();
-
-  // Bills due in current period
   const billsDue = allBills
-    .filter(b => {
-      if (!b.isActive) return false;
-      if (b.frequency === 'monthly') {
-        const dueDay = b.dueDay;
-        if (period === 'first') return dueDay >= 1 && dueDay <= 14;
-        else return dueDay >= 15;
-      }
-      return false;
-    })
+    .filter(b => b.isActive && b.frequency === 'monthly')
     .reduce((sum, b) => sum + b.amount, 0);
 
-  const balance = walletBalance + salary - spent - billsDue;
+  const balance = walletBalance - spent - billsDue;
 
-  return { salary, spent, billsDue, walletBalance, balance, period };
+  return { spent, billsDue, walletBalance, balance };
 }
 
 export type UpcomingBill = {

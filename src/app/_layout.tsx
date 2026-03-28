@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
+import { processDueRecurringTransactions } from '../services/recurring';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
@@ -20,6 +21,7 @@ export default function RootLayout() {
         seedCategories();
         seedMoneySources();
         await loadSettings();
+        await processDueRecurringTransactions();
       } catch (e) {
         console.error('[startup] init failed:', e);
       }
@@ -58,7 +60,6 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
           <Stack.Screen name="modals/add-expense" options={modalScreenOptions} />
           <Stack.Screen name="modals/add-bill" options={modalScreenOptions} />
-          <Stack.Screen name="modals/salary" options={modalScreenOptions} />
           <Stack.Screen name="modals/budget-targets" options={modalScreenOptions} />
           <Stack.Screen name="modals/categories" options={modalScreenOptions} />
           <Stack.Screen name="modals/export" options={modalScreenOptions} />

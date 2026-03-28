@@ -1,8 +1,9 @@
 import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import {
-  categories, expenses, bills, salary, targets, categoryTargets, settings, moneySources, lends,
-  type NewCategory, type NewExpense, type NewBill, type NewSalary,
+  categories, expenses, bills, recurringTransactions, targets, categoryTargets, settings, moneySources, lends,
+  type NewCategory, type NewExpense, type NewBill,
+  type NewRecurringTransaction, type RecurringTransaction,
   type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
 } from './schema';
 
@@ -166,48 +167,42 @@ export async function deleteBill(id: number) {
   await db.delete(bills).where(eq(bills.id, id));
 }
 
-// ─── Salary ─────────────────────────────────────────────────────────────────
-export async function getSalary() {
-  return db.select().from(salary).orderBy(desc(salary.effectiveDate)).all();
-}
-
-export async function getLatestSalaryByPeriod(period: 'first' | 'fifteenth') {
+// ─── Recurring Transactions ──────────────────────────────────────────────────
+export async function getRecurringTransactions(sourceId?: number): Promise<RecurringTransaction[]> {
+  if (sourceId !== undefined) {
+    return db
+      .select()
+      .from(recurringTransactions)
+      .where(and(eq(recurringTransactions.sourceId, sourceId), eq(recurringTransactions.isActive, true)))
+      .orderBy(recurringTransactions.createdAt)
+      .all();
+  }
   return db
     .select()
-    .from(salary)
-    .where(eq(salary.period, period))
-    .orderBy(desc(salary.effectiveDate))
-    .get();
+    .from(recurringTransactions)
+    .where(eq(recurringTransactions.isActive, true))
+    .orderBy(recurringTransactions.nextRunDate)
+    .all();
 }
 
-export async function upsertSalary(data: NewSalary) {
-  const existing = await db
+export async function getDueRecurringTransactions(today: string): Promise<RecurringTransaction[]> {
+  return db
     .select()
-    .from(salary)
-    .where(eq(salary.period, data.period))
-    .orderBy(desc(salary.effectiveDate))
-    .get();
+    .from(recurringTransactions)
+    .where(and(eq(recurringTransactions.isActive, true), lte(recurringTransactions.nextRunDate, today)))
+    .all();
+}
 
-  if (existing) {
-    // Reverse old deposit then apply new one
-    if (existing.sourceId) {
-      await adjustSourceBalance(existing.sourceId, -existing.amount);
-    }
-    if (data.sourceId) {
-      await adjustSourceBalance(data.sourceId, data.amount);
-    }
-    return db
-      .update(salary)
-      .set({ amount: data.amount, sourceId: data.sourceId ?? null, effectiveDate: data.effectiveDate })
-      .where(eq(salary.id, existing.id))
-      .returning()
-      .get();
-  }
+export async function createRecurringTransaction(data: NewRecurringTransaction) {
+  return db.insert(recurringTransactions).values(data).returning().get();
+}
 
-  if (data.sourceId) {
-    await adjustSourceBalance(data.sourceId, data.amount);
-  }
-  return db.insert(salary).values(data).returning().get();
+export async function updateRecurringTransaction(id: number, data: Partial<NewRecurringTransaction>) {
+  return db.update(recurringTransactions).set(data).where(eq(recurringTransactions.id, id)).returning().get();
+}
+
+export async function deleteRecurringTransaction(id: number) {
+  return db.update(recurringTransactions).set({ isActive: false }).where(eq(recurringTransactions.id, id)).returning().get();
 }
 
 // ─── Targets ────────────────────────────────────────────────────────────────

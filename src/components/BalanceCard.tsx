@@ -9,19 +9,20 @@ import type { AppTheme } from '../theme';
 
 interface Props {
   balance: number;
-  salary: number;
   walletBalance: number;
   spent: number;
   billsDue: number;
   currency: string;
-  period: 'first' | 'fifteenth';
 }
 
-export function BalanceCard({ balance, salary, walletBalance, spent, billsDue, currency, period }: Props) {
+export function BalanceCard({ balance, walletBalance, spent, billsDue, currency }: Props) {
   const theme = useTheme<AppTheme>();
   const isDark = theme.dark;
   const accent = theme.custom.onAccentSurface;
   const accentMuted = theme.custom.onAccentSurfaceMuted;
+
+  const today = new Date();
+  const monthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
     <View
@@ -46,16 +47,14 @@ export function BalanceCard({ balance, salary, walletBalance, spent, billsDue, c
       {/* Subtle shine stripe */}
       <View style={styles.shineStripe} />
 
-      {/* Period header */}
+      {/* Month header */}
       <View style={styles.header}>
         <View style={styles.periodRow}>
           <MaterialCommunityIcons name="calendar-range" size={13} color={accentMuted} />
-          <Text style={[styles.periodLabel, { color: accentMuted }]}>
-            {period === 'first' ? '1st – 14th' : '15th – End of Month'}
-          </Text>
+          <Text style={[styles.periodLabel, { color: accentMuted }]}>{monthName}</Text>
         </View>
         <View style={styles.badge}>
-          <Text style={[styles.badgeText, { color: accent }]}>Active Period</Text>
+          <Text style={[styles.badgeText, { color: accent }]}>This Month</Text>
         </View>
       </View>
 
@@ -72,9 +71,9 @@ export function BalanceCard({ balance, salary, walletBalance, spent, billsDue, c
       {/* Stats row */}
       <View style={styles.statsRow}>
         <BalanceStat
-          icon="arrow-down-circle-outline"
-          label="Income"
-          value={formatCurrency(salary + walletBalance, currency)}
+          icon="wallet-outline"
+          label="Wallets"
+          value={formatCurrency(walletBalance, currency)}
           accentMuted={accentMuted}
           accent={accent}
         />

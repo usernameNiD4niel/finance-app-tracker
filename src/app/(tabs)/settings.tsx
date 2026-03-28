@@ -123,12 +123,6 @@ export default function SettingsScreen() {
           onPress={() => router.push('/modals/currency-picker')}
         />
         <SettingRow
-          icon="cash-clock"
-          iconColor={theme.custom.income}
-          label="Salary Settings"
-          onPress={() => router.push('/modals/salary')}
-        />
-        <SettingRow
           icon="target"
           iconColor={theme.colors.tertiary}
           label="Budget Targets"

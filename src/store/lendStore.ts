@@ -79,7 +79,7 @@ export const useLendStore = create<LendState>((set, get) => ({
   },
 
   markPaid: async (id) => {
-    const lend = get().lends.find(l => l.id === id);
+    const lend = get().lends.find(l => l.id === id) ?? get().activeLends.find(l => l.id === id);
     if (!lend) return;
     await markLendPaid(id);
     // Return money to original wallet (principal + interest)

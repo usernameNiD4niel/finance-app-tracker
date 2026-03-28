@@ -2,13 +2,15 @@ import { create } from 'zustand';
 import {
   getMoneySources, getActiveMoneySources, createMoneySource,
   updateMoneySource, deleteMoneySource, adjustSourceBalance, getTotalSourceBalance,
+  getRecurringTransactions, createRecurringTransaction, deleteRecurringTransaction,
 } from '../db/queries';
-import type { MoneySource, NewMoneySource } from '../db/schema';
+import type { MoneySource, NewMoneySource, RecurringTransaction, NewRecurringTransaction } from '../db/schema';
 
 interface SourceState {
   sources: MoneySource[];
   totalBalance: number;
   isLoading: boolean;
+  recurringMap: Record<number, RecurringTransaction[]>;
   loadSources: () => Promise<void>;
   addSource: (data: NewMoneySource) => Promise<void>;
   editSource: (id: number, data: Partial<NewMoneySource>) => Promise<void>;
@@ -16,12 +18,16 @@ interface SourceState {
   deposit: (id: number, amount: number) => Promise<void>;
   withdraw: (id: number, amount: number) => Promise<void>;
   refreshTotalBalance: () => Promise<void>;
+  loadRecurring: (sourceId: number) => Promise<void>;
+  addRecurring: (data: NewRecurringTransaction) => Promise<void>;
+  removeRecurring: (id: number, sourceId: number) => Promise<void>;
 }
 
 export const useSourceStore = create<SourceState>((set, get) => ({
   sources: [],
   totalBalance: 0,
   isLoading: false,
+  recurringMap: {},
 
   loadSources: async () => {
     set({ isLoading: true });
@@ -60,5 +66,20 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   refreshTotalBalance: async () => {
     const total = await getTotalSourceBalance();
     set({ totalBalance: total });
+  },
+
+  loadRecurring: async (sourceId) => {
+    const rows = await getRecurringTransactions(sourceId);
+    set(state => ({ recurringMap: { ...state.recurringMap, [sourceId]: rows } }));
+  },
+
+  addRecurring: async (data) => {
+    await createRecurringTransaction(data);
+    await get().loadRecurring(data.sourceId);
+  },
+
+  removeRecurring: async (id, sourceId) => {
+    await deleteRecurringTransaction(id);
+    await get().loadRecurring(sourceId);
   },
 }));

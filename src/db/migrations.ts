@@ -100,7 +100,58 @@ export function runMigrations() {
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN has_interest INTEGER NOT NULL DEFAULT 0`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_type TEXT`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_value REAL`); } catch (_e) { /* column exists */ }
-  try { sqlite.execSync(`ALTER TABLE salary ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
+
+  // Reverse salary balance contributions (for users who had salary linked to sources)
+  try {
+    const salaryExists = sqlite.getFirstSync<{ name: string }>(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='salary'`
+    );
+    if (salaryExists) {
+      const salaryRows = sqlite.getAllSync<{ source_id: number; amount: number }>(
+        `SELECT source_id, amount FROM salary WHERE source_id IS NOT NULL`
+      );
+      for (const row of salaryRows) {
+        sqlite.runSync(
+          `UPDATE money_sources SET balance = balance - ? WHERE id = ?`,
+          [row.amount, row.source_id]
+        );
+      }
+      sqlite.execSync(`DROP TABLE IF EXISTS salary`);
+    }
+  } catch (_e) { /* salary table already gone */ }
+
+  // Create recurring_transactions table
+  try {
+    sqlite.execSync(`
+      CREATE TABLE IF NOT EXISTS recurring_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id INTEGER NOT NULL,
+        type TEXT NOT NULL,
+        amount REAL NOT NULL,
+        frequency TEXT NOT NULL,
+        day_of_month INTEGER,
+        next_run_date TEXT NOT NULL,
+        last_run_date TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        note TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+  } catch (_e) { /* table exists */ }
+
+  // Add new predefined sources for existing users
+  const newPredefined = [
+    { name: 'Maya', type: 'e_wallet', icon: 'cellphone-wireless', color: '#00B4D8' },
+    { name: 'UnionBank', type: 'bank', icon: 'bank-outline', color: '#f97316' },
+  ];
+  for (const src of newPredefined) {
+    try {
+      sqlite.runSync(
+        `INSERT INTO money_sources (name, type, icon, color, is_custom, is_active) SELECT ?, ?, ?, ?, 0, 1 WHERE NOT EXISTS (SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0)`,
+        [src.name, src.type, src.icon, src.color, src.name]
+      );
+    } catch (_e) { /* ignore */ }
+  }
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -132,7 +183,9 @@ export function seedCategories() {
 const PREDEFINED_SOURCES = [
   { name: 'BDO', type: 'bank', icon: 'bank', color: '#0033a0' },
   { name: 'BPI', type: 'bank', icon: 'bank', color: '#d4212c' },
+  { name: 'UnionBank', type: 'bank', icon: 'bank-outline', color: '#f97316' },
   { name: 'GCash', type: 'e_wallet', icon: 'cellphone', color: '#007dfe' },
+  { name: 'Maya', type: 'e_wallet', icon: 'cellphone-wireless', color: '#00B4D8' },
   { name: 'PayPal', type: 'e_wallet', icon: 'wallet-outline', color: '#003087' },
 ];
 

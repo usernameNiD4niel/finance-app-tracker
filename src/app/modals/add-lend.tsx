@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -8,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SourcePicker } from '../../components/SourcePicker';
 import { PremiumModal } from '../../components/PremiumModal';
+import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
@@ -29,6 +31,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function AddLendScreen() {
   const theme = useTheme<AppTheme>();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { currency, isPremium } = useSettingsStore();
@@ -126,7 +129,7 @@ export default function AddLendScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -285,40 +288,32 @@ export default function AddLendScreen() {
           </View>
         )}
 
-        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Lend Date</Text>
         <Controller
           control={control}
           name="lendDate"
           render={({ field: { onChange, value } }) => (
-            <TextInput
+            <DatePickerField
+              label="Lend Date"
               value={value}
-              onChangeText={onChange}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-              left={<TextInput.Icon icon="calendar" />}
+              onChange={onChange}
               error={!!errors.lendDate}
-              style={styles.input}
             />
           )}
         />
 
-        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Expected Pay Date</Text>
         <Controller
           control={control}
           name="expectedPayDate"
           render={({ field: { onChange, value } }) => (
-            <TextInput
+            <DatePickerField
+              label="Expected Pay Date"
               value={value}
-              onChangeText={onChange}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-              left={<TextInput.Icon icon="calendar-clock" />}
+              onChange={onChange}
+              icon="calendar-clock"
               error={!!errors.expectedPayDate}
-              style={styles.input}
             />
           )}
         />
-        {errors.expectedPayDate && <Text style={{ color: theme.custom.expense }}>{errors.expectedPayDate.message}</Text>}
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Note (optional)</Text>
         <Controller

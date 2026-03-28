@@ -7,35 +7,35 @@ import { format } from 'date-fns';
 import { PINPad } from '../../components/PINPad';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useSalaryStore } from '../../store/salaryStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useCategoryStore } from '../../store/categoryStore';
+import { useSourceStore } from '../../store/sourceStore';
 import { hashPin } from '../../services/auth';
 import { CURRENCIES } from '../../utils/currency';
 import { PremiumModal } from '../../components/PremiumModal';
 import { neuCardLg, neuButton, neuListItem, neuCard, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
-import type { Category } from '../../db/schema';
 
-type Step = 'welcome' | 'currency' | 'salary' | 'transactions' | 'pin' | 'confirm-pin';
+type Step = 'welcome' | 'currency' | 'wallets' | 'transactions' | 'pin' | 'confirm-pin';
 
 export default function OnboardingScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const { setCurrency, setPin, setOnboardingDone, setPremium } = useSettingsStore();
-  const { setSalary } = useSalaryStore();
   const { addExpense } = useExpenseStore();
   const { loadCategories, categories } = useCategoryStore();
+  const { sources, loadSources, addSource, editSource } = useSourceStore();
 
   const [step, setStep] = useState<Step>('welcome');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [pinEntry, setPinEntry] = useState('');
 
-  // Salary
-  const [salaryMode, setSalaryMode] = useState<'once' | 'twice'>('once');
-  const [salaryPeriod, setSalaryPeriod] = useState<'first' | 'fifteenth'>('first');
-  const [salaryAmountFirst, setSalaryAmountFirst] = useState('');
-  const [salaryAmountFifteenth, setSalaryAmountFifteenth] = useState('');
+  // Wallets
+  const [walletSelections, setWalletSelections] = useState<Record<number, { selected: boolean; balance: string }>>({});
+  const [pendingCustomSources, setPendingCustomSources] = useState<Array<{ name: string; balance: string }>>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customBalance, setCustomBalance] = useState('');
 
   // Transactions
   const [txAmount, setTxAmount] = useState('');
@@ -50,6 +50,7 @@ export default function OnboardingScreen() {
 
   useEffect(() => {
     loadCategories();
+    loadSources();
   }, []);
 
   const handlePinFirst = async (pin: string) => {
@@ -81,23 +82,36 @@ export default function OnboardingScreen() {
     router.replace('/(tabs)');
   };
 
-  const handleSalaryContinue = async () => {
-    const today = format(new Date(), 'yyyy-MM-dd');
-    if (salaryMode === 'once') {
-      const amt = parseFloat(salaryAmountFirst);
-      if (amt > 0) {
-        await setSalary({ amount: amt, period: salaryPeriod, effectiveDate: today });
-      }
-    } else {
-      const amtFirst = parseFloat(salaryAmountFirst);
-      const amtFifteenth = parseFloat(salaryAmountFifteenth);
-      if (amtFirst > 0) {
-        await setSalary({ amount: amtFirst, period: 'first', effectiveDate: today });
-      }
-      if (amtFifteenth > 0) {
-        await setSalary({ amount: amtFifteenth, period: 'fifteenth', effectiveDate: today });
+  const handleAddCustomWallet = () => {
+    if (!customName.trim()) return;
+    setPendingCustomSources(prev => [...prev, { name: customName.trim(), balance: customBalance }]);
+    setCustomName('');
+    setCustomBalance('');
+    setShowAddCustom(false);
+  };
+
+  const handleWalletsContinue = async () => {
+    for (const source of sources) {
+      const sel = walletSelections[source.id];
+      if (sel?.selected) {
+        await editSource(source.id, { isActive: true, balance: parseFloat(sel.balance) || 0 });
+      } else {
+        await editSource(source.id, { isActive: false });
       }
     }
+    for (const cs of pendingCustomSources) {
+      await addSource({
+        name: cs.name,
+        type: 'custom',
+        icon: 'wallet-outline',
+        color: '#6b7280',
+        balance: parseFloat(cs.balance) || 0,
+        isCustom: true,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    await loadSources();
     setStep('transactions');
   };
 
@@ -184,98 +198,138 @@ export default function OnboardingScreen() {
           </ScrollView>
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
-            onPress={() => setStep('salary')}
+            onPress={() => setStep('wallets')}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {step === 'salary' && (
+      {step === 'wallets' && (
         <View style={styles.content}>
-          <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface }]}>
-            Set Up Your Salary
-          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text variant="headlineMedium" style={[styles.title, { color: theme.colors.onSurface, textAlign: 'left' }]}>
+              Your Wallets
+            </Text>
+            <TouchableOpacity onPress={() => setStep('transactions')}>
+              <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Skip</Text>
+            </TouchableOpacity>
+          </View>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 20 }}>
-            How often do you get paid?
+            Select your money sources and set their current balance.
           </Text>
 
-          <SegmentedChips
-            chips={[
-              { key: 'once', label: 'Once a month' },
-              { key: 'twice', label: 'Twice a month' },
-            ]}
-            selectedKey={salaryMode}
-            onSelect={(key) => setSalaryMode(key as 'once' | 'twice')}
-          />
+          <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+            {sources.map((source) => {
+              const sel = walletSelections[source.id] ?? { selected: false, balance: '' };
+              return (
+                <View
+                  key={source.id}
+                  style={[styles.walletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                >
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                    onPress={() => setWalletSelections(prev => ({
+                      ...prev,
+                      [source.id]: { selected: !sel.selected, balance: sel.balance },
+                    }))}
+                  >
+                    <View style={[styles.walletIconWrap, { backgroundColor: source.color + '22' }]}>
+                      <MaterialCommunityIcons name={source.icon as any} size={22} color={source.color} />
+                    </View>
+                    <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, flex: 1 }}>{source.name}</Text>
+                    <MaterialCommunityIcons
+                      name={sel.selected ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                      size={22}
+                      color={sel.selected ? theme.colors.primary : theme.colors.onSurfaceVariant}
+                    />
+                  </TouchableOpacity>
+                  {sel.selected && (
+                    <TextInput
+                      mode="outlined"
+                      label="Current balance"
+                      value={sel.balance}
+                      onChangeText={(text) => setWalletSelections(prev => ({
+                        ...prev,
+                        [source.id]: { selected: true, balance: text },
+                      }))}
+                      keyboardType="decimal-pad"
+                      left={<TextInput.Affix text={currencySymbol} />}
+                      style={{ marginTop: 10, backgroundColor: theme.custom.cardBg }}
+                      outlineStyle={{ borderRadius: 14 }}
+                    />
+                  )}
+                </View>
+              );
+            })}
 
-          <View style={{ marginTop: 20 }} />
+            {pendingCustomSources.map((cs, i) => (
+              <View
+                key={`custom-${i}`}
+                style={[styles.walletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={[styles.walletIconWrap, { backgroundColor: '#6b728022' }]}>
+                    <MaterialCommunityIcons name="wallet-outline" size={22} color="#6b7280" />
+                  </View>
+                  <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, flex: 1 }}>{cs.name}</Text>
+                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {currencySymbol}{parseFloat(cs.balance || '0').toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            ))}
 
-          {salaryMode === 'once' && (
-            <>
-              <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginBottom: 12 }}>
-                Pay period
-              </Text>
-              <SegmentedChips
-                chips={[
-                  { key: 'first', label: '1st – 14th' },
-                  { key: 'fifteenth', label: '15th – End' },
-                ]}
-                selectedKey={salaryPeriod}
-                onSelect={(key) => setSalaryPeriod(key as 'first' | 'fifteenth')}
-              />
-              <TextInput
-                mode="outlined"
-                label="Salary amount"
-                value={salaryAmountFirst}
-                onChangeText={setSalaryAmountFirst}
-                keyboardType="numeric"
-                left={<TextInput.Affix text={currencySymbol} />}
-                style={{ marginTop: 16, backgroundColor: theme.custom.cardBg }}
-                outlineStyle={{ borderRadius: 14 }}
-              />
-            </>
-          )}
-
-          {salaryMode === 'twice' && (
-            <>
-              <View style={[styles.salaryCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
-                <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
-                  1st Period (1st – 14th)
-                </Text>
+            {!showAddCustom ? (
+              <TouchableOpacity
+                style={[styles.addTxBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+                onPress={() => setShowAddCustom(true)}
+              >
+                <MaterialCommunityIcons name="plus-circle-outline" size={22} color={theme.colors.primary} />
+                <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Add Custom Wallet</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={[styles.addForm, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>Custom Wallet</Text>
                 <TextInput
                   mode="outlined"
-                  label="Amount"
-                  value={salaryAmountFirst}
-                  onChangeText={setSalaryAmountFirst}
-                  keyboardType="numeric"
+                  label="Wallet name"
+                  value={customName}
+                  onChangeText={setCustomName}
+                  style={{ marginBottom: 10, backgroundColor: theme.custom.cardBg }}
+                  outlineStyle={{ borderRadius: 14 }}
+                />
+                <TextInput
+                  mode="outlined"
+                  label="Current balance"
+                  value={customBalance}
+                  onChangeText={setCustomBalance}
+                  keyboardType="decimal-pad"
                   left={<TextInput.Affix text={currencySymbol} />}
                   style={{ backgroundColor: theme.custom.cardBg }}
                   outlineStyle={{ borderRadius: 14 }}
                 />
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                  <TouchableOpacity
+                    style={[styles.addFormBtn, { backgroundColor: theme.colors.surfaceVariant, flex: 1 }]}
+                    onPress={() => { setShowAddCustom(false); setCustomName(''); setCustomBalance(''); }}
+                  >
+                    <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.addFormBtn, { backgroundColor: theme.colors.primary, flex: 1, boxShadow: neuButton(theme) as any }]}
+                    onPress={handleAddCustomWallet}
+                  >
+                    <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Add</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={[styles.salaryCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
-                <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>
-                  2nd Period (15th – End)
-                </Text>
-                <TextInput
-                  mode="outlined"
-                  label="Amount"
-                  value={salaryAmountFifteenth}
-                  onChangeText={setSalaryAmountFifteenth}
-                  keyboardType="numeric"
-                  left={<TextInput.Affix text={currencySymbol} />}
-                  style={{ backgroundColor: theme.custom.cardBg }}
-                  outlineStyle={{ borderRadius: 14 }}
-                />
-              </View>
-            </>
-          )}
+            )}
+          </ScrollView>
 
-          <View style={{ flex: 1 }} />
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
-            onPress={handleSalaryContinue}
+            onPress={handleWalletsContinue}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>
           </TouchableOpacity>
@@ -466,11 +520,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
-  salaryCard: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 12,
-  },
   txItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -516,5 +565,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+  },
+  walletCard: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+  },
+  walletIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

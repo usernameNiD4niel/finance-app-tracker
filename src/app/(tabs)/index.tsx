@@ -5,7 +5,6 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../../components/BalanceCard';
-import { SalaryPeriodBar } from '../../components/SalaryPeriodBar';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { LendCard } from '../../components/LendCard';
 import { BudgetProgressBar } from '../../components/BudgetProgressBar';
@@ -19,7 +18,7 @@ import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
-import { getCurrentPeriodDates, getCurrentMonth } from '../../utils/date';
+import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
@@ -47,22 +46,21 @@ export default function DashboardScreen() {
   const { currency, isPremium } = useSettingsStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
-  const { activeLends, loadActiveLends, markPaid } = useLendStore();
+  const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
   const [premiumVisible, setPremiumVisible] = useState(false);
 
   const [balanceData, setBalanceData] = useState<{
-    salary: number; spent: number; billsDue: number; walletBalance: number; balance: number; period: 'first' | 'fifteenth';
+    spent: number; billsDue: number; walletBalance: number; balance: number;
   }>({
-    salary: 0, spent: 0, billsDue: 0, walletBalance: 0, balance: 0, period: 'first',
+    spent: 0, billsDue: 0, walletBalance: 0, balance: 0,
   });
   const [upcomingBills, setUpcomingBills] = useState<UpcomingBill[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
-    const { start, end } = getCurrentPeriodDates();
     const month = getCurrentMonth();
     const promises: Promise<any>[] = [
-      loadExpenses({ startDate: start, endDate: end }),
+      loadExpenses({}),
       loadTargets(month),
     ];
     if (isPremium) {
@@ -76,6 +74,12 @@ export default function DashboardScreen() {
     setBalanceData(balance);
     setUpcomingBills(bills);
   }, [isPremium]);
+
+  const markPaid = useCallback(async (id: number) => {
+    await markLendPaid(id);
+    const balance = await calculateCurrentBalance();
+    setBalanceData(balance);
+  }, [markLendPaid]);
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -134,21 +138,16 @@ export default function DashboardScreen() {
         {/* Balance Card */}
         <BalanceCard
           balance={balanceData.balance}
-          salary={balanceData.salary}
           walletBalance={balanceData.walletBalance}
           spent={balanceData.spent}
           billsDue={balanceData.billsDue}
           currency={currency}
-          period={balanceData.period}
         />
 
         {/* Quick Actions */}
         <View style={styles.quickActions}>
           <ActionButtonRow actions={quickActions} />
         </View>
-
-        {/* Period Progress */}
-        <SalaryPeriodBar />
 
         {/* Upcoming Bills */}
         {upcomingBills.length > 0 && (

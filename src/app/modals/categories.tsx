@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,6 +23,7 @@ const COLOR_OPTIONS = [
 
 export default function CategoriesScreen() {
   const theme = useTheme<AppTheme>();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { categories, loadCategories, addCategory, editCategory, removeCategory } = useCategoryStore();
   const [modalVisible, setModalVisible] = useState(false);
@@ -68,7 +70,7 @@ export default function CategoriesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>

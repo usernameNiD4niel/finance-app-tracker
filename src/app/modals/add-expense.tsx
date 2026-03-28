@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
@@ -28,6 +29,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function AddExpenseScreen() {
   const theme = useTheme<AppTheme>();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { currency } = useSettingsStore();
@@ -92,7 +94,7 @@ export default function AddExpenseScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -187,19 +189,15 @@ export default function AddExpenseScreen() {
           )}
         />
 
-        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Date</Text>
         <Controller
           control={control}
           name="date"
           render={({ field: { onChange, value } }) => (
-            <TextInput
+            <DatePickerField
+              label="Date"
               value={value}
-              onChangeText={onChange}
-              mode="outlined"
-              placeholder="YYYY-MM-DD"
-              left={<TextInput.Icon icon="calendar" />}
+              onChange={onChange}
               error={!!errors.date}
-              style={styles.input}
             />
           )}
         />

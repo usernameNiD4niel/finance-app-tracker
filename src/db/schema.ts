@@ -45,12 +45,17 @@ export const moneySources = sqliteTable('money_sources', {
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
-export const salary = sqliteTable('salary', {
+export const recurringTransactions = sqliteTable('recurring_transactions', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  sourceId: integer('source_id').notNull(),
+  type: text('type', { enum: ['deposit', 'withdraw'] }).notNull(),
   amount: real('amount').notNull(),
-  period: text('period', { enum: ['first', 'fifteenth'] }).notNull(),
-  sourceId: integer('source_id'),
-  effectiveDate: text('effective_date').notNull(),
+  frequency: text('frequency', { enum: ['daily', 'weekly', 'start_of_month', 'end_of_month', 'specific_day'] }).notNull(),
+  dayOfMonth: integer('day_of_month'),
+  nextRunDate: text('next_run_date').notNull(),
+  lastRunDate: text('last_run_date'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  note: text('note'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
@@ -95,8 +100,8 @@ export type Expense = typeof expenses.$inferSelect;
 export type NewExpense = typeof expenses.$inferInsert;
 export type Bill = typeof bills.$inferSelect;
 export type NewBill = typeof bills.$inferInsert;
-export type Salary = typeof salary.$inferSelect;
-export type NewSalary = typeof salary.$inferInsert;
+export type RecurringTransaction = typeof recurringTransactions.$inferSelect;
+export type NewRecurringTransaction = typeof recurringTransactions.$inferInsert;
 export type Target = typeof targets.$inferSelect;
 export type NewTarget = typeof targets.$inferInsert;
 export type CategoryTarget = typeof categoryTargets.$inferSelect;
