@@ -168,6 +168,41 @@ export function runMigrations() {
       );
     } catch (_e) { /* ignore */ }
   }
+
+  // ── Cloud sync columns (Phase 1) ─────────────────────────────────────────
+  // Add sync_id, updated_at, deleted_at, sync_status to all data tables.
+  // ALTER TABLE ignores errors so reruns are safe.
+  const SYNC_TABLES = [
+    'categories', 'expenses', 'bills', 'money_sources',
+    'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
+  ];
+  for (const table of SYNC_TABLES) {
+    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN sync_id TEXT`); } catch (_e) {}
+    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT`); } catch (_e) {}
+    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN deleted_at TEXT`); } catch (_e) {}
+    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'`); } catch (_e) {}
+  }
+
+  // Backfill sync_id (UUID v4) for any rows that don't have one yet.
+  // Uses SQLite's randomblob() — no JS needed.
+  const UUID_EXPR =
+    `lower(hex(randomblob(4))) || '-' ||` +
+    `lower(hex(randomblob(2))) || '-4' ||` +
+    `substr(lower(hex(randomblob(2))),2) || '-' ||` +
+    `substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' ||` +
+    `lower(hex(randomblob(6)))`;
+
+  for (const table of SYNC_TABLES) {
+    // Assign a UUID to every row that doesn't have one
+    sqlite.execSync(`UPDATE ${table} SET sync_id = (${UUID_EXPR}) WHERE sync_id IS NULL`);
+    // Backfill updated_at from created_at for tables that have it
+    if (table !== 'category_targets') {
+      sqlite.execSync(`UPDATE ${table} SET updated_at = created_at WHERE updated_at IS NULL`);
+    } else {
+      // category_targets has no created_at — use current time
+      sqlite.execSync(`UPDATE category_targets SET updated_at = datetime('now') WHERE updated_at IS NULL`);
+    }
+  }
 }
 
 const PREDEFINED_CATEGORIES = [

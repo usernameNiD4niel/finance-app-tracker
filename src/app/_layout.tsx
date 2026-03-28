@@ -6,15 +6,22 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
+import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
+import { configureGoogleSignIn } from '../services/firebaseAuth';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
+  const { initAuthListener, isAuthLoading } = useAuthStore();
 
   useEffect(() => {
+    // Configure Google Sign-In once at startup
+    configureGoogleSignIn();
+
+    // Initialize local DB and settings
     (async () => {
       try {
         runMigrations();
@@ -26,6 +33,10 @@ export default function RootLayout() {
         console.error('[startup] init failed:', e);
       }
     })();
+
+    // Start Firebase auth state listener — resolves isAuthLoading to false
+    const unsubscribe = initAuthListener();
+    return unsubscribe;
   }, []);
 
   const isDark =
@@ -35,7 +46,7 @@ export default function RootLayout() {
 
   const resolvedTheme = buildTheme(primaryColor, isDark);
 
-  if (!isLoaded) {
+  if (!isLoaded || isAuthLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2a2d3a' }}>
         <ActivityIndicator color="#818cf8" size="large" />

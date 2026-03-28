@@ -25,14 +25,17 @@
         "backgroundColor": "#2a2d3a"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.financetracker.app",
+      "package": "com.rey.financialapp",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ]
     },
     "web": {
@@ -60,7 +63,10 @@
         }
       ],
       "expo-font",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      "@react-native-google-signin/google-signin"
     ],
     "scheme": "financetracker",
     "extra": {
