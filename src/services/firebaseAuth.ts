@@ -7,7 +7,10 @@ import {
   onAuthStateChanged as firebaseOnAuthStateChanged,
   type User,
 } from 'firebase/auth';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { auth } from './firebase';
+
+const WEB_CLIENT_ID = '278595331130-3t3lou13s2cjt7rm4128a735jful4il5.apps.googleusercontent.com';
 
 export async function signInWithEmail(email: string, password: string): Promise<User> {
   const result = await signInWithEmailAndPassword(auth, email, password);
@@ -34,5 +37,6 @@ export function onAuthStateChanged(callback: (user: User | null) => void): () =>
   return firebaseOnAuthStateChanged(auth, callback);
 }
 
-// No-op: Google Sign-In configuration is handled via expo-auth-session in the UI component.
-export function configureGoogleSignIn(): void {}
+export function configureGoogleSignIn(): void {
+  GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
+}

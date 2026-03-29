@@ -3,20 +3,12 @@ import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, Scr
 import { Text, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
 import type { AppTheme } from '../../theme';
-
-// Required for expo-auth-session redirect to close the browser tab automatically
-WebBrowser.maybeCompleteAuthSession();
-
-// Client IDs from google-services.json
-const WEB_CLIENT_ID = '278595331130-3t3lou13s2cjt7rm4128a735jful4il5.apps.googleusercontent.com';
-const ANDROID_CLIENT_ID = '278595331130-nbcct1ss0uc44ck7g6k1kqtmdesu78hp.apps.googleusercontent.com';
 
 export default function CloudAuthModal() {
   const theme = useTheme<AppTheme>();
@@ -32,26 +24,6 @@ export default function CloudAuthModal() {
   const [error, setError] = useState<string | null>(null);
   const hasNavigatedRef = React.useRef(false);
 
-  // expo-auth-session Google Sign-In
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: WEB_CLIENT_ID,
-    androidClientId: ANDROID_CLIENT_ID,
-  });
-
-  // Handle Google OAuth response
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const idToken = response.params?.id_token ?? response.authentication?.idToken;
-      if (idToken) {
-        handleSignInWithGoogleToken(idToken);
-      } else {
-        setError('Google Sign-In failed: no ID token received. Please try email/password instead.');
-      }
-    } else if (response?.type === 'error') {
-      setError('Google Sign-In was cancelled or failed.');
-    }
-  }, [response]);
-
   // If user is already authenticated, close the modal (guards against double navigation)
   useEffect(() => {
     if (isAuthenticated && user && !hasNavigatedRef.current) {
@@ -64,10 +36,14 @@ export default function CloudAuthModal() {
     }
   }, [isAuthenticated]);
 
-  async function handleSignInWithGoogleToken(idToken: string) {
+  async function handleGoogleSignIn() {
     setLoading(true);
     setError(null);
     try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.data?.idToken;
+      if (!idToken) throw new Error('No ID token returned from Google.');
       await handleGoogleIdToken(idToken);
       await onSignInSuccess();
     } catch (e: any) {
@@ -168,8 +144,8 @@ export default function CloudAuthModal() {
         {/* Google Sign-In */}
         <TouchableOpacity
           style={[styles.googleBtn, { backgroundColor: card, borderColor: theme.colors.outline }]}
-          onPress={() => promptAsync()}
-          disabled={loading || !request}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
           activeOpacity={0.8}
         >
           <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
