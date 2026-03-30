@@ -34,7 +34,7 @@ const FEATURES = [
   },
 ];
 
-export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
+export const PremiumModal = React.memo(function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
   const theme = useTheme<AppTheme>();
 
   return (
@@ -125,7 +125,7 @@ export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
       </View>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   overlay: {

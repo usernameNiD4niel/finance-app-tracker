@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
 import { BalanceCard } from '../../components/BalanceCard';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { LendCard } from '../../components/LendCard';
@@ -17,9 +18,10 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
-import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
+import { getDashboardData, calculateCurrentBalance } from '../../services/balance';
 import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
+import { useNeuStyle } from '../../hooks/useNeuStyle';
 import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
@@ -43,12 +45,25 @@ export default function DashboardScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currency, isPremium } = useSettingsStore();
-  const { expenses, loadExpenses, removeExpense } = useExpenseStore();
-  const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
-  const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
-  const [premiumVisible, setPremiumVisible] = useState(false);
 
+  // Phase 1: Zustand selectors
+  const { currency, isPremium } = useSettingsStore(
+    useShallow(s => ({ currency: s.currency, isPremium: s.isPremium }))
+  );
+  const expenses = useExpenseStore(s => s.expenses);
+  const loadExpenses = useExpenseStore(s => s.loadExpenses);
+  const removeExpense = useExpenseStore(s => s.removeExpense);
+  const categoryTotals = useExpenseStore(s => s.categoryTotals);
+  const loadCategoryTotals = useExpenseStore(s => s.loadCategoryTotals);
+  const { currentTarget, categoryTargets } = useTargetStore(
+    useShallow(s => ({ currentTarget: s.currentTarget, categoryTargets: s.categoryTargets }))
+  );
+  const loadTargets = useTargetStore(s => s.loadTargets);
+  const activeLends = useLendStore(s => s.activeLends);
+  const loadActiveLends = useLendStore(s => s.loadActiveLends);
+  const markLendPaid = useLendStore(s => s.markPaid);
+
+  const [premiumVisible, setPremiumVisible] = useState(false);
   const [balanceData, setBalanceData] = useState<{
     spent: number; billsDue: number; walletBalance: number; balance: number;
   }>({
@@ -57,23 +72,33 @@ export default function DashboardScreen() {
   const [upcomingBills, setUpcomingBills] = useState<UpcomingBill[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Phase 4: Memoized shadows
+  const circleShadow = useNeuStyle(neuCircle);
+  const listItemShadow = useNeuStyle(neuListItem);
+  const cardShadow = useNeuStyle(neuCard);
+
+  // Phase 5: Consolidated DB queries
   const load = useCallback(async () => {
+    const today = new Date();
     const month = getCurrentMonth();
+    const startOfMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+      .toISOString().split('T')[0];
+
     const promises: Promise<any>[] = [
       loadExpenses({}),
       loadTargets(month),
+      getDashboardData(),
+      loadCategoryTotals(startOfMonth, endOfMonth),
     ];
     if (isPremium) {
       promises.push(loadActiveLends());
     }
-    await Promise.all(promises);
-    const [balance, bills] = await Promise.all([
-      calculateCurrentBalance(),
-      getUpcomingBills(7),
-    ]);
-    setBalanceData(balance);
-    setUpcomingBills(bills);
-  }, [isPremium]);
+    const results = await Promise.all(promises);
+    const dashData = results[2];
+    setBalanceData(dashData.balance);
+    setUpcomingBills(dashData.upcomingBills);
+  }, [isPremium, loadExpenses, loadTargets, loadCategoryTotals, loadActiveLends]);
 
   const markPaid = useCallback(async (id: number) => {
     await markLendPaid(id);
@@ -83,23 +108,47 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
-  const onRefresh = async () => {
+  // Phase 2: Memoized callbacks
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
-  };
+  }, [load]);
 
-  const recentExpenses = expenses.slice(0, 5);
+  const goToBills = useCallback(() => router.push('/(tabs)/bills'), [router]);
+  const goToExpenses = useCallback(() => router.push('/(tabs)/expenses'), [router]);
+  const goToBudgetTargets = useCallback(() => router.push('/modals/budget-targets'), [router]);
+  const goToLends = useCallback(() => router.push('/modals/lends'), [router]);
+  const goToNotifications = useCallback(() => router.push('/modals/notifications'), [router]);
+  const goToAddExpense = useCallback(() => router.push('/modals/add-expense'), [router]);
+  const goToAddLend = useCallback(
+    () => isPremium ? router.push('/modals/add-lend') : setPremiumVisible(true),
+    [router, isPremium]
+  );
+  const handleEditExpense = useCallback(
+    (id: number) => router.push({ pathname: '/modals/add-expense', params: { id } }),
+    [router]
+  );
+  const dismissPremium = useCallback(() => setPremiumVisible(false), []);
 
-  const quickActions = [
-    { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
-    { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
-    {
-      icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary,
-      onPress: () => isPremium ? router.push('/modals/add-lend') : setPremiumVisible(true),
-    },
-    { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
-  ];
+  // Phase 2: Memoized derived data
+  const recentExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
+
+  const quickActions = useMemo(() => [
+    { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: goToAddExpense },
+    { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: goToBills },
+    { icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary, onPress: goToAddLend },
+    { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: goToExpenses },
+  ], [theme.colors.primary, theme.custom.warning, theme.colors.tertiary, theme.colors.secondary, goToAddExpense, goToBills, goToAddLend, goToExpenses]);
+
+  const topCategoryTargets = useMemo(() => categoryTargets.slice(0, 3), [categoryTargets]);
+  const topActiveLends = useMemo(() => activeLends.slice(0, 3), [activeLends]);
+
+  // Phase 6: Category spent lookup map
+  const categorySpentMap = useMemo(
+    () => new Map(categoryTotals.map(ct => [ct.categoryId, ct.total])),
+    [categoryTotals]
+  );
 
   return (
     <ScreenContainer>
@@ -128,8 +177,8 @@ export default function DashboardScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.notifBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCircle(theme) as any }]}
-            onPress={() => router.push('/modals/notifications')}
+            style={[styles.notifBtn, { backgroundColor: theme.custom.cardBg, boxShadow: circleShadow as any }]}
+            onPress={goToNotifications}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
           </TouchableOpacity>
@@ -152,7 +201,7 @@ export default function DashboardScreen() {
         {/* Upcoming Bills */}
         {upcomingBills.length > 0 && (
           <View style={styles.section}>
-            <SectionHeader title="Upcoming Bills" onSeeAll={() => router.push('/(tabs)/bills')} />
+            <SectionHeader title="Upcoming Bills" onSeeAll={goToBills} />
             {upcomingBills.map((bill) => (
               <View key={bill.id}>
                 <Pressable
@@ -160,10 +209,10 @@ export default function DashboardScreen() {
                     styles.upcomingBill,
                     {
                       backgroundColor: theme.custom.cardBg,
-                      boxShadow: neuListItem(theme) as any,
+                      boxShadow: listItemShadow as any,
                     },
                   ]}
-                  onPress={() => router.push('/(tabs)/bills')}
+                  onPress={goToBills}
                 >
                   <View style={[styles.billIcon, { backgroundColor: (bill.categoryColor ?? theme.colors.primary) + '22' }]}>
                     <MaterialCommunityIcons
@@ -200,20 +249,20 @@ export default function DashboardScreen() {
         {currentTarget?.overallLimit && (
           <View style={styles.section}>
             <RoundedCard>
-              <SectionHeader title="Monthly Budget" onSeeAll={() => router.push('/modals/budget-targets')} />
+              <SectionHeader title="Monthly Budget" onSeeAll={goToBudgetTargets} />
               <BudgetProgressBar
                 label="Overall"
                 spent={balanceData.spent}
                 limit={currentTarget.overallLimit}
                 currency={currency}
               />
-              {categoryTargets.slice(0, 3).map((ct) => (
+              {topCategoryTargets.map((ct) => (
                 <BudgetProgressBar
                   key={ct.id}
                   label={ct.categoryName ?? ''}
                   icon={ct.categoryIcon ?? undefined}
                   iconColor={ct.categoryColor ?? undefined}
-                  spent={0}
+                  spent={categorySpentMap.get(ct.categoryId) ?? 0}
                   limit={ct.limitAmount}
                   currency={currency}
                 />
@@ -225,9 +274,9 @@ export default function DashboardScreen() {
         {/* Active Lends (Premium) */}
         {isPremium && (
           <View style={styles.section}>
-            <SectionHeader title="Active Lends" onSeeAll={() => router.push('/modals/lends')} />
+            <SectionHeader title="Active Lends" onSeeAll={goToLends} />
             {activeLends.length === 0 ? (
-              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: cardShadow as any }]}>
                 <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                   No active lends
@@ -237,7 +286,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             ) : (
-              activeLends.slice(0, 3).map((lend, i) => (
+              topActiveLends.map((lend, i) => (
                 <LendCard
                   key={lend.id}
                   id={lend.id}
@@ -265,9 +314,9 @@ export default function DashboardScreen() {
 
         {/* Recent Expenses */}
         <View style={styles.section}>
-          <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
+          <SectionHeader title="Recent Expenses" onSeeAll={goToExpenses} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: cardShadow as any }]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet
@@ -289,7 +338,7 @@ export default function DashboardScreen() {
                 categoryColor={exp.categoryColor ?? null}
                 currency={currency}
                 onDelete={removeExpense}
-                onEdit={(id) => router.push({ pathname: '/modals/add-expense', params: { id } })}
+                onEdit={handleEditExpense}
                 index={i}
               />
             ))
@@ -301,8 +350,8 @@ export default function DashboardScreen() {
 
       <PremiumModal
         visible={premiumVisible}
-        onSubscribe={() => setPremiumVisible(false)}
-        onDismiss={() => setPremiumVisible(false)}
+        onSubscribe={dismissPremium}
+        onDismiss={dismissPremium}
       />
     </ScreenContainer>
   );

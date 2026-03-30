@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '../utils/currency';
 import { neuHero } from '../theme/neumorphism';
+import { useNeuStyle } from '../hooks/useNeuStyle';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -15,8 +16,9 @@ interface Props {
   currency: string;
 }
 
-export function BalanceCard({ balance, walletBalance, spent, billsDue, currency }: Props) {
+export const BalanceCard = React.memo(function BalanceCard({ balance, walletBalance, spent, billsDue, currency }: Props) {
   const theme = useTheme<AppTheme>();
+  const heroShadow = useNeuStyle(neuHero);
   const isDark = theme.dark;
   const accent = theme.custom.onAccentSurface;
   const accentMuted = theme.custom.onAccentSurfaceMuted;
@@ -29,7 +31,7 @@ export function BalanceCard({ balance, walletBalance, spent, billsDue, currency 
       style={[
         styles.card,
         {
-          boxShadow: neuHero(theme) as any,
+          boxShadow: heroShadow as any,
         },
       ]}
     >
@@ -96,9 +98,9 @@ export function BalanceCard({ balance, walletBalance, spent, billsDue, currency 
       </View>
     </View>
   );
-}
+});
 
-function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string; label: string; value: string; accentMuted: string; accent: string }) {
+const BalanceStat = React.memo(function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string; label: string; value: string; accentMuted: string; accent: string }) {
   return (
     <View style={styles.stat}>
       <MaterialCommunityIcons name={icon as any} size={17} color={accentMuted} />
@@ -106,7 +108,7 @@ function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string
       <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

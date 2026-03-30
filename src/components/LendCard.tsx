@@ -44,7 +44,7 @@ function computeTotalRepayment(amount: number, hasInterest: boolean, interestTyp
   return amount;
 }
 
-export function LendCard({
+export const LendCard = React.memo(function LendCard({
   id, amount, borrowerName, note, lendDate, expectedPayDate,
   isPaid: rawIsPaid, paidDate, hasInterest: rawHasInterest, interestType, interestValue,
   sourceName, sourceIcon, sourceColor,
@@ -154,7 +154,7 @@ export function LendCard({
       </View>
     </ListRowCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

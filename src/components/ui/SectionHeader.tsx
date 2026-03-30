@@ -9,7 +9,7 @@ interface Props {
   onSeeAll?: () => void;
 }
 
-export function SectionHeader({ title, onSeeAll }: Props) {
+export const SectionHeader = React.memo(function SectionHeader({ title, onSeeAll }: Props) {
   const theme = useTheme<AppTheme>();
   return (
     <View style={styles.row}>
@@ -22,7 +22,7 @@ export function SectionHeader({ title, onSeeAll }: Props) {
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {

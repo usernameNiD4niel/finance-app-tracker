@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { formatCurrency } from '../utils/currency';
 import { neuInset } from '../theme/neumorphism';
+import { useNeuStyle } from '../hooks/useNeuStyle';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -17,8 +18,9 @@ interface Props {
   currency: string;
 }
 
-export function BudgetProgressBar({ label, icon, iconColor, spent, limit, currency }: Props) {
+export const BudgetProgressBar = React.memo(function BudgetProgressBar({ label, icon, iconColor, spent, limit, currency }: Props) {
   const theme = useTheme<AppTheme>();
+  const insetShadow = useNeuStyle(neuInset);
   const ratio = Math.min(spent / limit, 1);
   const animatedWidth = useSharedValue(0);
 
@@ -52,7 +54,7 @@ export function BudgetProgressBar({ label, icon, iconColor, spent, limit, curren
           {formatCurrency(spent, currency)} / {formatCurrency(limit, currency)}
         </Text>
       </View>
-      <View style={[styles.track, { backgroundColor: theme.custom.trackBg, boxShadow: neuInset(theme) as any }]}>
+      <View style={[styles.track, { backgroundColor: theme.custom.trackBg, boxShadow: insetShadow as any }]}>
         <Animated.View style={[styles.fill, { backgroundColor: barColor }, barStyle]} />
       </View>
       <Text variant="bodySmall" style={{ color: theme.custom.mutedText, marginTop: 2 }}>
@@ -60,7 +62,7 @@ export function BudgetProgressBar({ label, icon, iconColor, spent, limit, curren
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

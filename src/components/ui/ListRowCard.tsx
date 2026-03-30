@@ -7,6 +7,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { neuListItem } from '../../theme/neumorphism';
+import { useNeuStyle } from '../../hooks/useNeuStyle';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -17,8 +18,9 @@ interface Props {
   style?: ViewStyle;
 }
 
-export function ListRowCard({ children, onPress, onLongPress, index = 0, style }: Props) {
+export const ListRowCard = React.memo(function ListRowCard({ children, onPress, onLongPress, index = 0, style }: Props) {
   const theme = useTheme<AppTheme>();
+  const listItemShadow = useNeuStyle(neuListItem);
   const scale = useSharedValue(1);
 
   const pressStyle = useAnimatedStyle(() => ({
@@ -33,7 +35,7 @@ export function ListRowCard({ children, onPress, onLongPress, index = 0, style }
             styles.card,
             {
               backgroundColor: theme.custom.cardBg,
-              boxShadow: neuListItem(theme) as any,
+              boxShadow: listItemShadow as any,
             },
             style,
           ]}
@@ -47,7 +49,7 @@ export function ListRowCard({ children, onPress, onLongPress, index = 0, style }
       </Animated.View>
     </Animated.View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

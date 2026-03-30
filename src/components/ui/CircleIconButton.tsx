@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { neuCircle } from '../../theme/neumorphism';
+import { useNeuStyle } from '../../hooks/useNeuStyle';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -17,8 +18,9 @@ interface Props {
   onPress: () => void;
 }
 
-export function CircleIconButton({ icon, label, color, onPress }: Props) {
+export const CircleIconButton = React.memo(function CircleIconButton({ icon, label, color, onPress }: Props) {
   const theme = useTheme<AppTheme>();
+  const circleShadow = useNeuStyle(neuCircle);
   const scale = useSharedValue(1);
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -38,7 +40,7 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
               styles.circle,
               {
                 backgroundColor: theme.custom.cardBg,
-                boxShadow: neuCircle(theme) as any,
+                boxShadow: circleShadow as any,
               },
             ]}
           >
@@ -49,7 +51,7 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
       </Animated.View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {

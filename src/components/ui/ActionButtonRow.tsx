@@ -13,7 +13,7 @@ interface Props {
   actions: Action[];
 }
 
-export function ActionButtonRow({ actions }: Props) {
+export const ActionButtonRow = React.memo(function ActionButtonRow({ actions }: Props) {
   return (
     <View style={styles.row}>
       {actions.map((action) => (
@@ -27,7 +27,7 @@ export function ActionButtonRow({ actions }: Props) {
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: {
