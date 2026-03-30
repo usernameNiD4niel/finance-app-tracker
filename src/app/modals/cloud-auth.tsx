@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
+import { Alert, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
 import { Text, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
@@ -37,20 +36,10 @@ export default function CloudAuthModal() {
   }, [isAuthenticated]);
 
   async function handleGoogleSignIn() {
-    setLoading(true);
-    setError(null);
-    try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
-      const idToken = userInfo.data?.idToken;
-      if (!idToken) throw new Error('No ID token returned from Google.');
-      await handleGoogleIdToken(idToken);
-      await onSignInSuccess();
-    } catch (e: any) {
-      setError(friendlyError(e));
-    } finally {
-      setLoading(false);
-    }
+    Alert.alert(
+      'Google Sign-In Unavailable',
+      'Google Sign-In requires a development build. Please use email/password to sign in.',
+    );
   }
 
   async function handleEmailAuth() {
