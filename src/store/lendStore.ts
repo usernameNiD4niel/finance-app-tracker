@@ -5,6 +5,7 @@ import {
 } from '../db/queries';
 import type { NewLend } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
+import { useAuthStore } from './authStore';
 
 export type LendWithSource = Awaited<ReturnType<typeof getLends>>[number];
 
@@ -30,24 +31,27 @@ export const useLendStore = create<LendState>((set, get) => ({
 
   loadLends: async () => {
     set({ isLoading: true });
+    const userId = useAuthStore.getState().user?.uid ?? null;
     const [all, active, total] = await Promise.all([
-      getLends(),
-      getActiveLends(),
-      getTotalActiveLendAmount(),
+      getLends(userId),
+      getActiveLends(userId),
+      getTotalActiveLendAmount(userId),
     ]);
     set({ lends: all, activeLends: active, activeLendTotal: total, isLoading: false });
   },
 
   loadActiveLends: async () => {
+    const userId = useAuthStore.getState().user?.uid ?? null;
     const [active, total] = await Promise.all([
-      getActiveLends(),
-      getTotalActiveLendAmount(),
+      getActiveLends(userId),
+      getTotalActiveLendAmount(userId),
     ]);
     set({ activeLends: active, activeLendTotal: total });
   },
 
   addLend: async (data) => {
-    await createLend(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await createLend(data, userId);
     await adjustSourceBalance(data.sourceId, -data.amount);
     await get().loadLends();
     triggerAutoSync();
@@ -101,7 +105,8 @@ export const useLendStore = create<LendState>((set, get) => ({
   },
 
   refreshTotal: async () => {
-    const total = await getTotalActiveLendAmount();
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const total = await getTotalActiveLendAmount(userId);
     set({ activeLendTotal: total });
   },
 }));

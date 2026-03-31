@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getBills, createBill, updateBill, deleteBill } from '../db/queries';
 import type { NewBill } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
+import { useAuthStore } from './authStore';
 
 export type BillWithCategory = Awaited<ReturnType<typeof getBills>>[number];
 
@@ -20,12 +21,14 @@ export const useBillStore = create<BillState>((set, get) => ({
 
   loadBills: async () => {
     set({ isLoading: true });
-    const data = await getBills();
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const data = await getBills(userId);
     set({ bills: data, isLoading: false });
   },
 
   addBill: async (data) => {
-    const bill = await createBill(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const bill = await createBill(data, userId);
     await get().loadBills();
     triggerAutoSync();
     return get().bills.find(b => b.id === bill?.id);

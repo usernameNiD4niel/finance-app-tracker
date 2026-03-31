@@ -11,6 +11,7 @@ export const categories = sqliteTable('categories', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const expenses = sqliteTable('expenses', {
@@ -25,6 +26,7 @@ export const expenses = sqliteTable('expenses', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const bills = sqliteTable('bills', {
@@ -43,6 +45,7 @@ export const bills = sqliteTable('bills', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const moneySources = sqliteTable('money_sources', {
@@ -59,6 +62,7 @@ export const moneySources = sqliteTable('money_sources', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const recurringTransactions = sqliteTable('recurring_transactions', {
@@ -77,6 +81,7 @@ export const recurringTransactions = sqliteTable('recurring_transactions', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const targets = sqliteTable('targets', {
@@ -88,6 +93,7 @@ export const targets = sqliteTable('targets', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const categoryTargets = sqliteTable('category_targets', {
@@ -99,6 +105,7 @@ export const categoryTargets = sqliteTable('category_targets', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const lends = sqliteTable('lends', {
@@ -119,6 +126,7 @@ export const lends = sqliteTable('lends', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const transfers = sqliteTable('transfers', {
@@ -134,6 +142,7 @@ export const transfers = sqliteTable('transfers', {
   updatedAt: text('updated_at'),
   deletedAt: text('deleted_at'),
   syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
+  userId: text('user_id'),
 });
 
 export const settings = sqliteTable('settings', {

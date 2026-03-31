@@ -7,6 +7,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
+import { seedCategories, seedMoneySources } from '../../db/migrations';
+import { sqlite } from '../../db/client';
 import type { AppTheme } from '../../theme';
 
 export default function CloudAuthModal() {
@@ -76,10 +78,23 @@ export default function CloudAuthModal() {
     if (!uid) return;
     await setCloudSyncEnabled(true);
     await setFirebaseUid(uid);
-    // Trigger initial upload in background — don't block the modal close
+
+    // Claim any rows created before this user was authenticated (e.g., during onboarding)
+    const USER_TABLES = [
+      'categories', 'expenses', 'bills', 'money_sources',
+      'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
+    ];
+    for (const table of USER_TABLES) {
+      sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [uid]);
+    }
+
+    // Sync: pull user's cloud data, then push any local pending rows
     runSync(uid)
       .then(async (result) => {
         if (result.pulled > 0) await refreshAllStores();
+        // Seed default categories/sources if this user has none yet (new device)
+        seedCategories(uid);
+        seedMoneySources(uid);
         await setLastSyncedAt(new Date().toISOString());
       })
       .catch(console.warn);

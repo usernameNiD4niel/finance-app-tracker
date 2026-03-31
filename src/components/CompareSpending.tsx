@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SegmentedChips } from './ui/SegmentedChips';
 import { RoundedCard } from './ui/RoundedCard';
 import { getExpenseTotal } from '../db/queries';
+import { useAuthStore } from '../store/authStore';
 import {
   getDayBounds, getWeekBounds, getMonthBounds,
 } from '../utils/date';
@@ -77,9 +78,10 @@ export function CompareSpending({ currency, isVisible }: Props) {
     if (!isVisible) return;
 
     const bounds = getBoundsForPeriod(periodType);
+    const userId = useAuthStore.getState().user?.uid ?? null;
     Promise.all([
-      getExpenseTotal(bounds.current.start, bounds.current.end),
-      getExpenseTotal(bounds.previous.start, bounds.previous.end),
+      getExpenseTotal(bounds.current.start, bounds.current.end, userId),
+      getExpenseTotal(bounds.previous.start, bounds.previous.end, userId),
     ]).then(([curr, prev]) => {
       setData({
         currentTotal: curr.total,

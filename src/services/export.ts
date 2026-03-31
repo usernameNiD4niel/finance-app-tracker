@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { format } from 'date-fns';
 import { getExpenses } from '../db/queries';
+import { useSettingsStore } from '../store/settingsStore';
 
 type ExportFormat = 'csv' | 'json';
 
@@ -18,7 +19,8 @@ export async function exportExpenses(
   endDate: string,
   exportFormat: ExportFormat
 ): Promise<void> {
-  const data = await getExpenses({ startDate, endDate });
+  const userId = useSettingsStore.getState().firebaseUid ?? null;
+  const data = await getExpenses({ startDate, endDate }, userId);
   const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
   const fileName = `expenses-${timestamp}.${exportFormat}`;
   const dir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';

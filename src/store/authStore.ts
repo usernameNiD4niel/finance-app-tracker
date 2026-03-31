@@ -7,6 +7,8 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from '../services/firebaseAuth';
+import NetInfo from '@react-native-community/netinfo';
+import { pushPending } from '../services/syncEngine';
 
 interface AuthState {
   user: User | null;
@@ -20,6 +22,9 @@ interface AuthState {
   // Called after expo-auth-session returns a Google ID token from the UI.
   handleGoogleIdToken: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
+  // Safe sign-out: checks internet, pushes pending data, then signs out.
+  // Throws 'NO_INTERNET' error string if offline.
+  safeSignOut: (uid: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -50,6 +55,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
+    await firebaseSignOut();
+    set({ user: null, isAuthenticated: false });
+  },
+
+  safeSignOut: async (uid: string) => {
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected) {
+      throw new Error('NO_INTERNET');
+    }
+    await pushPending(uid);
     await firebaseSignOut();
     set({ user: null, isAuthenticated: false });
   },

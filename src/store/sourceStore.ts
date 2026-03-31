@@ -7,6 +7,7 @@ import {
 } from '../db/queries';
 import type { MoneySource, NewMoneySource, RecurringTransaction, NewRecurringTransaction } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
+import { useAuthStore } from './authStore';
 
 interface SourceState {
   sources: MoneySource[];
@@ -34,15 +35,17 @@ export const useSourceStore = create<SourceState>((set, get) => ({
 
   loadSources: async () => {
     set({ isLoading: true });
+    const userId = useAuthStore.getState().user?.uid ?? null;
     const [data, total] = await Promise.all([
-      getMoneySources(),
-      getTotalSourceBalance(),
+      getMoneySources(userId),
+      getTotalSourceBalance(userId),
     ]);
     set({ sources: data, totalBalance: total, isLoading: false });
   },
 
   addSource: async (data) => {
-    await createMoneySource(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await createMoneySource(data, userId);
     await get().loadSources();
     triggerAutoSync();
   },
@@ -72,17 +75,20 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   },
 
   refreshTotalBalance: async () => {
-    const total = await getTotalSourceBalance();
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const total = await getTotalSourceBalance(userId);
     set({ totalBalance: total });
   },
 
   loadRecurring: async (sourceId) => {
-    const rows = await getRecurringTransactions(sourceId);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const rows = await getRecurringTransactions(sourceId, userId);
     set(state => ({ recurringMap: { ...state.recurringMap, [sourceId]: rows } }));
   },
 
   addRecurring: async (data) => {
-    await createRecurringTransaction(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await createRecurringTransaction(data, userId);
     await get().loadRecurring(data.sourceId);
     triggerAutoSync();
   },
@@ -94,7 +100,8 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   },
 
   transfer: async (fromId, toId, amount, fee, note, date) => {
-    await executeTransfer(fromId, toId, amount, fee, note, date);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await executeTransfer(fromId, toId, amount, fee, note, date, userId);
     await get().loadSources();
     triggerAutoSync();
   },

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { getCategories, createCategory, updateCategory, deleteCategory } from '../db/queries';
 import type { Category, NewCategory } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
+import { useAuthStore } from './authStore';
 
 interface CategoryState {
   categories: Category[];
@@ -18,12 +19,14 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
 
   loadCategories: async () => {
     set({ isLoading: true });
-    const data = await getCategories();
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const data = await getCategories(userId);
     set({ categories: data, isLoading: false });
   },
 
   addCategory: async (data) => {
-    await createCategory(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await createCategory(data, userId);
     await get().loadCategories();
     triggerAutoSync();
   },

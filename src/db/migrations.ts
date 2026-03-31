@@ -203,6 +203,27 @@ export function runMigrations() {
       sqlite.execSync(`UPDATE category_targets SET updated_at = datetime('now') WHERE updated_at IS NULL`);
     }
   }
+
+  // ── Phase 2: user_id column ──────────────────────────────────────────────
+  // Add user_id to all data tables so each row is owned by a Firebase user.
+  // Existing rows get assigned to whoever is currently logged in (first-user claim).
+  const USER_TABLES = [
+    'categories', 'expenses', 'bills', 'money_sources',
+    'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
+  ];
+  for (const table of USER_TABLES) {
+    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN user_id TEXT`); } catch (_e) {}
+  }
+  // Backfill: assign the stored Firebase UID to all existing rows (if a user was already signed in)
+  const uidRow = sqlite.getFirstSync<{ value: string }>(
+    `SELECT value FROM settings WHERE key = 'firebase_uid'`
+  );
+  const existingUid = uidRow?.value ?? null;
+  if (existingUid) {
+    for (const table of USER_TABLES) {
+      sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [existingUid]);
+    }
+  }
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -216,17 +237,20 @@ const PREDEFINED_CATEGORIES = [
   { name: 'Other', icon: 'dots-horizontal', color: '#6b7280' },
 ];
 
-export function seedCategories() {
+export function seedCategories(userId: string | null = null) {
   const existing = sqlite.getFirstSync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM categories WHERE is_custom = 0'
+    userId
+      ? 'SELECT COUNT(*) as count FROM categories WHERE is_custom = 0 AND user_id = ?'
+      : 'SELECT COUNT(*) as count FROM categories WHERE is_custom = 0 AND user_id IS NULL',
+    userId ? [userId] : []
   );
   if (existing && existing.count > 0) return;
 
   const stmt = sqlite.prepareSync(
-    'INSERT INTO categories (name, icon, color, is_custom) VALUES (?, ?, ?, 0)'
+    'INSERT INTO categories (name, icon, color, is_custom, user_id) VALUES (?, ?, ?, 0, ?)'
   );
   for (const cat of PREDEFINED_CATEGORIES) {
-    stmt.executeSync(cat.name, cat.icon, cat.color);
+    stmt.executeSync(cat.name, cat.icon, cat.color, userId);
   }
   stmt.finalizeSync();
 }
@@ -240,17 +264,20 @@ const PREDEFINED_SOURCES = [
   { name: 'PayPal', type: 'e_wallet', icon: 'wallet-outline', color: '#003087' },
 ];
 
-export function seedMoneySources() {
+export function seedMoneySources(userId: string | null = null) {
   const existing = sqlite.getFirstSync<{ count: number }>(
-    'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0'
+    userId
+      ? 'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0 AND user_id = ?'
+      : 'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0 AND user_id IS NULL',
+    userId ? [userId] : []
   );
   if (existing && existing.count > 0) return;
 
   const stmt = sqlite.prepareSync(
-    'INSERT INTO money_sources (name, type, icon, color, is_custom) VALUES (?, ?, ?, ?, 0)'
+    'INSERT INTO money_sources (name, type, icon, color, is_custom, user_id) VALUES (?, ?, ?, ?, 0, ?)'
   );
   for (const src of PREDEFINED_SOURCES) {
-    stmt.executeSync(src.name, src.type, src.icon, src.color);
+    stmt.executeSync(src.name, src.type, src.icon, src.color, userId);
   }
   stmt.finalizeSync();
 }

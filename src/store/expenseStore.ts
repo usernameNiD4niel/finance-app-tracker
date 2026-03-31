@@ -5,6 +5,7 @@ import {
 } from '../db/queries';
 import type { Expense, NewExpense } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
+import { useAuthStore } from './authStore';
 
 export type ExpenseWithCategory = Awaited<ReturnType<typeof getExpenses>>[number];
 export type CategoryTotal = Awaited<ReturnType<typeof getExpenseTotalByCategory>>[number];
@@ -36,23 +37,27 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
 
   loadExpenses: async (filters) => {
     set({ isLoading: true });
+    const userId = useAuthStore.getState().user?.uid ?? null;
     const f = filters ?? get().filters;
-    const data = await getExpenses(f);
+    const data = await getExpenses(f, userId);
     set({ expenses: data, isLoading: false });
   },
 
   loadCategoryTotals: async (startDate, endDate) => {
-    const data = await getExpenseTotalByCategory(startDate, endDate);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const data = await getExpenseTotalByCategory(startDate, endDate, userId);
     set({ categoryTotals: data });
   },
 
   loadDailyTotals: async (startDate, endDate) => {
-    const data = await getDailyExpenseTotals(startDate, endDate);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const data = await getDailyExpenseTotals(startDate, endDate, userId);
     set({ dailyTotals: data });
   },
 
   addExpense: async (data) => {
-    await createExpense(data);
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    await createExpense(data, userId);
     if (data.sourceId) {
       await adjustSourceBalance(data.sourceId, -data.amount);
     }

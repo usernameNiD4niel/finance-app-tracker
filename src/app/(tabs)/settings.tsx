@@ -61,7 +61,7 @@ export default function SettingsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor, setCloudSyncEnabled, setLastSyncedAt } = useSettingsStore();
-  const { isAuthenticated, user, signOut } = useAuthStore();
+  const { isAuthenticated, user, safeSignOut } = useAuthStore();
 
   const isDark = currentTheme === 'dark';
   const [showColors, setShowColors] = React.useState(false);
@@ -83,12 +83,27 @@ export default function SettingsScreen() {
   }
 
   async function handleSignOut() {
-    Alert.alert('Sign out of cloud?', 'Your local data stays on this device. You can sign back in anytime.', [
+    Alert.alert('Sign out of cloud?', 'Your data will be synced to the cloud before signing out.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out', style: 'destructive', onPress: async () => {
-          await signOut();
-          await setCloudSyncEnabled(false);
+          if (!user) return;
+          setSyncing(true);
+          try {
+            await safeSignOut(user.uid);
+            await setCloudSyncEnabled(false);
+          } catch (e: any) {
+            if (e?.message === 'NO_INTERNET') {
+              Alert.alert(
+                'No Internet Connection',
+                'You need an internet connection to sign out safely. This ensures all your data is backed up before leaving.'
+              );
+            } else {
+              Alert.alert('Sign Out Failed', 'Could not sync your data. Please check your connection and try again.');
+            }
+          } finally {
+            setSyncing(false);
+          }
         }
       },
     ]);

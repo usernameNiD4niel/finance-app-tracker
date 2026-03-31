@@ -29,9 +29,10 @@ export default function RootLayout() {
     (async () => {
       try {
         runMigrations();
-        seedCategories();
-        seedMoneySources();
         await loadSettings();
+        const uid = useSettingsStore.getState().firebaseUid ?? null;
+        seedCategories(uid);
+        seedMoneySources(uid);
         await processDueRecurringTransactions();
       } catch (e) {
         console.error('[startup] init failed:', e);

@@ -91,7 +91,7 @@ function markSynced(items: PushItem[]): void {
 // ─── Push helpers (SQLite → Firestore) ─────────────────────────────────────
 
 function collectPendingCategories(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM categories WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM categories WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.map(r => ({
     ref: doc(firestore, 'users', uid, 'categories', r.sync_id),
     data: { name: r.name, icon: r.icon, color: r.color, isCustom: r.is_custom === 1,
@@ -102,7 +102,7 @@ function collectPendingCategories(uid: string): PushItem[] {
 }
 
 function collectPendingMoneySources(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM money_sources WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM money_sources WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.map(r => ({
     ref: doc(firestore, 'users', uid, 'moneySources', r.sync_id),
     data: { name: r.name, type: r.type, icon: r.icon, color: r.color,
@@ -114,7 +114,7 @@ function collectPendingMoneySources(uid: string): PushItem[] {
 }
 
 function collectPendingTargets(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM targets WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM targets WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.map(r => ({
     ref: doc(firestore, 'users', uid, 'targets', r.sync_id),
     data: { month: r.month, overallLimit: r.overall_limit ?? null,
@@ -125,7 +125,7 @@ function collectPendingTargets(uid: string): PushItem[] {
 }
 
 function collectPendingBills(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM bills WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM bills WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const categorySyncId = syncIdOf('categories', r.category_id);
     const sourceSyncId = syncIdOf('money_sources', r.source_id);
@@ -144,7 +144,7 @@ function collectPendingBills(uid: string): PushItem[] {
 }
 
 function collectPendingLends(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM lends WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM lends WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const sourceSyncId = syncIdOf('money_sources', r.source_id);
     if (!sourceSyncId) return [];
@@ -163,7 +163,7 @@ function collectPendingLends(uid: string): PushItem[] {
 }
 
 function collectPendingRecurring(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM recurring_transactions WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM recurring_transactions WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const sourceSyncId = syncIdOf('money_sources', r.source_id);
     if (!sourceSyncId) return [];
@@ -181,7 +181,7 @@ function collectPendingRecurring(uid: string): PushItem[] {
 }
 
 function collectPendingExpenses(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM expenses WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM expenses WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const categorySyncId = syncIdOf('categories', r.category_id);
     const sourceSyncId = syncIdOf('money_sources', r.source_id);
@@ -198,7 +198,7 @@ function collectPendingExpenses(uid: string): PushItem[] {
 }
 
 function collectPendingTransfers(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM transfers WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM transfers WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const fromSyncId = syncIdOf('money_sources', r.from_source_id);
     const toSyncId = syncIdOf('money_sources', r.to_source_id);
@@ -215,7 +215,7 @@ function collectPendingTransfers(uid: string): PushItem[] {
 }
 
 function collectPendingCategoryTargets(uid: string): PushItem[] {
-  const rows = sqlite.getAllSync<any>(`SELECT * FROM category_targets WHERE sync_status = 'pending'`);
+  const rows = sqlite.getAllSync<any>(`SELECT * FROM category_targets WHERE sync_status = 'pending' AND (user_id = ? OR user_id IS NULL)`, [uid]);
   return rows.flatMap(r => {
     const targetSyncId = syncIdOf('targets', r.target_id);
     const categorySyncId = syncIdOf('categories', r.category_id);
@@ -244,13 +244,13 @@ async function pullCategories(uid: string, since: string | null): Promise<number
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE categories SET name=?, icon=?, color=?, is_custom=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.name, data.icon, data.color, data.isCustom ? 1 : 0, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE categories SET name=?, icon=?, color=?, is_custom=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.name, data.icon, data.color, data.isCustom ? 1 : 0, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO categories (name, icon, color, is_custom, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,'synced')`,
-        [data.name, data.icon, data.color, data.isCustom ? 1 : 0, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO categories (name, icon, color, is_custom, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.name, data.icon, data.color, data.isCustom ? 1 : 0, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -269,13 +269,13 @@ async function pullMoneySources(uid: string, since: string | null): Promise<numb
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE money_sources SET name=?, type=?, icon=?, color=?, balance=?, is_custom=?, is_active=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.name, data.type, data.icon, data.color, data.balance, data.isCustom ? 1 : 0, data.isActive ? 1 : 0, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE money_sources SET name=?, type=?, icon=?, color=?, balance=?, is_custom=?, is_active=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.name, data.type, data.icon, data.color, data.balance, data.isCustom ? 1 : 0, data.isActive ? 1 : 0, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO money_sources (name, type, icon, color, balance, is_custom, is_active, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [data.name, data.type, data.icon, data.color, data.balance, data.isCustom ? 1 : 0, data.isActive ? 1 : 0, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO money_sources (name, type, icon, color, balance, is_custom, is_active, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.name, data.type, data.icon, data.color, data.balance, data.isCustom ? 1 : 0, data.isActive ? 1 : 0, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -294,13 +294,13 @@ async function pullTargets(uid: string, since: string | null): Promise<number> {
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE targets SET month=?, overall_limit=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.month, data.overallLimit ?? null, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE targets SET month=?, overall_limit=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.month, data.overallLimit ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO targets (month, overall_limit, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,'synced')`,
-        [data.month, data.overallLimit ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO targets (month, overall_limit, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,'synced')`,
+        [data.month, data.overallLimit ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -322,13 +322,13 @@ async function pullBills(uid: string, since: string | null): Promise<number> {
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE bills SET name=?, amount=?, category_id=?, source_id=?, frequency=?, due_day=?, is_active=?, notify_days_before=?, notification_id=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE bills SET name=?, amount=?, category_id=?, source_id=?, frequency=?, due_day=?, is_active=?, notify_days_before=?, notification_id=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO bills (name, amount, category_id, source_id, frequency, due_day, is_active, notify_days_before, notification_id, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO bills (name, amount, category_id, source_id, frequency, due_day, is_active, notify_days_before, notification_id, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -349,13 +349,13 @@ async function pullLends(uid: string, since: string | null): Promise<number> {
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE lends SET amount=?, source_id=?, borrower_name=?, note=?, lend_date=?, expected_pay_date=?, is_paid=?, paid_date=?, has_interest=?, interest_type=?, interest_value=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.amount, sourceId, data.borrowerName, data.note ?? null, data.lendDate, data.expectedPayDate, data.isPaid ? 1 : 0, data.paidDate ?? null, data.hasInterest ? 1 : 0, data.interestType ?? null, data.interestValue ?? null, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE lends SET amount=?, source_id=?, borrower_name=?, note=?, lend_date=?, expected_pay_date=?, is_paid=?, paid_date=?, has_interest=?, interest_type=?, interest_value=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.amount, sourceId, data.borrowerName, data.note ?? null, data.lendDate, data.expectedPayDate, data.isPaid ? 1 : 0, data.paidDate ?? null, data.hasInterest ? 1 : 0, data.interestType ?? null, data.interestValue ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO lends (amount, source_id, borrower_name, note, lend_date, expected_pay_date, is_paid, paid_date, has_interest, interest_type, interest_value, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [data.amount, sourceId, data.borrowerName, data.note ?? null, data.lendDate, data.expectedPayDate, data.isPaid ? 1 : 0, data.paidDate ?? null, data.hasInterest ? 1 : 0, data.interestType ?? null, data.interestValue ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO lends (amount, source_id, borrower_name, note, lend_date, expected_pay_date, is_paid, paid_date, has_interest, interest_type, interest_value, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.amount, sourceId, data.borrowerName, data.note ?? null, data.lendDate, data.expectedPayDate, data.isPaid ? 1 : 0, data.paidDate ?? null, data.hasInterest ? 1 : 0, data.interestType ?? null, data.interestValue ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -376,13 +376,13 @@ async function pullRecurring(uid: string, since: string | null): Promise<number>
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE recurring_transactions SET source_id=?, type=?, amount=?, frequency=?, day_of_month=?, next_run_date=?, last_run_date=?, is_active=?, note=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [sourceId, data.type, data.amount, data.frequency, data.dayOfMonth ?? null, data.nextRunDate, data.lastRunDate ?? null, data.isActive ? 1 : 0, data.note ?? null, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE recurring_transactions SET source_id=?, type=?, amount=?, frequency=?, day_of_month=?, next_run_date=?, last_run_date=?, is_active=?, note=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [sourceId, data.type, data.amount, data.frequency, data.dayOfMonth ?? null, data.nextRunDate, data.lastRunDate ?? null, data.isActive ? 1 : 0, data.note ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO recurring_transactions (source_id, type, amount, frequency, day_of_month, next_run_date, last_run_date, is_active, note, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [sourceId, data.type, data.amount, data.frequency, data.dayOfMonth ?? null, data.nextRunDate, data.lastRunDate ?? null, data.isActive ? 1 : 0, data.note ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO recurring_transactions (source_id, type, amount, frequency, day_of_month, next_run_date, last_run_date, is_active, note, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [sourceId, data.type, data.amount, data.frequency, data.dayOfMonth ?? null, data.nextRunDate, data.lastRunDate ?? null, data.isActive ? 1 : 0, data.note ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -404,13 +404,13 @@ async function pullExpenses(uid: string, since: string | null): Promise<number> 
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE expenses SET amount=?, category_id=?, source_id=?, note=?, date=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [data.amount, categoryId, sourceId ?? null, data.note ?? null, data.date, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE expenses SET amount=?, category_id=?, source_id=?, note=?, date=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.amount, categoryId, sourceId ?? null, data.note ?? null, data.date, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO expenses (amount, category_id, source_id, note, date, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,'synced')`,
-        [data.amount, categoryId, sourceId ?? null, data.note ?? null, data.date, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO expenses (amount, category_id, source_id, note, date, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.amount, categoryId, sourceId ?? null, data.note ?? null, data.date, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -432,13 +432,13 @@ async function pullTransfers(uid: string, since: string | null): Promise<number>
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE transfers SET from_source_id=?, to_source_id=?, amount=?, fee=?, note=?, transfer_date=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [fromSourceId, toSourceId, data.amount, data.fee, data.note ?? null, data.transferDate, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE transfers SET from_source_id=?, to_source_id=?, amount=?, fee=?, note=?, transfer_date=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [fromSourceId, toSourceId, data.amount, data.fee, data.note ?? null, data.transferDate, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO transfers (from_source_id, to_source_id, amount, fee, note, transfer_date, created_at, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [fromSourceId, toSourceId, data.amount, data.fee, data.note ?? null, data.transferDate, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO transfers (from_source_id, to_source_id, amount, fee, note, transfer_date, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [fromSourceId, toSourceId, data.amount, data.fee, data.note ?? null, data.transferDate, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
@@ -460,13 +460,13 @@ async function pullCategoryTargets(uid: string, since: string | null): Promise<n
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE category_targets SET target_id=?, category_id=?, limit_amount=?, updated_at=?, deleted_at=?, sync_status='synced' WHERE id=?`,
-          [targetId, categoryId, data.limitAmount, data.updatedAt, data.deletedAt ?? null, existing.id]);
+        sqlite.runSync(`UPDATE category_targets SET target_id=?, category_id=?, limit_amount=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [targetId, categoryId, data.limitAmount, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO category_targets (target_id, category_id, limit_amount, sync_id, updated_at, deleted_at, sync_status) VALUES (?,?,?,?,?,?,'synced')`,
-        [targetId, categoryId, data.limitAmount, d.id, data.updatedAt, data.deletedAt ?? null]);
+      sqlite.runSync(`INSERT INTO category_targets (target_id, category_id, limit_amount, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,'synced')`,
+        [targetId, categoryId, data.limitAmount, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }
