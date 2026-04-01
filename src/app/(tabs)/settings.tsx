@@ -83,24 +83,27 @@ export default function SettingsScreen() {
   }
 
   async function handleSignOut() {
-    Alert.alert('Sign out of cloud?', 'Your data will be synced to the cloud before signing out.', [
+    Alert.alert('Sign out of cloud?', 'Your data will be synced to the cloud before signing out. If you are offline, you can still sign out — unsynced data will be kept locally.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out', style: 'destructive', onPress: async () => {
           if (!user) return;
           setSyncing(true);
           try {
-            await safeSignOut(user.uid);
+            const result = await safeSignOut(user.uid);
             await setCloudSyncEnabled(false);
-          } catch (e: any) {
-            if (e?.message === 'NO_INTERNET') {
-              Alert.alert(
-                'No Internet Connection',
-                'You need an internet connection to sign out safely. This ensures all your data is backed up before leaving.'
-              );
+            if (result.wasOnline) {
+              Alert.alert('Signed Out', 'Data synced successfully. You have been signed out.');
             } else {
-              Alert.alert('Sign Out Failed', 'Could not sync your data. Please check your connection and try again.');
+              Alert.alert(
+                'Signed Out Offline',
+                result.pendingCount > 0
+                  ? `You have ${result.pendingCount} pending change${result.pendingCount === 1 ? '' : 's'} that will sync next time you log in on this device.`
+                  : 'You have been signed out. All data was already synced.'
+              );
             }
+          } catch (e: any) {
+            Alert.alert('Sign Out Failed', 'Could not complete sign out. Please try again.');
           } finally {
             setSyncing(false);
           }

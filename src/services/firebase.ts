@@ -3,16 +3,18 @@ import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Config values come from google-services.json / Firebase Console project settings.
-// These are public identifiers — Firebase security is enforced by Firestore Security Rules.
+// Config values are injected via app.config.ts → extra (reads from .env).
+// Firebase security is enforced by Firestore Security Rules.
+const extra = Constants.expoConfig?.extra ?? {};
 const firebaseConfig = {
-  apiKey: 'AIzaSyBg77kcgz3WwSjENjFIhkx1bBTdxz2rm2w',
-  authDomain: 'financial-app-c328f.firebaseapp.com',
-  projectId: 'financial-app-c328f',
-  storageBucket: 'financial-app-c328f.firebasestorage.app',
-  messagingSenderId: '278595331130',
-  appId: '1:278595331130:android:7715bab3d82c4d39e8c103',
+  apiKey: extra.firebaseApiKey,
+  authDomain: extra.firebaseAuthDomain,
+  projectId: extra.firebaseProjectId,
+  storageBucket: extra.firebaseStorageBucket,
+  messagingSenderId: extra.firebaseMessagingSenderId,
+  appId: extra.firebaseAppId,
 };
 
 const app = initializeApp(firebaseConfig);

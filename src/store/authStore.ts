@@ -8,7 +8,13 @@ import {
   onAuthStateChanged,
 } from '../services/firebaseAuth';
 import NetInfo from '@react-native-community/netinfo';
-import { pushPending } from '../services/syncEngine';
+import { runSync } from '../services/syncEngine';
+import { clearUserData, countPendingChanges } from '../db/client';
+
+interface SignOutResult {
+  wasOnline: boolean;
+  pendingCount: number;
+}
 
 interface AuthState {
   user: User | null;
@@ -22,9 +28,9 @@ interface AuthState {
   // Called after expo-auth-session returns a Google ID token from the UI.
   handleGoogleIdToken: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
-  // Safe sign-out: checks internet, pushes pending data, then signs out.
-  // Throws 'NO_INTERNET' error string if offline.
-  safeSignOut: (uid: string) => Promise<void>;
+  // Safe sign-out: syncs if online, always signs out.
+  // Returns { wasOnline, pendingCount } so UI can warn about unsynced data.
+  safeSignOut: (uid: string) => Promise<SignOutResult>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -61,11 +67,27 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   safeSignOut: async (uid: string) => {
     const netState = await NetInfo.fetch();
-    if (!netState.isConnected) {
-      throw new Error('NO_INTERNET');
+    const isOnline = netState.isConnected === true;
+
+    let pendingCount = 0;
+
+    if (isOnline) {
+      // Online: full pull-then-push sync before logout
+      await runSync(uid);
+    } else {
+      // Offline: count unsynced changes so UI can warn
+      pendingCount = countPendingChanges(uid);
     }
-    await pushPending(uid);
+
+    // Always proceed with sign out
     await firebaseSignOut();
     set({ user: null, isAuthenticated: false });
+
+    // Online: clean up synced data for this user (privacy on shared devices)
+    if (isOnline) {
+      clearUserData(uid);
+    }
+
+    return { wasOnline: isOnline, pendingCount };
   },
 }));

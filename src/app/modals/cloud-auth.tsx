@@ -76,16 +76,26 @@ export default function CloudAuthModal() {
   async function onSignInSuccess() {
     const uid = useAuthStore.getState().user?.uid;
     if (!uid) return;
+    // Read previous UID before overwriting it
+    const previousUid = useSettingsStore.getState().firebaseUid;
     await setCloudSyncEnabled(true);
     await setFirebaseUid(uid);
 
-    // Claim any rows created before this user was authenticated (e.g., during onboarding)
+    // Handle orphaned rows (user_id IS NULL) based on whether this is the same or different user
     const USER_TABLES = [
       'categories', 'expenses', 'bills', 'money_sources',
       'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
     ];
-    for (const table of USER_TABLES) {
-      sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [uid]);
+    if (previousUid && previousUid !== uid) {
+      // Different user — delete orphaned rows (they can't be attributed)
+      for (const table of USER_TABLES) {
+        sqlite.runSync(`DELETE FROM ${table} WHERE user_id IS NULL`, []);
+      }
+    } else {
+      // Same user or first-time auth — claim orphaned rows
+      for (const table of USER_TABLES) {
+        sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [uid]);
+      }
     }
 
     // Sync: pull user's cloud data, then push any local pending rows
