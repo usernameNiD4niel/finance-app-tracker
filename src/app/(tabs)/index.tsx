@@ -43,7 +43,7 @@ export default function DashboardScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currency, isPremium } = useSettingsStore();
+  const { currency, isPremium, lastSyncedAt } = useSettingsStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
   const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
@@ -81,7 +81,7 @@ export default function DashboardScreen() {
     setBalanceData(balance);
   }, [markLendPaid]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load]));
+  useFocusEffect(useCallback(() => { load(); }, [load, lastSyncedAt]));
 
   const onRefresh = async () => {
     setRefreshing(true);

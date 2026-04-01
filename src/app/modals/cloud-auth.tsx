@@ -100,11 +100,12 @@ export default function CloudAuthModal() {
 
     // Sync: pull user's cloud data, then push any local pending rows
     runSync(uid)
-      .then(async (result) => {
-        if (result.pulled > 0) await refreshAllStores();
+      .then(async () => {
         // Seed default categories/sources if this user has none yet (new device)
         seedCategories(uid);
         seedMoneySources(uid);
+        // Always refresh stores so the dashboard picks up synced + seeded data
+        await refreshAllStores();
         await setLastSyncedAt(new Date().toISOString());
       })
       .catch(console.warn);
