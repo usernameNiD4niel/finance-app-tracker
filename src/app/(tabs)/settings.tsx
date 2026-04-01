@@ -92,20 +92,23 @@ export default function SettingsScreen() {
           try {
             const result = await safeSignOut(user.uid);
             await setCloudSyncEnabled(false);
-            if (result.wasOnline) {
-              Alert.alert('Signed Out', 'Data synced successfully. You have been signed out.');
+            setSyncing(false);
+            if (result.pendingCount > 0) {
+              Alert.alert(
+                'Signed Out',
+                `You have ${result.pendingCount} pending change${result.pendingCount === 1 ? '' : 's'} that will sync next time you log in on this device.`,
+                [{ text: 'OK', onPress: () => router.replace('/modals/cloud-auth' as any) }]
+              );
             } else {
               Alert.alert(
-                'Signed Out Offline',
-                result.pendingCount > 0
-                  ? `You have ${result.pendingCount} pending change${result.pendingCount === 1 ? '' : 's'} that will sync next time you log in on this device.`
-                  : 'You have been signed out. All data was already synced.'
+                'Signed Out',
+                result.wasOnline ? 'Data synced successfully.' : 'All data was already synced.',
+                [{ text: 'OK', onPress: () => router.replace('/modals/cloud-auth' as any) }]
               );
             }
           } catch (e: any) {
-            Alert.alert('Sign Out Failed', 'Could not complete sign out. Please try again.');
-          } finally {
             setSyncing(false);
+            Alert.alert('Sign Out Failed', 'Could not complete sign out. Please try again.');
           }
         }
       },

@@ -11,13 +11,27 @@ const USER_TABLES = [
   'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
 ];
 
+// FK-safe order: delete child tables before parent tables
+const DELETE_ORDER = [
+  'category_targets', 'expenses', 'bills',
+  'lends', 'recurring_transactions', 'transfers',
+  'targets', 'categories', 'money_sources',
+];
+
 /** Delete all synced rows belonging to a user (call after successful sync + logout). */
 export function clearUserData(uid: string): void {
-  for (const table of USER_TABLES) {
+  for (const table of DELETE_ORDER) {
     sqlite.runSync(
       `DELETE FROM ${table} WHERE user_id = ? AND sync_status = 'synced'`,
       [uid],
     );
+  }
+}
+
+/** Delete orphaned rows (user_id IS NULL) in FK-safe order. */
+export function deleteOrphanedRows(): void {
+  for (const table of DELETE_ORDER) {
+    sqlite.runSync(`DELETE FROM ${table} WHERE user_id IS NULL`, []);
   }
 }
 

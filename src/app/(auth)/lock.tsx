@@ -3,7 +3,6 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import NetInfo from '@react-native-community/netinfo';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
@@ -39,11 +38,8 @@ export default function LockScreen() {
   const unlock = () => setShowPremium(true);
 
   async function navigateAfterUnlock() {
-    const state = await NetInfo.fetch();
-    const isOnline = state.isConnected === true && state.isInternetReachable !== false;
-
-    if (isOnline && !isAuthenticated) {
-      // Online but not signed in → force cloud auth before entering app
+    if (!isAuthenticated) {
+      // Not signed in → force cloud auth before entering app (required for data safety)
       router.replace('/modals/cloud-auth' as any);
     } else {
       router.replace('/(tabs)');

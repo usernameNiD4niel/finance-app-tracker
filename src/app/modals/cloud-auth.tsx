@@ -8,7 +8,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
 import { seedCategories, seedMoneySources } from '../../db/migrations';
-import { sqlite } from '../../db/client';
+import { sqlite, deleteOrphanedRows } from '../../db/client';
 import type { AppTheme } from '../../theme';
 
 export default function CloudAuthModal() {
@@ -87,16 +87,19 @@ export default function CloudAuthModal() {
       'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
     ];
     if (previousUid && previousUid !== uid) {
-      // Different user — delete orphaned rows (they can't be attributed)
-      for (const table of USER_TABLES) {
-        sqlite.runSync(`DELETE FROM ${table} WHERE user_id IS NULL`, []);
-      }
+      // Different user — delete orphaned rows in FK-safe order
+      deleteOrphanedRows();
     } else {
       // Same user or first-time auth — claim orphaned rows
       for (const table of USER_TABLES) {
         sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [uid]);
       }
     }
+
+    // Clear last_synced_at so the sync does a full pull for this user
+    // (the timestamp is global, not per-user, so stale values from a previous
+    // user's session would cause the pull to skip this user's older data)
+    sqlite.runSync(`DELETE FROM settings WHERE key = 'last_synced_at'`);
 
     // Sync: pull user's cloud data, then push any local pending rows
     runSync(uid)

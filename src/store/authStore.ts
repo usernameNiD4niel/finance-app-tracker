@@ -70,10 +70,18 @@ export const useAuthStore = create<AuthState>((set) => ({
     const isOnline = netState.isConnected === true;
 
     let pendingCount = 0;
+    let syncSucceeded = false;
 
     if (isOnline) {
-      // Online: full pull-then-push sync before logout
-      await runSync(uid);
+      // Online: attempt full pull-then-push sync before logout
+      try {
+        await runSync(uid);
+        syncSucceeded = true;
+      } catch (e) {
+        // Sync failed — count pending so UI can warn, but still sign out
+        console.warn('[safeSignOut] Sync failed, proceeding with sign out:', e);
+        pendingCount = countPendingChanges(uid);
+      }
     } else {
       // Offline: count unsynced changes so UI can warn
       pendingCount = countPendingChanges(uid);
@@ -83,9 +91,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     await firebaseSignOut();
     set({ user: null, isAuthenticated: false });
 
-    // Online: clean up synced data for this user (privacy on shared devices)
-    if (isOnline) {
-      clearUserData(uid);
+    // Only clean up local data if sync succeeded (data is safe in Firestore)
+    if (syncSucceeded) {
+      try {
+        clearUserData(uid);
+      } catch (e) {
+        console.warn('[safeSignOut] Cleanup failed (non-critical):', e);
+      }
     }
 
     return { wasOnline: isOnline, pendingCount };
