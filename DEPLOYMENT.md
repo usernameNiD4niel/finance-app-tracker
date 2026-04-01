@@ -1,4 +1,4 @@
-# Deployment Guide — Finance Tracker
+# Deployment Guide — Ledgerist
 
 This guide covers building and distributing the app for Android and iOS, both for free (local builds / sideloading) and through the paid store routes (Google Play / Apple App Store).
 
@@ -15,8 +15,8 @@ Make sure you have an `app.json` or `app.config.js` at the project root with at 
 ```json
 {
   "expo": {
-    "name": "Finance Tracker",
-    "slug": "finance-tracker",
+    "name": "Ledgerist",
+    "slug": "ledgerist",
     "version": "1.0.0",
     "android": {
       "package": "com.yourname.financetracker"

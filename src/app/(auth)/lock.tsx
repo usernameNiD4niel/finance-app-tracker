@@ -40,7 +40,7 @@ export default function LockScreen() {
   async function navigateAfterUnlock() {
     if (!isAuthenticated) {
       // Not signed in → force cloud auth before entering app (required for data safety)
-      router.replace('/modals/cloud-auth' as any);
+      router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any);
     } else {
       router.replace('/(tabs)');
     }
@@ -76,7 +76,7 @@ export default function LockScreen() {
           <MaterialCommunityIcons name="lock" size={40} color={theme.colors.primary} />
         </View>
         <Text variant="headlineMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginTop: 16 }}>
-          Finance Tracker
+          Ledgerist
         </Text>
       </View>
 

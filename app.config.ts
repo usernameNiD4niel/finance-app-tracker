@@ -2,8 +2,8 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Finance Tracker',
-  slug: 'finance-tracker',
+  name: 'Ledgerist',
+  slug: 'ledgerist',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -15,7 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    bundleIdentifier: 'com.financetracker.app',
+    bundleIdentifier: 'com.ledgerist.app',
     infoPlist: {
       NSFaceIDUsageDescription: 'Use Face ID to unlock the app',
       ITSAppUsesNonExemptEncryption: false,
@@ -46,13 +46,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   plugins: [
     ['expo-router', { root: './src/app' }],
     'expo-sqlite',
-    ['expo-local-authentication', { faceIDPermission: 'Allow Finance Tracker to use Face ID' }],
+    ['expo-local-authentication', { faceIDPermission: 'Allow Ledgerist to use Face ID' }],
     ['expo-notifications', { icon: './assets/icon.png', color: '#6366f1' }],
     'expo-font',
     '@react-native-community/datetimepicker',
     'expo-web-browser',
   ],
-  scheme: 'financetracker',
+  scheme: 'ledgerist',
   extra: {
     router: { root: './src/app' },
     eas: { projectId: '8db1bddb-5763-48e0-a1bf-6128b68e2aad' },

@@ -10,7 +10,7 @@ export async function isBiometricAvailable(): Promise<boolean> {
 
 export async function authenticateWithBiometrics(): Promise<boolean> {
   const result = await LocalAuthentication.authenticateAsync({
-    promptMessage: 'Authenticate to open Finance Tracker',
+    promptMessage: 'Authenticate to open Ledgerist',
     fallbackLabel: 'Use PIN',
     cancelLabel: 'Cancel',
     disableDeviceFallback: false,

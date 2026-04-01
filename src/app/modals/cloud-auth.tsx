@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Alert, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
 import { Text, ActivityIndicator, useTheme } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -14,6 +14,7 @@ import type { AppTheme } from '../../theme';
 export default function CloudAuthModal() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
+  const { gate } = useLocalSearchParams<{ gate?: string }>();
   const { signInWithEmail, registerWithEmail, handleGoogleIdToken, user, isAuthenticated } = useAuthStore();
   const { setCloudSyncEnabled, setFirebaseUid, setLastSyncedAt } = useSettingsStore();
 
@@ -25,15 +26,11 @@ export default function CloudAuthModal() {
   const [error, setError] = useState<string | null>(null);
   const hasNavigatedRef = React.useRef(false);
 
-  // If user is already authenticated, close the modal (guards against double navigation)
+  // If user is already authenticated, go straight to the main app
   useEffect(() => {
     if (isAuthenticated && user && !hasNavigatedRef.current) {
       hasNavigatedRef.current = true;
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace('/(tabs)');
     }
   }, [isAuthenticated]);
 
@@ -111,15 +108,10 @@ export default function CloudAuthModal() {
         await setLastSyncedAt(new Date().toISOString());
       })
       .catch(console.warn);
-    // If there's a screen to go back to (opened from settings), go back.
-    // Otherwise (opened as auth gate from lock screen), go to main app.
+    // Navigate to the main app after successful sign-in
     if (!hasNavigatedRef.current) {
       hasNavigatedRef.current = true;
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/(tabs)');
-      }
+      router.replace('/(tabs)');
     }
   }
 
@@ -143,8 +135,8 @@ export default function CloudAuthModal() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        {/* Header — only show close button when there's somewhere to go back */}
-        {router.canGoBack() && (
+        {/* Header — show close button unless opened as auth gate (user must sign in) */}
+        {!gate && router.canGoBack() && (
           <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
             <MaterialCommunityIcons name="close" size={24} color={onSurface} />
           </TouchableOpacity>

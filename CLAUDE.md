@@ -19,7 +19,7 @@ There are no lint or test scripts configured. No test framework is set up.
 
 ## Architecture
 
-This is an **offline-only React Native finance tracker** built with Expo (SDK 54) using the file-based router `expo-router`. All data lives on-device in SQLite.
+**Ledgerist** is an **offline-only React Native finance tracker** built with Expo (SDK 54) using the file-based router `expo-router`. All data lives on-device in SQLite.
 
 ### Navigation Structure
 

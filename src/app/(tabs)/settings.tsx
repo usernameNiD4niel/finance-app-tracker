@@ -97,13 +97,13 @@ export default function SettingsScreen() {
               Alert.alert(
                 'Signed Out',
                 `You have ${result.pendingCount} pending change${result.pendingCount === 1 ? '' : 's'} that will sync next time you log in on this device.`,
-                [{ text: 'OK', onPress: () => router.replace('/modals/cloud-auth' as any) }]
+                [{ text: 'OK', onPress: () => router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any) }]
               );
             } else {
               Alert.alert(
                 'Signed Out',
                 result.wasOnline ? 'Data synced successfully.' : 'All data was already synced.',
-                [{ text: 'OK', onPress: () => router.replace('/modals/cloud-auth' as any) }]
+                [{ text: 'OK', onPress: () => router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any) }]
               );
             }
           } catch (e: any) {

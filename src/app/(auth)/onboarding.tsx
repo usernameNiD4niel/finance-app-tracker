@@ -146,7 +146,7 @@ export default function OnboardingScreen() {
             <MaterialCommunityIcons name="wallet" size={64} color={theme.colors.primary} />
           </View>
           <Text variant="displaySmall" style={[styles.title, { color: theme.colors.onSurface }]}>
-            Finance Tracker
+            Ledgerist
           </Text>
           <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, textAlign: 'center', marginTop: 12 }}>
             Track your expenses, manage bills, and stay on budget — all offline, all private.

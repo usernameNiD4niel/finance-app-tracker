@@ -121,7 +121,7 @@ export default function DashboardScreen() {
               {getGreeting()} 👋
             </Text>
             <Text style={[styles.appTitle, { color: theme.colors.onSurface }]}>
-              Finance Tracker
+              Ledgerist
             </Text>
             <Text style={[styles.dateLabel, { color: theme.colors.onSurfaceVariant }]}>
               {formatTodayDate()}
