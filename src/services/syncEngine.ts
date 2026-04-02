@@ -264,9 +264,21 @@ async function pullMoneySources(uid: string, since: string | null): Promise<numb
   let count = 0;
   for (const d of snap.docs) {
     const data = d.data();
-    const existing = sqlite.getFirstSync<{ id: number; updated_at: string }>(
+    let existing = sqlite.getFirstSync<{ id: number; updated_at: string }>(
       `SELECT id, updated_at FROM money_sources WHERE sync_id = ?`, [d.id]
     );
+    // For predefined (non-custom) sources, also check by name+user to avoid duplicating
+    // locally-seeded rows that have a different sync_id than what's in Firestore.
+    if (!existing && !data.isCustom) {
+      existing = sqlite.getFirstSync<{ id: number; updated_at: string }>(
+        `SELECT id, updated_at FROM money_sources WHERE name = ? AND is_custom = 0 AND user_id = ?`,
+        [data.name, uid]
+      );
+      if (existing) {
+        // Align the local sync_id with Firestore so future syncs match correctly.
+        sqlite.runSync(`UPDATE money_sources SET sync_id = ? WHERE id = ?`, [d.id, existing.id]);
+      }
+    }
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
         sqlite.runSync(`UPDATE money_sources SET name=?, type=?, icon=?, color=?, balance=?, is_custom=?, is_active=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,

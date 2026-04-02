@@ -15,7 +15,7 @@ import { refreshAllStores } from '../store';
  * Mount this once in the root layout (_layout.tsx).
  */
 export function useNetworkSync() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, isAuthLoading, user } = useAuthStore();
   const router = useRouter();
   const isOnlineRef = useRef(false);
   const isSyncingRef = useRef(false);
@@ -39,12 +39,15 @@ export function useNetworkSync() {
     }
   }
 
-  // Track previous auth state to detect transitions
-  const wasAuthenticatedRef = useRef(isAuthenticated);
-
+  // When auth finishes loading and user is authenticated + online, run an initial sync.
+  const prevAuthLoadingRef = useRef(isAuthLoading);
   useEffect(() => {
-    wasAuthenticatedRef.current = isAuthenticated;
-  }, [isAuthenticated]);
+    const wasLoading = prevAuthLoadingRef.current;
+    prevAuthLoadingRef.current = isAuthLoading;
+    if (wasLoading && !isAuthLoading && isAuthenticated && user && isOnlineRef.current) {
+      triggerSync(user.uid);
+    }
+  }, [isAuthLoading, isAuthenticated, user?.uid]);
 
   useEffect(() => {
     // Check current network state on mount
@@ -63,12 +66,12 @@ export function useNetworkSync() {
       isOnlineRef.current = isNowOnline;
 
       if (wasOffline && isNowOnline) {
-        const { isAuthenticated: authed, user: currentUser } = useAuthStore.getState();
+        const { isAuthenticated: authed, user: currentUser, isAuthLoading: authLoading } = useAuthStore.getState();
         if (authed && currentUser) {
           // Online + authenticated → sync
           triggerSync(currentUser.uid);
-        } else {
-          // Online + not authenticated → prompt to sign in
+        } else if (!authLoading) {
+          // Only prompt if auth has fully resolved and user is genuinely not signed in
           Alert.alert(
             'Sign in to sync',
             'You\'re back online. Sign in to back up and sync your data.',

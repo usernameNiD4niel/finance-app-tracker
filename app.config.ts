@@ -2,8 +2,9 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
+  owner: 'hangon_there',
   name: 'Ledgerist',
-  slug: 'ledgerist',
+  slug: 'finance-tracker',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -55,7 +56,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   scheme: 'ledgerist',
   extra: {
     router: { root: './src/app' },
-    eas: { projectId: '8db1bddb-5763-48e0-a1bf-6128b68e2aad' },
+    eas: { projectId: 'ce6f994c-af83-460b-b2e7-9da17211800e' },
     firebaseApiKey: process.env.FIREBASE_API_KEY,
     firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
     firebaseProjectId: process.env.FIREBASE_PROJECT_ID,

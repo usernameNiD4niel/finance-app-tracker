@@ -4,6 +4,7 @@ import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { format, subMonths } from 'date-fns';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
@@ -23,17 +24,25 @@ export default function ExpensesScreen() {
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { categories, loadCategories } = useCategoryStore();
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  // null = All Time (no date filter)
+  const [selectedMonth, setSelectedMonth] = useState<Date | null>(null);
+
+  const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), i));
 
   useFocusEffect(useCallback(() => {
-    const { start, end } = getMonthBounds();
     loadCategories();
-    loadExpenses({ startDate: start, endDate: end, categoryId: selectedCategory ?? undefined });
-  }, [selectedCategory]));
+    if (selectedMonth) {
+      const { start, end } = getMonthBounds(selectedMonth);
+      loadExpenses({ startDate: start, endDate: end, categoryId: selectedCategory ?? undefined });
+    } else {
+      loadExpenses({ categoryId: selectedCategory ?? undefined });
+    }
+  }, [selectedCategory, selectedMonth]));
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
   const primary = theme.colors.primary;
 
-  const chips = [
+  const categoryChips = [
     { key: null as number | null, label: 'All' },
     ...categories.map(c => ({ key: c.id as number | null, label: c.name })),
   ];
@@ -49,6 +58,31 @@ export default function ExpensesScreen() {
         }
       />
 
+      {/* Month Filter */}
+      <View style={styles.filterWrap}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        >
+          <View style={[styles.chip, { backgroundColor: selectedMonth === null ? primary + '22' : theme.custom.cardBg, boxShadow: selectedMonth === null ? (neuChip(theme) as any) : undefined }]}>
+            <Text onPress={() => setSelectedMonth(null)} style={[styles.chipLabel, { color: selectedMonth === null ? primary : theme.colors.onSurface }]}>
+              All Time
+            </Text>
+          </View>
+          {months.map((m) => {
+            const isActive = selectedMonth !== null && format(m, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
+            return (
+              <View key={m.toISOString()} style={[styles.chip, { backgroundColor: isActive ? primary + '22' : theme.custom.cardBg, boxShadow: isActive ? (neuChip(theme) as any) : undefined }]}>
+                <Text onPress={() => setSelectedMonth(m)} style={[styles.chipLabel, { color: isActive ? primary : theme.colors.onSurface }]}>
+                  {format(m, 'MMM yyyy')}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       {/* Category Filter */}
       <View style={styles.filterWrap}>
         <ScrollView
@@ -56,7 +90,7 @@ export default function ExpensesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
-          {chips.map((chip) => {
+          {categoryChips.map((chip) => {
             const isActive = chip.key === selectedCategory;
             return (
               <View

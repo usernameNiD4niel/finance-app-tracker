@@ -14,6 +14,7 @@ interface SourceState {
   totalBalance: number;
   isLoading: boolean;
   recurringMap: Record<number, RecurringTransaction[]>;
+  allRecurring: RecurringTransaction[];
   loadSources: () => Promise<void>;
   addSource: (data: NewMoneySource) => Promise<void>;
   editSource: (id: number, data: Partial<NewMoneySource>) => Promise<void>;
@@ -22,6 +23,7 @@ interface SourceState {
   withdraw: (id: number, amount: number) => Promise<void>;
   refreshTotalBalance: () => Promise<void>;
   loadRecurring: (sourceId: number) => Promise<void>;
+  loadAllRecurring: () => Promise<void>;
   addRecurring: (data: NewRecurringTransaction) => Promise<void>;
   removeRecurring: (id: number, sourceId: number) => Promise<void>;
   transfer: (fromId: number, toId: number, amount: number, fee: number, note: string | null, date: string) => Promise<void>;
@@ -32,6 +34,7 @@ export const useSourceStore = create<SourceState>((set, get) => ({
   totalBalance: 0,
   isLoading: false,
   recurringMap: {},
+  allRecurring: [],
 
   loadSources: async () => {
     set({ isLoading: true });
@@ -86,16 +89,24 @@ export const useSourceStore = create<SourceState>((set, get) => ({
     set(state => ({ recurringMap: { ...state.recurringMap, [sourceId]: rows } }));
   },
 
+  loadAllRecurring: async () => {
+    const userId = useAuthStore.getState().user?.uid ?? null;
+    const rows = await getRecurringTransactions(undefined, userId);
+    set({ allRecurring: rows });
+  },
+
   addRecurring: async (data) => {
     const userId = useAuthStore.getState().user?.uid ?? null;
     await createRecurringTransaction(data, userId);
     await get().loadRecurring(data.sourceId);
+    await get().loadAllRecurring();
     triggerAutoSync();
   },
 
   removeRecurring: async (id, sourceId) => {
     await deleteRecurringTransaction(id);
     await get().loadRecurring(sourceId);
+    await get().loadAllRecurring();
     triggerAutoSync();
   },
 

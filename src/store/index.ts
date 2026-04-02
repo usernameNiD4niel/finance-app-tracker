@@ -14,6 +14,7 @@ export async function refreshAllStores(): Promise<void> {
     useBillStore.getState().loadBills(),
     useCategoryStore.getState().loadCategories(),
     useSourceStore.getState().loadSources(),
+    useSourceStore.getState().loadAllRecurring(),
     useLendStore.getState().loadLends(),
     useTargetStore.getState().loadTargets(currentMonth),
   ]);

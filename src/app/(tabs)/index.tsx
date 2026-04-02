@@ -17,6 +17,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
+import { useSourceStore } from '../../store/sourceStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
@@ -47,6 +48,7 @@ export default function DashboardScreen() {
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
   const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
+  const { allRecurring, loadAllRecurring, sources } = useSourceStore();
   const [premiumVisible, setPremiumVisible] = useState(false);
 
   const [balanceData, setBalanceData] = useState<{
@@ -62,6 +64,7 @@ export default function DashboardScreen() {
     const promises: Promise<any>[] = [
       loadExpenses({}),
       loadTargets(month),
+      loadAllRecurring(),
     ];
     if (isPremium) {
       promises.push(loadActiveLends());
@@ -263,6 +266,65 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Recurring Transactions */}
+        {allRecurring.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Recurring Transactions"
+              onSeeAll={allRecurring.length > 5 ? () => router.push('/modals/recurring') : undefined}
+            />
+            {allRecurring.slice(0, 5).map((rt) => {
+              const source = sources.find(s => s.id === rt.sourceId);
+              const isDeposit = rt.type === 'deposit';
+              const FREQ_LABELS: Record<string, string> = {
+                daily: 'Daily', weekly: 'Weekly',
+                start_of_month: 'Start of Month', end_of_month: 'End of Month', specific_day: 'Specific Day',
+              };
+              return (
+                <Pressable
+                  key={rt.id}
+                  style={[styles.recurringRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                  onPress={() => router.push('/modals/recurring')}
+                >
+                  <View style={[styles.recurringIcon, { backgroundColor: (source?.color ?? theme.colors.primary) + '22' }]}>
+                    <MaterialCommunityIcons
+                      name={(source?.icon ?? 'wallet-outline') as any}
+                      size={18}
+                      color={source?.color ?? theme.colors.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+                      {source?.name ?? 'Unknown Wallet'}
+                    </Text>
+                    <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                      {FREQ_LABELS[rt.frequency] ?? rt.frequency}
+                      {rt.frequency === 'specific_day' && rt.dayOfMonth ? ` · Day ${rt.dayOfMonth}` : ''}
+                    </Text>
+                  </View>
+                  <Text
+                    variant="titleSmall"
+                    style={{ color: isDeposit ? theme.custom.income : theme.custom.expense, fontWeight: '700' }}
+                  >
+                    {isDeposit ? '+' : '-'}{formatCurrency(rt.amount, currency)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {allRecurring.length > 5 && (
+              <Pressable
+                style={[styles.seeAllRow, { backgroundColor: theme.custom.cardBg }]}
+                onPress={() => router.push('/modals/recurring')}
+              >
+                <Text variant="bodySmall" style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                  See all {allRecurring.length} recurring transactions
+                </Text>
+                <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.primary} />
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {/* Recent Expenses */}
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
@@ -349,6 +411,30 @@ const styles = StyleSheet.create({
   section: {
     marginTop: 22,
     paddingHorizontal: 16,
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 13,
+    borderRadius: 14,
+    marginBottom: 7,
+    gap: 10,
+  },
+  recurringIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  seeAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    gap: 4,
+    marginTop: 2,
   },
   upcomingBill: {
     flexDirection: 'row',

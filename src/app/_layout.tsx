@@ -85,6 +85,7 @@ export default function RootLayout() {
           <Stack.Screen name="modals/add-lend" options={modalScreenOptions} />
           <Stack.Screen name="modals/lends" options={modalScreenOptions} />
           <Stack.Screen name="modals/cloud-auth" options={modalScreenOptions} />
+          <Stack.Screen name="modals/recurring" options={modalScreenOptions} />
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>

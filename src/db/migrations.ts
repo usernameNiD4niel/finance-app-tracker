@@ -224,6 +224,47 @@ export function runMigrations() {
       sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [existingUid]);
     }
   }
+
+  // ── Dedup predefined money_sources ──────────────────────────────────────────
+  // Sync used to insert duplicate predefined sources (BDO, BPI, GCash, Maya, etc.)
+  // when the local seeded sync_id differed from Firestore's sync_id. This cleans
+  // up any existing duplicates by keeping the row with the most FK references
+  // (i.e. the one actual transactions point to) and deleting the orphaned copies.
+  try {
+    const dupGroups = sqlite.getAllSync<{ name: string; user_id: string | null }>(
+      `SELECT name, user_id FROM money_sources WHERE is_custom = 0 GROUP BY name, COALESCE(user_id, '') HAVING COUNT(*) > 1`
+    );
+    for (const group of dupGroups) {
+      const userFilter = group.user_id ? `user_id = '${group.user_id}'` : `user_id IS NULL`;
+      const rows = sqlite.getAllSync<{ id: number }>(
+        `SELECT id FROM money_sources WHERE is_custom = 0 AND name = ? AND ${userFilter}`,
+        [group.name]
+      );
+      // Count FK references for each candidate row
+      const scored = rows.map(r => {
+        const ref = sqlite.getFirstSync<{ c: number }>(
+          `SELECT (
+            SELECT COUNT(*) FROM expenses WHERE source_id = ?
+          ) + (
+            SELECT COUNT(*) FROM bills WHERE source_id = ?
+          ) + (
+            SELECT COUNT(*) FROM lends WHERE source_id = ?
+          ) + (
+            SELECT COUNT(*) FROM transfers WHERE from_source_id = ? OR to_source_id = ?
+          ) + (
+            SELECT COUNT(*) FROM recurring_transactions WHERE source_id = ?
+          ) AS c`,
+          [r.id, r.id, r.id, r.id, r.id, r.id]
+        );
+        return { id: r.id, refs: ref?.c ?? 0 };
+      });
+      // Keep the row with the most references; break ties by keeping the lowest id (oldest/original)
+      scored.sort((a, b) => b.refs - a.refs || a.id - b.id);
+      for (const { id } of scored.slice(1)) {
+        sqlite.runSync(`DELETE FROM money_sources WHERE id = ?`, [id]);
+      }
+    }
+  } catch (_e) {}
 }
 
 const PREDEFINED_CATEGORIES = [
