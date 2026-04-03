@@ -12,6 +12,7 @@ import { PremiumModal } from '../../components/PremiumModal';
 import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { format } from 'date-fns';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
@@ -35,6 +36,7 @@ export default function AddLendScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { currency, isPremium } = useSettingsStore();
+  const { user } = useAuthStore();
   const { lends, addLend, editLend } = useLendStore();
   const { sources, loadSources } = useSourceStore();
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
@@ -358,7 +360,9 @@ export default function AddLendScreen() {
 
       <PremiumModal
         visible={premiumVisible}
-        onSubscribe={() => setPremiumVisible(false)}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => setPremiumVisible(false)}
         onDismiss={() => { setPremiumVisible(false); router.back(); }}
       />
     </View>

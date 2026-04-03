@@ -12,6 +12,8 @@ interface SettingsState {
   cloudSyncEnabled: boolean;
   firebaseUid: string | null;
   lastSyncedAt: string | null;
+  stripeCustomerId: string | null;
+  subscriptionStatus: string | null;
   setCurrency: (currency: string) => Promise<void>;
   setTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>;
   setPrimaryColor: (color: string) => Promise<void>;
@@ -21,6 +23,8 @@ interface SettingsState {
   setCloudSyncEnabled: (enabled: boolean) => Promise<void>;
   setFirebaseUid: (uid: string | null) => Promise<void>;
   setLastSyncedAt: (timestamp: string) => Promise<void>;
+  setStripeCustomerId: (id: string) => Promise<void>;
+  setSubscriptionStatus: (status: string) => Promise<void>;
   loadSettings: () => Promise<void>;
 }
 
@@ -35,9 +39,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   cloudSyncEnabled: false,
   firebaseUid: null,
   lastSyncedAt: null,
+  stripeCustomerId: null,
+  subscriptionStatus: null,
 
   loadSettings: async () => {
-    const [currency, theme, onboarding, pin, primaryColor, premium, cloudSync, firebaseUid, lastSyncedAt] = await Promise.all([
+    const [currency, theme, onboarding, pin, primaryColor, premium, cloudSync, firebaseUid, lastSyncedAt, stripeCustomerId, subscriptionStatus] = await Promise.all([
       getSetting('currency'),
       getSetting('theme'),
       getSetting('onboarding_done'),
@@ -47,6 +53,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       getSetting('cloud_sync_enabled'),
       getSetting('firebase_uid'),
       getSetting('last_synced_at'),
+      getSetting('stripe_customer_id'),
+      getSetting('subscription_status'),
     ]);
     set({
       currency: currency ?? 'USD',
@@ -59,6 +67,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       cloudSyncEnabled: cloudSync === 'true',
       firebaseUid: firebaseUid ?? null,
       lastSyncedAt: lastSyncedAt ?? null,
+      stripeCustomerId: stripeCustomerId ?? null,
+      subscriptionStatus: subscriptionStatus ?? null,
     });
   },
 
@@ -107,5 +117,15 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setLastSyncedAt: async (timestamp) => {
     await setSetting('last_synced_at', timestamp);
     set({ lastSyncedAt: timestamp });
+  },
+
+  setStripeCustomerId: async (id) => {
+    await setSetting('stripe_customer_id', id);
+    set({ stripeCustomerId: id });
+  },
+
+  setSubscriptionStatus: async (status) => {
+    await setSetting('subscription_status', status);
+    set({ subscriptionStatus: status });
   },
 }));

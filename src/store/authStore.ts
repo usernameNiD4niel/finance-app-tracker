@@ -10,6 +10,7 @@ import {
 import NetInfo from '@react-native-community/netinfo';
 import { runSync } from '../services/syncEngine';
 import { clearUserData, countPendingChanges } from '../db/client';
+import { useSettingsStore } from './settingsStore';
 
 interface SignOutResult {
   wasOnline: boolean;
@@ -62,6 +63,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signOut: async () => {
     await firebaseSignOut();
+    const settings = useSettingsStore.getState();
+    await settings.setPremium(false);
+    await settings.setStripeCustomerId('');
+    await settings.setSubscriptionStatus('');
     set({ user: null, isAuthenticated: false });
   },
 
@@ -89,6 +94,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     // Always proceed with sign out
     await firebaseSignOut();
+    const settings = useSettingsStore.getState();
+    await settings.setPremium(false);
+    await settings.setStripeCustomerId('');
+    await settings.setSubscriptionStatus('');
     set({ user: null, isAuthenticated: false });
 
     // Only clean up local data if sync succeeded (data is safe in Firestore)

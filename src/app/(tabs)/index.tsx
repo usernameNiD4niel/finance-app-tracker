@@ -14,6 +14,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { ActionButtonRow } from '../../components/ui/ActionButtonRow';
 import { RoundedCard } from '../../components/ui/RoundedCard';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
@@ -45,6 +46,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { currency, isPremium, lastSyncedAt } = useSettingsStore();
+  const { user } = useAuthStore();
   const { expenses, loadExpenses, removeExpense } = useExpenseStore();
   const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
   const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
@@ -363,7 +365,9 @@ export default function DashboardScreen() {
 
       <PremiumModal
         visible={premiumVisible}
-        onSubscribe={() => setPremiumVisible(false)}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => setPremiumVisible(false)}
         onDismiss={() => setPremiumVisible(false)}
       />
     </ScreenContainer>

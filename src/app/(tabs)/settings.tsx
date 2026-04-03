@@ -8,6 +8,7 @@ import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
+import { PremiumModal } from '../../components/PremiumModal';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
 import { neuListItem } from '../../theme/neumorphism';
@@ -60,12 +61,13 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
 export default function SettingsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor, setCloudSyncEnabled, setLastSyncedAt } = useSettingsStore();
+  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor, setCloudSyncEnabled, setLastSyncedAt, isPremium } = useSettingsStore();
   const { isAuthenticated, user, safeSignOut } = useAuthStore();
 
   const isDark = currentTheme === 'dark';
   const [showColors, setShowColors] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
+  const [colorPremiumVisible, setColorPremiumVisible] = React.useState(false);
 
   async function handleSyncNow() {
     if (!user) return;
@@ -151,20 +153,41 @@ export default function SettingsScreen() {
             {PRIMARY_COLORS.map((c) => {
               const color = isDark ? c.dark : c.light;
               const isSelected = c.light === primaryColor || c.dark === primaryColor;
+              const isLocked = !isPremium && c.light !== '#6366f1';
               return (
                 <TouchableOpacity
                   key={c.name}
-                  onPress={() => setPrimaryColor(c.light)}
+                  onPress={() => {
+                    if (isLocked) {
+                      setColorPremiumVisible(true);
+                    } else {
+                      setPrimaryColor(c.light);
+                    }
+                  }}
                   style={[
                     styles.colorDot,
-                    { backgroundColor: color },
+                    { backgroundColor: isLocked ? color + '66' : color },
                     isSelected && { borderWidth: 2.5, borderColor: theme.colors.onSurface },
                   ]}
-                />
+                >
+                  {isLocked && (
+                    <MaterialCommunityIcons name="lock" size={12} color="rgba(255,255,255,0.9)" />
+                  )}
+                </TouchableOpacity>
               );
             })}
           </View>
         )}
+        <PremiumModal
+          visible={colorPremiumVisible}
+          userId={user?.uid ?? ''}
+          userEmail={user?.email ?? ''}
+          onSubscribeSuccess={() => setColorPremiumVisible(false)}
+          onDismiss={() => {
+            setColorPremiumVisible(false);
+            if (!isPremium) setPrimaryColor('#6366f1');
+          }}
+        />
 
         {/* Financial */}
         <MutedLabel uppercase style={styles.sectionTitle}>Financial</MutedLabel>
@@ -295,5 +318,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

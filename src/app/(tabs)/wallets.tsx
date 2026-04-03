@@ -12,6 +12,8 @@ import { TopHeader } from '../../components/ui/TopHeader';
 import { SourceCard } from '../../components/SourceCard';
 import { useSourceStore } from '../../store/sourceStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
+import { PremiumModal } from '../../components/PremiumModal';
 import { formatCurrency } from '../../utils/currency';
 import { buildInitialNextRunDate } from '../../services/recurring';
 import { neuButton, neuCardLg, neuChip } from '../../theme/neumorphism';
@@ -59,7 +61,9 @@ type SheetPage = 'detail' | 'dw' | 'add-recurring' | 'transfer';
 export default function WalletsScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
-  const { currency } = useSettingsStore();
+  const { currency, isPremium } = useSettingsStore();
+  const { user } = useAuthStore();
+  const [premiumVisible, setPremiumVisible] = useState(false);
   const {
     sources, totalBalance, loadSources,
     addSource, editSource, removeSource, deposit, withdraw,
@@ -312,6 +316,7 @@ export default function WalletsScreen() {
           <TouchableOpacity
             style={[styles.addRecurringBtn, { backgroundColor: theme.colors.primary + '22' }]}
             onPress={() => {
+              if (!isPremium) { setPremiumVisible(true); return; }
               setArType('deposit');
               setArAmount('');
               setArFrequency('start_of_month');
@@ -414,7 +419,10 @@ export default function WalletsScreen() {
         </View>
         <Switch
           value={dwRecurring}
-          onValueChange={setDwRecurring}
+          onValueChange={(val) => {
+            if (val && !isPremium) { setPremiumVisible(true); return; }
+            setDwRecurring(val);
+          }}
           trackColor={{ false: theme.custom.trackBg, true: theme.colors.primary + '66' }}
           thumbColor={dwRecurring ? theme.colors.primary : theme.colors.surfaceVariant}
         />
@@ -919,6 +927,14 @@ export default function WalletsScreen() {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      <PremiumModal
+        visible={premiumVisible}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => setPremiumVisible(false)}
+        onDismiss={() => setPremiumVisible(false)}
+      />
     </ScreenContainer>
   );
 }

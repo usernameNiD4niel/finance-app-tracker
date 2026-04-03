@@ -4,19 +4,29 @@ import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import Constants from 'expo-constants';
 import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
 import { configureGoogleSignIn } from '../services/firebaseAuth';
+import { verifyPremiumStatus } from '../services/subscription';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
-  const { initAuthListener, isAuthLoading } = useAuthStore();
+  const { initAuthListener, isAuthLoading, user } = useAuthStore();
+
+  // Verify premium status from Firestore whenever the user changes (sign-in/startup)
+  useEffect(() => {
+    if (user?.uid) {
+      verifyPremiumStatus(user.uid).catch(() => {});
+    }
+  }, [user?.uid]);
 
   // Triggers background sync on reconnect when signed in
   useNetworkSync();
@@ -66,7 +76,10 @@ export default function RootLayout() {
     contentStyle: { backgroundColor: resolvedTheme.colors.background },
   };
 
+  const stripeKey = Constants.expoConfig?.extra?.stripePublishableKey ?? '';
+
   return (
+    <StripeProvider publishableKey={stripeKey}>
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: resolvedTheme.colors.background }}>
       <StatusBar style={resolvedTheme.dark ? 'light' : 'dark'} />
       <PaperProvider theme={resolvedTheme}>
@@ -89,5 +102,6 @@ export default function RootLayout() {
         </Stack>
       </PaperProvider>
     </GestureHandlerRootView>
+    </StripeProvider>
   );
 }

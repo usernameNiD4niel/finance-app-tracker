@@ -7,6 +7,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTargetStore } from '../../store/targetStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
+import { PremiumModal } from '../../components/PremiumModal';
 import { getCurrentMonth } from '../../utils/date';
 import { neuButton, neuCard, neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
@@ -15,7 +17,8 @@ export default function BudgetTargetsScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currency } = useSettingsStore();
+  const { currency, isPremium } = useSettingsStore();
+  const { user } = useAuthStore();
   const { categories, loadCategories } = useCategoryStore();
   const { currentTarget, categoryTargets, loadTargets, setOverallTarget, setCategoryTarget } = useTargetStore();
 
@@ -23,11 +26,16 @@ export default function BudgetTargetsScreen() {
   const [overallAmount, setOverallAmount] = useState('');
   const [catLimits, setCatLimits] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
+  const [premiumVisible, setPremiumVisible] = useState(false);
 
   useEffect(() => {
+    if (!isPremium) {
+      setPremiumVisible(true);
+      return;
+    }
     loadCategories();
     loadTargets(month);
-  }, []);
+  }, [isPremium]);
 
   useEffect(() => {
     if (currentTarget?.overallLimit) setOverallAmount(String(currentTarget.overallLimit));
@@ -56,6 +64,17 @@ export default function BudgetTargetsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <PremiumModal
+        visible={premiumVisible}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => {
+          setPremiumVisible(false);
+          loadCategories();
+          loadTargets(month);
+        }}
+        onDismiss={() => { setPremiumVisible(false); router.back(); }}
+      />
       <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />

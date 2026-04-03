@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { PINPad } from '../../components/PINPad';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSourceStore } from '../../store/sourceStore';
@@ -21,7 +22,8 @@ type Step = 'welcome' | 'currency' | 'wallets' | 'transactions' | 'pin' | 'confi
 export default function OnboardingScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { setCurrency, setPin, setOnboardingDone, setPremium } = useSettingsStore();
+  const { setCurrency, setPin, setOnboardingDone } = useSettingsStore();
+  const { user } = useAuthStore();
   const { addExpense } = useExpenseStore();
   const { loadCategories, categories } = useCategoryStore();
   const { sources, loadSources, addSource, editSource } = useSourceStore();
@@ -69,12 +71,6 @@ export default function OnboardingScreen() {
     await setCurrency(selectedCurrency);
     await setOnboardingDone();
     setShowPremium(true);
-  };
-
-  const handlePremiumSubscribe = async () => {
-    await setPremium(true);
-    setShowPremium(false);
-    router.replace('/(tabs)');
   };
 
   const handlePremiumDismiss = () => {
@@ -471,7 +467,9 @@ export default function OnboardingScreen() {
 
       <PremiumModal
         visible={showPremium}
-        onSubscribe={handlePremiumSubscribe}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => { setShowPremium(false); router.replace('/(tabs)'); }}
         onDismiss={handlePremiumDismiss}
       />
     </View>

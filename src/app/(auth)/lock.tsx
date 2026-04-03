@@ -14,8 +14,8 @@ import type { AppTheme } from '../../theme';
 export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { pinHash, setPremium } = useSettingsStore();
-  const { isAuthenticated } = useAuthStore();
+  const { pinHash } = useSettingsStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
@@ -45,12 +45,6 @@ export default function LockScreen() {
       router.replace('/(tabs)');
     }
   }
-
-  const handlePremiumSubscribe = async () => {
-    await setPremium(true);
-    setShowPremium(false);
-    await navigateAfterUnlock();
-  };
 
   const handlePremiumDismiss = async () => {
     setShowPremium(false);
@@ -101,7 +95,9 @@ export default function LockScreen() {
 
       <PremiumModal
         visible={showPremium}
-        onSubscribe={handlePremiumSubscribe}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={async () => { setShowPremium(false); await navigateAfterUnlock(); }}
         onDismiss={handlePremiumDismiss}
       />
     </View>

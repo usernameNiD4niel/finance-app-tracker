@@ -1,21 +1,21 @@
-import React from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import { Text, useTheme } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Alert, BackHandler } from 'react-native';
+import { Text, useTheme, Portal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { neuCardLg, neuButton, neuCard } from '../theme/neumorphism';
-import type { AppTheme } from '../theme';
+import { useStripe } from '@stripe/stripe-react-native';
+import { neuButton, neuCard } from '@/theme/neumorphism';
+import { useSettingsStore } from '@/store/settingsStore';
+import { activatePremiumInFirestore } from '@/services/subscription';
+import type { AppTheme } from '@/theme';
 
-interface Props {
-  visible: boolean;
-  onSubscribe: () => void;
-  onDismiss: () => void;
-}
+// Replace this with your server URL (use ngrok URL for local dev)
+const SERVER_URL = 'https://e87b-136-158-58-111.ngrok-free.app';
 
 const FEATURES = [
   {
-    icon: 'trophy-outline' as const,
-    title: 'Budget Rank-Up',
-    desc: 'Hit your category budget and earn ranks',
+    icon: 'hand-coin' as const,
+    title: 'Lend Tracking',
+    desc: 'Track money lent to others and get paid back',
   },
   {
     icon: 'chart-line' as const,
@@ -24,30 +24,102 @@ const FEATURES = [
   },
   {
     icon: 'palette-outline' as const,
-    title: 'Multiple Themes',
-    desc: 'Unlock extra themes and primary colors',
+    title: 'Custom Theme Colors',
+    desc: 'Unlock accent colors to personalize the app',
   },
   {
-    icon: 'hand-coin' as const,
-    title: 'Lend Tracking',
-    desc: 'Track money lent to others and get paid back',
+    icon: 'bullseye-arrow' as const,
+    title: 'Budget Targets',
+    desc: 'Set monthly spending limits per category',
+  },
+  {
+    icon: 'repeat' as const,
+    title: 'Recurring Transactions',
+    desc: 'Automate deposits and withdrawals in your wallets',
   },
 ];
 
-export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
+interface Props {
+  visible: boolean;
+  userId: string;
+  userEmail: string;
+  onSubscribeSuccess: () => void;
+  onDismiss: () => void;
+}
+
+export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, onDismiss }: Props) {
   const theme = useTheme<AppTheme>();
+  const { initPaymentSheet, presentPaymentSheet, resetPaymentSheetCustomer } = useStripe();
+  const { setPremium, setStripeCustomerId, setSubscriptionStatus } = useSettingsStore();
+  const [loading, setLoading] = useState(false);
+
+  // Handle Android hardware back button
+  useEffect(() => {
+    if (!visible) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!loading) onDismiss();
+      return true;
+    });
+    return () => sub.remove();
+  }, [visible, loading, onDismiss]);
+
+  const handleSubscribe = async () => {
+    setLoading(true);
+    try {
+      // 1. Request subscription from backend
+      const res = await fetch(`${SERVER_URL}/api/create-subscription`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email: userEmail }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Server error');
+      }
+
+      const { clientSecret, customerId, subscriptionId } = await res.json();
+
+      // 2. Clear any cached customer session from a previous account
+      await resetPaymentSheetCustomer();
+
+      // 3. Initialize payment sheet
+      const { error: initError } = await initPaymentSheet({
+        paymentIntentClientSecret: clientSecret,
+        merchantDisplayName: 'Ledgerist',
+        allowsDelayedPaymentMethods: false,
+      });
+      if (initError) throw new Error(initError.message);
+
+      // 4. Present payment sheet to user
+      const { error: payError } = await presentPaymentSheet();
+      if (payError) {
+        if (payError.code !== 'Canceled') {
+          Alert.alert('Payment failed', payError.message);
+        }
+        return;
+      }
+
+      // 5. Activate premium locally and in Firestore
+      await setPremium(true);
+      await setStripeCustomerId(customerId);
+      await setSubscriptionStatus('active');
+      await activatePremiumInFirestore(userId, customerId, subscriptionId);
+
+      onSubscribeSuccess();
+    } catch (e: any) {
+      Alert.alert('Payment failed', e.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
+    <Portal>
       <View style={styles.overlay}>
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.custom.cardBg,
-            },
-          ]}
-        >
+        <View style={[styles.card, { backgroundColor: theme.custom.cardBg }]}>
           <View
             style={[
               styles.iconWrap,
@@ -104,32 +176,33 @@ export function PremiumModal({ visible, onSubscribe, onDismiss }: Props) {
             style={[
               styles.subscribeBtn,
               {
-                backgroundColor: theme.colors.primary,
+                backgroundColor: loading ? theme.colors.primary + '88' : theme.colors.primary,
                 boxShadow: neuButton(theme) as any,
               },
             ]}
-            onPress={onSubscribe}
+            onPress={handleSubscribe}
+            disabled={loading}
             activeOpacity={0.8}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText, fontWeight: '700' }}>
-              Subscribe Now
+              {loading ? 'Processing…' : 'Subscribe Now'}
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.skipBtn} onPress={onDismiss} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.skipBtn} onPress={onDismiss} activeOpacity={0.7} disabled={loading}>
             <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
               Maybe Later
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </Portal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',

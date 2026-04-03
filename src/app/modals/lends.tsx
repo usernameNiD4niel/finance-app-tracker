@@ -9,6 +9,7 @@ import { PremiumModal } from '../../components/PremiumModal';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { neuCard, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -23,6 +24,7 @@ export default function LendsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { currency, isPremium } = useSettingsStore();
+  const { user } = useAuthStore();
   const { lends, loadLends, markPaid, removeLend } = useLendStore();
   const [filter, setFilter] = useState<string | number | null>('active');
   const [refreshing, setRefreshing] = useState(false);
@@ -117,7 +119,9 @@ export default function LendsScreen() {
 
       <PremiumModal
         visible={premiumVisible}
-        onSubscribe={() => setPremiumVisible(false)}
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => { setPremiumVisible(false); loadLends(); }}
         onDismiss={() => { setPremiumVisible(false); router.back(); }}
       />
     </View>

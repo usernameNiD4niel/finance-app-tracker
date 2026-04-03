@@ -52,6 +52,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-font',
     '@react-native-community/datetimepicker',
     'expo-web-browser',
+    ['@stripe/stripe-react-native', { merchantIdentifier: '' }],
   ],
   scheme: 'ledgerist',
   extra: {
@@ -63,5 +64,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
     firebaseAppId: process.env.FIREBASE_APP_ID,
+    stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
   },
 });

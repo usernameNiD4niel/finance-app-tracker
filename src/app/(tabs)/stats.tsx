@@ -13,6 +13,7 @@ import { CategoryRingChart } from '../../components/CategoryRingChart';
 import { PremiumModal } from '../../components/PremiumModal';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { useAuthStore } from '../../store/authStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
@@ -21,7 +22,8 @@ import type { AppTheme } from '../../theme';
 
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
-  const { currency, isPremium, setPremium } = useSettingsStore();
+  const { currency, isPremium } = useSettingsStore();
+  const { user } = useAuthStore();
   const { expenses, categoryTotals, dailyTotals, loadExpenses, loadCategoryTotals, loadDailyTotals } = useExpenseStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [isFocused, setIsFocused] = useState(false);
@@ -178,8 +180,9 @@ export default function StatsScreen() {
 
       <PremiumModal
         visible={showPremiumModal}
-        onSubscribe={async () => {
-          await setPremium(true);
+        userId={user?.uid ?? ''}
+        userEmail={user?.email ?? ''}
+        onSubscribeSuccess={() => {
           setShowPremiumModal(false);
           load();
         }}
