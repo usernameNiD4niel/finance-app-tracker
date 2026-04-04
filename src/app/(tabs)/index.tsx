@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -23,6 +23,7 @@ import { calculateCurrentBalance, getUpcomingBills } from '../../services/balanc
 import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
+import { getUnreadNotificationCount } from '../../db/queries';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
 
@@ -52,6 +53,7 @@ export default function DashboardScreen() {
   const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
   const { allRecurring, loadAllRecurring, sources } = useSourceStore();
   const [premiumVisible, setPremiumVisible] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [balanceData, setBalanceData] = useState<{
     spent: number; billsDue: number; walletBalance: number; balance: number;
@@ -86,7 +88,10 @@ export default function DashboardScreen() {
     setBalanceData(balance);
   }, [markLendPaid]);
 
-  useFocusEffect(useCallback(() => { load(); }, [load, lastSyncedAt]));
+  useFocusEffect(useCallback(() => {
+    load();
+    getUnreadNotificationCount().then(setUnreadCount);
+  }, [load, lastSyncedAt]));
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -137,6 +142,11 @@ export default function DashboardScreen() {
             onPress={() => router.push('/modals/notifications')}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
+            {unreadCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: theme.colors.error }]}>
+                <RNText style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</RNText>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
 
@@ -407,6 +417,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   quickActions: {
     marginTop: 22,

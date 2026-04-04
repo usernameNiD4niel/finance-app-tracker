@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
-import { seedCategories, seedMoneySources } from '../../db/migrations';
+import { seedCategories, seedMoneySources, dedupPredefinedCategories, dedupPredefinedSources } from '../../db/migrations';
 import { sqlite, deleteOrphanedRows } from '../../db/client';
 import type { AppTheme } from '../../theme';
 
@@ -101,6 +101,9 @@ export default function CloudAuthModal() {
     // Sync: pull user's cloud data, then push any local pending rows
     runSync(uid)
       .then(async () => {
+        // Remove any duplicate predefined rows that Firestore may have pushed down
+        try { dedupPredefinedCategories(); } catch (_e) {}
+        try { dedupPredefinedSources(); } catch (_e) {}
         // Seed default categories/sources if this user has none yet (new device)
         seedCategories(uid);
         seedMoneySources(uid);

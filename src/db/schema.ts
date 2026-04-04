@@ -121,6 +121,7 @@ export const lends = sqliteTable('lends', {
   hasInterest: integer('has_interest', { mode: 'boolean' }).notNull().default(false),
   interestType: text('interest_type'), // 'fixed' or 'percentage'
   interestValue: real('interest_value'), // exact amount or percentage
+  notificationId: text('notification_id'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
   syncId: text('sync_id').unique(),
   updatedAt: text('updated_at'),
@@ -168,3 +169,15 @@ export type Lend = typeof lends.$inferSelect;
 export type NewLend = typeof lends.$inferInsert;
 export type Transfer = typeof transfers.$inferSelect;
 export type NewTransfer = typeof transfers.$inferInsert;
+
+export const notificationLog = sqliteTable('notification_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  billId: integer('bill_id'),
+  lendId: integer('lend_id'),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  scheduledFor: text('scheduled_for').notNull(),
+  readAt: text('read_at'),
+  createdAt: text('created_at').notNull(),
+});
+export type NotificationLog = typeof notificationLog.$inferSelect;

@@ -14,6 +14,7 @@ import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { useSourceStore } from '../../store/sourceStore';
+import { scheduleLendNotification, cancelNotification } from '../../services/notifications';
 import { format } from 'date-fns';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { MoneySource } from '../../db/schema';
@@ -119,9 +120,22 @@ export default function AddLendScreen() {
         interestValue: hasInterest ? Number(data.interestValue) : null,
       };
       if (isEditing && id) {
-        await editLend(Number(id), payload);
+        if (existing?.notificationId) await cancelNotification(existing.notificationId);
+        const notificationId = await scheduleLendNotification(
+          Number(id), payload.borrowerName, payload.amount, payload.expectedPayDate, currency
+        );
+        await editLend(Number(id), { ...payload, notificationId });
       } else {
         await addLend({ ...payload, createdAt: new Date().toISOString() });
+        // Schedule notification after lend is created (need the new ID)
+        const { lends } = useLendStore.getState();
+        const newLend = lends[lends.length - 1];
+        if (newLend) {
+          const notificationId = await scheduleLendNotification(
+            newLend.id, payload.borrowerName, payload.amount, payload.expectedPayDate, currency
+          );
+          if (notificationId) await editLend(newLend.id, { notificationId });
+        }
       }
       router.back();
     } finally {

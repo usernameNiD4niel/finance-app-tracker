@@ -136,6 +136,26 @@ export function runMigrations() {
     `);
   } catch (_e) { /* table exists */ }
 
+  // Create notification_log table
+  try {
+    sqlite.execSync(`
+      CREATE TABLE IF NOT EXISTS notification_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bill_id INTEGER,
+        lend_id INTEGER,
+        title TEXT NOT NULL,
+        body TEXT NOT NULL,
+        scheduled_for TEXT NOT NULL,
+        read_at TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+  } catch (_e) {}
+  // Add lend_id to existing notification_log tables (for users upgrading)
+  try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN lend_id INTEGER`); } catch (_e) {}
+  // Add notification_id to lends
+  try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN notification_id TEXT`); } catch (_e) {}
+
   // Create recurring_transactions table
   try {
     sqlite.execSync(`
@@ -225,46 +245,67 @@ export function runMigrations() {
     }
   }
 
+  // ── Dedup predefined categories ─────────────────────────────────────────────
+  try { dedupPredefinedCategories(); } catch (_e) {}
+
   // ── Dedup predefined money_sources ──────────────────────────────────────────
-  // Sync used to insert duplicate predefined sources (BDO, BPI, GCash, Maya, etc.)
-  // when the local seeded sync_id differed from Firestore's sync_id. This cleans
-  // up any existing duplicates by keeping the row with the most FK references
-  // (i.e. the one actual transactions point to) and deleting the orphaned copies.
-  try {
-    const dupGroups = sqlite.getAllSync<{ name: string; user_id: string | null }>(
-      `SELECT name, user_id FROM money_sources WHERE is_custom = 0 GROUP BY name, COALESCE(user_id, '') HAVING COUNT(*) > 1`
+  try { dedupPredefinedSources(); } catch (_e) {}
+}
+
+// ── Dedup helpers (also called post-sync in cloud-auth) ──────────────────────
+
+export function dedupPredefinedCategories() {
+  const dupCatGroups = sqlite.getAllSync<{ name: string }>(
+    `SELECT name FROM categories WHERE is_custom = 0 GROUP BY name HAVING COUNT(*) > 1`
+  );
+  for (const group of dupCatGroups) {
+    const rows = sqlite.getAllSync<{ id: number }>(
+      `SELECT id FROM categories WHERE is_custom = 0 AND name = ? ORDER BY id ASC`,
+      [group.name]
     );
-    for (const group of dupGroups) {
-      const userFilter = group.user_id ? `user_id = '${group.user_id}'` : `user_id IS NULL`;
-      const rows = sqlite.getAllSync<{ id: number }>(
-        `SELECT id FROM money_sources WHERE is_custom = 0 AND name = ? AND ${userFilter}`,
-        [group.name]
-      );
-      // Count FK references for each candidate row
-      const scored = rows.map(r => {
-        const ref = sqlite.getFirstSync<{ c: number }>(
-          `SELECT (
-            SELECT COUNT(*) FROM expenses WHERE source_id = ?
-          ) + (
-            SELECT COUNT(*) FROM bills WHERE source_id = ?
-          ) + (
-            SELECT COUNT(*) FROM lends WHERE source_id = ?
-          ) + (
-            SELECT COUNT(*) FROM transfers WHERE from_source_id = ? OR to_source_id = ?
-          ) + (
-            SELECT COUNT(*) FROM recurring_transactions WHERE source_id = ?
-          ) AS c`,
-          [r.id, r.id, r.id, r.id, r.id, r.id]
-        );
-        return { id: r.id, refs: ref?.c ?? 0 };
-      });
-      // Keep the row with the most references; break ties by keeping the lowest id (oldest/original)
-      scored.sort((a, b) => b.refs - a.refs || a.id - b.id);
-      for (const { id } of scored.slice(1)) {
-        sqlite.runSync(`DELETE FROM money_sources WHERE id = ?`, [id]);
-      }
+    if (rows.length <= 1) continue;
+    const keepId = rows[0].id;
+    for (const { id } of rows.slice(1)) {
+      sqlite.runSync(`UPDATE expenses         SET category_id = ? WHERE category_id = ?`, [keepId, id]);
+      sqlite.runSync(`UPDATE bills            SET category_id = ? WHERE category_id = ?`, [keepId, id]);
+      sqlite.runSync(`UPDATE category_targets SET category_id = ? WHERE category_id = ?`, [keepId, id]);
+      sqlite.runSync(`DELETE FROM categories WHERE id = ?`, [id]);
     }
-  } catch (_e) {}
+  }
+}
+
+export function dedupPredefinedSources() {
+  const dupGroups = sqlite.getAllSync<{ name: string; user_id: string | null }>(
+    `SELECT name, user_id FROM money_sources WHERE is_custom = 0 GROUP BY name, COALESCE(user_id, '') HAVING COUNT(*) > 1`
+  );
+  for (const group of dupGroups) {
+    const userFilter = group.user_id ? `user_id = '${group.user_id}'` : `user_id IS NULL`;
+    const rows = sqlite.getAllSync<{ id: number }>(
+      `SELECT id FROM money_sources WHERE is_custom = 0 AND name = ? AND ${userFilter}`,
+      [group.name]
+    );
+    const scored = rows.map(r => {
+      const ref = sqlite.getFirstSync<{ c: number }>(
+        `SELECT (
+          SELECT COUNT(*) FROM expenses WHERE source_id = ?
+        ) + (
+          SELECT COUNT(*) FROM bills WHERE source_id = ?
+        ) + (
+          SELECT COUNT(*) FROM lends WHERE source_id = ?
+        ) + (
+          SELECT COUNT(*) FROM transfers WHERE from_source_id = ? OR to_source_id = ?
+        ) + (
+          SELECT COUNT(*) FROM recurring_transactions WHERE source_id = ?
+        ) AS c`,
+        [r.id, r.id, r.id, r.id, r.id, r.id]
+      );
+      return { id: r.id, refs: ref?.c ?? 0 };
+    });
+    scored.sort((a, b) => b.refs - a.refs || a.id - b.id);
+    for (const { id } of scored.slice(1)) {
+      sqlite.runSync(`DELETE FROM money_sources WHERE id = ?`, [id]);
+    }
+  }
 }
 
 const PREDEFINED_CATEGORIES = [
@@ -279,21 +320,19 @@ const PREDEFINED_CATEGORIES = [
 ];
 
 export function seedCategories(userId: string | null = null) {
-  const existing = sqlite.getFirstSync<{ count: number }>(
-    userId
-      ? 'SELECT COUNT(*) as count FROM categories WHERE is_custom = 0 AND user_id = ?'
-      : 'SELECT COUNT(*) as count FROM categories WHERE is_custom = 0 AND user_id IS NULL',
-    userId ? [userId] : []
-  );
-  if (existing && existing.count > 0) return;
-
-  const stmt = sqlite.prepareSync(
-    'INSERT INTO categories (name, icon, color, is_custom, user_id) VALUES (?, ?, ?, 0, ?)'
-  );
+  // Guard per category name — ignores user_id so a second sign-in never re-inserts.
   for (const cat of PREDEFINED_CATEGORIES) {
-    stmt.executeSync(cat.name, cat.icon, cat.color, userId);
+    try {
+      sqlite.runSync(
+        `INSERT INTO categories (name, icon, color, is_custom, user_id)
+         SELECT ?, ?, ?, 0, ?
+         WHERE NOT EXISTS (
+           SELECT 1 FROM categories WHERE name = ? AND is_custom = 0
+         )`,
+        [cat.name, cat.icon, cat.color, userId, cat.name]
+      );
+    } catch (_e) {}
   }
-  stmt.finalizeSync();
 }
 
 const PREDEFINED_SOURCES = [
@@ -306,19 +345,17 @@ const PREDEFINED_SOURCES = [
 ];
 
 export function seedMoneySources(userId: string | null = null) {
-  const existing = sqlite.getFirstSync<{ count: number }>(
-    userId
-      ? 'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0 AND user_id = ?'
-      : 'SELECT COUNT(*) as count FROM money_sources WHERE is_custom = 0 AND user_id IS NULL',
-    userId ? [userId] : []
-  );
-  if (existing && existing.count > 0) return;
-
-  const stmt = sqlite.prepareSync(
-    'INSERT INTO money_sources (name, type, icon, color, is_custom, user_id) VALUES (?, ?, ?, ?, 0, ?)'
-  );
+  // Guard per source name — ignores user_id so a second sign-in never re-inserts.
   for (const src of PREDEFINED_SOURCES) {
-    stmt.executeSync(src.name, src.type, src.icon, src.color, userId);
+    try {
+      sqlite.runSync(
+        `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
+         SELECT ?, ?, ?, ?, 0, ?
+         WHERE NOT EXISTS (
+           SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0
+         )`,
+        [src.name, src.type, src.icon, src.color, userId, src.name]
+      );
+    } catch (_e) {}
   }
-  stmt.finalizeSync();
 }

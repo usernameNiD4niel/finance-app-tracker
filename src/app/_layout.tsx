@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,11 +15,19 @@ import { configureGoogleSignIn } from '../services/firebaseAuth';
 import { verifyPremiumStatus } from '../services/subscription';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
+import { getBills, getActiveLends } from '../db/queries';
+import {
+  requestNotificationPermissions,
+  syncNotificationLogs,
+  rescheduleAllBillNotifications,
+  initNotificationListeners,
+} from '../services/notifications';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
   const { initAuthListener, isAuthLoading, user } = useAuthStore();
+  const router = useRouter();
 
   // Verify premium status from Firestore whenever the user changes (sign-in/startup)
   useEffect(() => {
@@ -44,14 +52,29 @@ export default function RootLayout() {
         seedCategories(uid);
         seedMoneySources(uid);
         await processDueRecurringTransactions();
+
+        // Notification setup
+        await requestNotificationPermissions();
+        const currency = useSettingsStore.getState().currency;
+        const [billsList, lendsList] = await Promise.all([getBills(uid), getActiveLends(uid)]);
+        await syncNotificationLogs(billsList, lendsList, currency);
+        await rescheduleAllBillNotifications(billsList, currency);
       } catch (e) {
         console.error('[startup] init failed:', e);
       }
     })();
 
+    // Notification tap — open notifications modal
+    const cleanupListeners = initNotificationListeners(() => {
+      router.push('/modals/notifications' as any);
+    });
+
     // Start Firebase auth state listener — resolves isAuthLoading to false
     const unsubscribe = initAuthListener();
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      cleanupListeners();
+    };
   }, []);
 
   const isDark =

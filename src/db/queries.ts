@@ -2,7 +2,7 @@ import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql, isNull } from 'drizzle-orm';
 import { randomUUID } from 'expo-crypto';
 import {
-  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends,
+  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends, notificationLog,
   type NewCategory, type NewExpense, type NewBill,
   type NewRecurringTransaction, type RecurringTransaction,
   type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
@@ -471,6 +471,7 @@ const lendSelectColumns = {
   hasInterest: lends.hasInterest,
   interestType: lends.interestType,
   interestValue: lends.interestValue,
+  notificationId: lends.notificationId,
   createdAt: lends.createdAt,
   sourceName: moneySources.name,
   sourceIcon: moneySources.icon,
@@ -543,4 +544,75 @@ export async function getTotalActiveLendAmount(userId: string | null = null): Pr
     .where(and(eq(lends.isPaid, false), isNull(lends.deletedAt), userFilter))
     .get();
   return result?.total ?? 0;
+}
+
+// ─── Notification Log ────────────────────────────────────────────────────────
+
+export async function insertNotificationLogsBatch(
+  entries: Array<{ billId?: number | null; lendId?: number | null; title: string; body: string; scheduledFor: string }>
+) {
+  if (entries.length === 0) return;
+  const now = new Date().toISOString();
+  await db.insert(notificationLog).values(entries.map(e => ({
+    billId: e.billId ?? null,
+    lendId: e.lendId ?? null,
+    title: e.title,
+    body: e.body,
+    scheduledFor: e.scheduledFor,
+    createdAt: now,
+  })));
+}
+
+export async function getExistingNotificationLogDates(billId: number): Promise<string[]> {
+  const rows = await db
+    .select({ scheduledFor: notificationLog.scheduledFor })
+    .from(notificationLog)
+    .where(eq(notificationLog.billId, billId))
+    .all();
+  return rows.map(r => r.scheduledFor);
+}
+
+export async function getExistingLendNotificationLogDates(lendId: number): Promise<string[]> {
+  const rows = await db
+    .select({ scheduledFor: notificationLog.scheduledFor })
+    .from(notificationLog)
+    .where(eq(notificationLog.lendId, lendId))
+    .all();
+  return rows.map(r => r.scheduledFor);
+}
+
+export async function deleteNotificationLogsByLendId(lendId: number) {
+  await db.delete(notificationLog).where(eq(notificationLog.lendId, lendId));
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const now = new Date().toISOString();
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(notificationLog)
+    .where(and(lte(notificationLog.scheduledFor, now), isNull(notificationLog.readAt)))
+    .get();
+  return result?.count ?? 0;
+}
+
+export async function getNotificationLogs() {
+  const now = new Date().toISOString();
+  return db
+    .select()
+    .from(notificationLog)
+    .where(lte(notificationLog.scheduledFor, now))
+    .orderBy(desc(notificationLog.scheduledFor))
+    .all();
+}
+
+export async function markAllNotificationsRead() {
+  const now = new Date().toISOString();
+  await db
+    .update(notificationLog)
+    .set({ readAt: now })
+    .where(and(lte(notificationLog.scheduledFor, now), isNull(notificationLog.readAt)));
+}
+
+export async function deleteNotificationLogsByBillId(billId: number) {
+  await db.delete(notificationLog).where(eq(notificationLog.billId, billId));
 }

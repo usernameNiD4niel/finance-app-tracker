@@ -104,7 +104,7 @@ export default function AddBillScreen() {
         let notificationId = null;
         if (notifyEnabled) {
           notificationId = await scheduleBillNotification(
-            Number(id), payload.name, payload.amount, payload.dueDay, payload.notifyDaysBefore, currency
+            Number(id), payload.name, payload.amount, payload.dueDay, payload.notifyDaysBefore, currency, frequency
           );
         }
         await editBill(Number(id), { ...payload, notificationId });
@@ -112,7 +112,7 @@ export default function AddBillScreen() {
         const bill = await addBill({ ...payload, createdAt: new Date().toISOString() });
         if (bill && notifyEnabled) {
           const notificationId = await scheduleBillNotification(
-            bill.id, payload.name, payload.amount, payload.dueDay, payload.notifyDaysBefore, currency
+            bill.id, payload.name, payload.amount, payload.dueDay, payload.notifyDaysBefore, currency, frequency
           );
           if (notificationId) await editBill(bill.id, { notificationId });
         }

@@ -39,6 +39,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       'android.permission.USE_FINGERPRINT',
       'android.permission.INTERNET',
       'android.permission.ACCESS_NETWORK_STATE',
+      'android.permission.POST_NOTIFICATIONS',
+      'android.permission.SCHEDULE_EXACT_ALARM',
     ],
   },
   web: {

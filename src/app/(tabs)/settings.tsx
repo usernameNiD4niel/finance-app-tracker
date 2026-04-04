@@ -10,6 +10,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { runSync } from '../../services/syncEngine';
+import { sendTestNotification } from '../../services/notifications';
 import { refreshAllStores } from '../../store';
 import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
@@ -269,6 +270,22 @@ export default function SettingsScreen() {
           iconColor={theme.colors.onSurfaceVariant}
           label="Version"
           value="1.0.0"
+        />
+
+        {/* Developer */}
+        <MutedLabel uppercase style={styles.sectionTitle}>Developer</MutedLabel>
+        <SettingRow
+          icon="bell-ring-outline"
+          iconColor={theme.colors.tertiary}
+          label="Test Notification"
+          value="fires in 5 s & 10 s"
+          onPress={async () => {
+            await sendTestNotification();
+            Alert.alert(
+              'Notifications scheduled',
+              'Lock your screen or switch apps — two notifications will arrive in 5 s and 10 s.',
+            );
+          }}
         />
 
         <View style={{ height: 120 }} />

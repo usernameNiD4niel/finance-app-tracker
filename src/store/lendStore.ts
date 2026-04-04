@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import {
   getLends, getActiveLends, createLend, updateLend, deleteLend,
   markLendPaid, getTotalActiveLendAmount, adjustSourceBalance,
+  deleteNotificationLogsByLendId,
 } from '../db/queries';
 import type { NewLend } from '../db/schema';
 import { triggerAutoSync } from '../services/autoSync';
 import { useAuthStore } from './authStore';
+import { cancelNotification } from '../services/notifications';
 
 export type LendWithSource = Awaited<ReturnType<typeof getLends>>[number];
 
@@ -77,6 +79,8 @@ export const useLendStore = create<LendState>((set, get) => ({
 
   removeLend: async (id) => {
     const old = get().lends.find(l => l.id === id);
+    if (old?.notificationId) await cancelNotification(old.notificationId);
+    await deleteNotificationLogsByLendId(id);
     // Restore source balance if unpaid
     if (old && !old.isPaid) {
       await adjustSourceBalance(old.sourceId, old.amount);
@@ -88,6 +92,7 @@ export const useLendStore = create<LendState>((set, get) => ({
 
   markPaid: async (id) => {
     const lend = get().lends.find(l => l.id === id) ?? get().activeLends.find(l => l.id === id);
+    if (lend?.notificationId) await cancelNotification(lend.notificationId);
     if (!lend) return;
     await markLendPaid(id);
     // Return money to original wallet (principal + interest)
