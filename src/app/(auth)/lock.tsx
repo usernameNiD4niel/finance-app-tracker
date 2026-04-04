@@ -14,7 +14,7 @@ import type { AppTheme } from '../../theme';
 export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { pinHash } = useSettingsStore();
+  const { pinHash, isPremium } = useSettingsStore();
   const { isAuthenticated, user } = useAuthStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -35,7 +35,13 @@ export default function LockScreen() {
     if (success) unlock();
   };
 
-  const unlock = () => setShowPremium(true);
+  const unlock = () => {
+    if (isPremium) {
+      navigateAfterUnlock();
+    } else {
+      setShowPremium(true);
+    }
+  };
 
   async function navigateAfterUnlock() {
     if (!isAuthenticated) {

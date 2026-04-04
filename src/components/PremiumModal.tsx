@@ -8,8 +8,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { activatePremiumInFirestore } from '@/services/subscription';
 import type { AppTheme } from '@/theme';
 
-// Replace this with your server URL (use ngrok URL for local dev)
-const SERVER_URL = 'https://e87b-136-158-58-111.ngrok-free.app';
+const SERVER_URL = 'https://snowy-truth-4248.addressnidaniel2.workers.dev';
 
 const FEATURES = [
   {
