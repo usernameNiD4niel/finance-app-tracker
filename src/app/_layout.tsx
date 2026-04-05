@@ -57,16 +57,22 @@ export default function RootLayout() {
         await requestNotificationPermissions();
         const currency = useSettingsStore.getState().currency;
         const [billsList, lendsList] = await Promise.all([getBills(uid), getActiveLends(uid)]);
-        await syncNotificationLogs(billsList, lendsList, currency);
+        await syncNotificationLogs(billsList, lendsList, currency, uid);
         await rescheduleAllBillNotifications(billsList, currency);
       } catch (e) {
         console.error('[startup] init failed:', e);
       }
     })();
 
-    // Notification tap — open notifications modal
-    const cleanupListeners = initNotificationListeners(() => {
-      router.push('/modals/notifications' as any);
+    // Notification tap — navigate to the relevant screen
+    const cleanupListeners = initNotificationListeners(({ billId, lendId }) => {
+      if (billId != null) {
+        router.push('/(tabs)/bills' as any);
+      } else if (lendId != null) {
+        router.push('/(tabs)/' as any);
+      } else {
+        router.push('/modals/notifications' as any);
+      }
     });
 
     // Start Firebase auth state listener — resolves isAuthLoading to false

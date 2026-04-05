@@ -90,7 +90,7 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => {
     load();
-    getUnreadNotificationCount().then(setUnreadCount);
+    getUnreadNotificationCount(user?.uid ?? null).then(setUnreadCount);
   }, [load, lastSyncedAt]));
 
   const onRefresh = async () => {

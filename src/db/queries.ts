@@ -549,11 +549,13 @@ export async function getTotalActiveLendAmount(userId: string | null = null): Pr
 // ─── Notification Log ────────────────────────────────────────────────────────
 
 export async function insertNotificationLogsBatch(
-  entries: Array<{ billId?: number | null; lendId?: number | null; title: string; body: string; scheduledFor: string }>
+  entries: Array<{ billId?: number | null; lendId?: number | null; title: string; body: string; scheduledFor: string }>,
+  userId: string | null
 ) {
   if (entries.length === 0) return;
   const now = new Date().toISOString();
   await db.insert(notificationLog).values(entries.map(e => ({
+    userId: userId ?? null,
     billId: e.billId ?? null,
     lendId: e.lendId ?? null,
     title: e.title,
@@ -585,32 +587,43 @@ export async function deleteNotificationLogsByLendId(lendId: number) {
   await db.delete(notificationLog).where(eq(notificationLog.lendId, lendId));
 }
 
-export async function getUnreadNotificationCount(): Promise<number> {
+export async function getUnreadNotificationCount(userId: string | null): Promise<number> {
   const now = new Date().toISOString();
   const result = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(notificationLog)
-    .where(and(lte(notificationLog.scheduledFor, now), isNull(notificationLog.readAt)))
+    .where(and(
+      lte(notificationLog.scheduledFor, now),
+      isNull(notificationLog.readAt),
+      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
+    ))
     .get();
   return result?.count ?? 0;
 }
 
-export async function getNotificationLogs() {
+export async function getNotificationLogs(userId: string | null) {
   const now = new Date().toISOString();
   return db
     .select()
     .from(notificationLog)
-    .where(lte(notificationLog.scheduledFor, now))
+    .where(and(
+      lte(notificationLog.scheduledFor, now),
+      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
+    ))
     .orderBy(desc(notificationLog.scheduledFor))
     .all();
 }
 
-export async function markAllNotificationsRead() {
+export async function markAllNotificationsRead(userId: string | null) {
   const now = new Date().toISOString();
   await db
     .update(notificationLog)
     .set({ readAt: now })
-    .where(and(lte(notificationLog.scheduledFor, now), isNull(notificationLog.readAt)));
+    .where(and(
+      lte(notificationLog.scheduledFor, now),
+      isNull(notificationLog.readAt),
+      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
+    ));
 }
 
 export async function deleteNotificationLogsByBillId(billId: number) {

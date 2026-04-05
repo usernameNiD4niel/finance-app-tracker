@@ -172,6 +172,7 @@ export type NewTransfer = typeof transfers.$inferInsert;
 
 export const notificationLog = sqliteTable('notification_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id'),
   billId: integer('bill_id'),
   lendId: integer('lend_id'),
   title: text('title').notNull(),

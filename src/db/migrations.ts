@@ -153,6 +153,8 @@ export function runMigrations() {
   } catch (_e) {}
   // Add lend_id to existing notification_log tables (for users upgrading)
   try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN lend_id INTEGER`); } catch (_e) {}
+  // Add user_id to notification_log so logs are scoped per user
+  try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN user_id TEXT`); } catch (_e) {}
   // Add notification_id to lends
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN notification_id TEXT`); } catch (_e) {}
 

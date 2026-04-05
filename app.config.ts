@@ -20,6 +20,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       NSFaceIDUsageDescription: 'Use Face ID to unlock the app',
       ITSAppUsesNonExemptEncryption: false,
+      // TODO: When you have your iOS OAuth client ID from Google Cloud Console,
+      // replace REVERSED_IOS_CLIENT_ID below with the reversed client ID
+      // (e.g. if your iOS client ID is "278595331130-abc.apps.googleusercontent.com"
+      // the reversed form is "com.googleusercontent.apps.278595331130-abc")
+      // CFBundleURLTypes: [{ CFBundleURLSchemes: ['REVERSED_IOS_CLIENT_ID'] }],
     },
   },
   android: {

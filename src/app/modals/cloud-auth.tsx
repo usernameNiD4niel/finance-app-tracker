@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
 import { Text, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
@@ -10,6 +12,8 @@ import { refreshAllStores } from '../../store';
 import { seedCategories, seedMoneySources, dedupPredefinedCategories, dedupPredefinedSources } from '../../db/migrations';
 import { sqlite, deleteOrphanedRows } from '../../db/client';
 import type { AppTheme } from '../../theme';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function CloudAuthModal() {
   const theme = useTheme<AppTheme>();
@@ -26,6 +30,35 @@ export default function CloudAuthModal() {
   const [error, setError] = useState<string | null>(null);
   const hasNavigatedRef = React.useRef(false);
 
+  // Google OAuth via expo-auth-session (works in Expo Go + dev builds + production)
+  // Android client ID: from google-services.json (type 1)
+  // iOS client ID: create one at console.cloud.google.com → APIs & Services → Credentials
+  //   → Create Credentials → OAuth 2.0 Client ID → iOS → Bundle ID: com.ledgerist.app
+  // Web client ID: from google-services.json (type 3) — also used by Expo Go
+  const [_request, googleResponse, promptAsync] = Google.useAuthRequest({
+    androidClientId: '278595331130-nbcct1ss0uc44ck7g6k1kqtmdesu78hp.apps.googleusercontent.com',
+    iosClientId: '671746422382-u3vto9s6ae84ikirpup4fk9ppaorkvj6.apps.googleusercontent.com',
+    webClientId: '671746422382-djugdhfaue7bp4qjevp0j7s68q276ok7.apps.googleusercontent.com',
+  });
+
+  // Handle Google OAuth response
+  useEffect(() => {
+    if (googleResponse?.type === 'success') {
+      const idToken = googleResponse.authentication?.idToken;
+      if (idToken) {
+        setLoading(true);
+        handleGoogleIdToken(idToken)
+          .then(() => onSignInSuccess())
+          .catch((e: any) => setError(friendlyError(e)))
+          .finally(() => setLoading(false));
+      } else {
+        setError('Could not get Google credentials. Please try again.');
+      }
+    } else if (googleResponse?.type === 'error') {
+      setError(googleResponse.error?.message ?? 'Google Sign-In failed. Please try again.');
+    }
+  }, [googleResponse]);
+
   // If user is already authenticated, go straight to the main app
   useEffect(() => {
     if (isAuthenticated && user && !hasNavigatedRef.current) {
@@ -35,10 +68,8 @@ export default function CloudAuthModal() {
   }, [isAuthenticated]);
 
   async function handleGoogleSignIn() {
-    Alert.alert(
-      'Google Sign-In Unavailable',
-      'Google Sign-In requires a development build. Please use email/password to sign in.',
-    );
+    setError(null);
+    await promptAsync();
   }
 
   async function handleEmailAuth() {

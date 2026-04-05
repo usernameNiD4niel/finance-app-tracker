@@ -208,7 +208,8 @@ type LendForNotification = {
 export async function syncNotificationLogs(
   billsList: BillForNotification[],
   lendsList: LendForNotification[],
-  currency: string
+  currency: string,
+  userId: string | null
 ) {
   const now = new Date();
 
@@ -237,7 +238,7 @@ export async function syncNotificationLogs(
         scheduledFor: dueDate.toISOString(),
       });
     }
-    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries);
+    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries, userId);
   }
 
   for (const lend of lendsList) {
@@ -268,7 +269,7 @@ export async function syncNotificationLogs(
         scheduledFor: payDate.toISOString(),
       });
     }
-    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries);
+    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries, userId);
   }
 }
 
@@ -316,7 +317,7 @@ export async function sendTestNotification(): Promise<void> {
     content: {
       title: '⏰ Bill Due Tomorrow',
       body: 'Netflix — $15.99 is due tomorrow',
-      data: {},
+      data: { billId: -1 },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -328,7 +329,7 @@ export async function sendTestNotification(): Promise<void> {
     content: {
       title: '💳 Bill Due Today',
       body: 'Netflix — $15.99 is due today',
-      data: {},
+      data: { billId: -1 },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -339,7 +340,22 @@ export async function sendTestNotification(): Promise<void> {
 
 // ── Notification tap listener ─────────────────────────────────────────────────
 
-export function initNotificationListeners(onTap: () => void): () => void {
-  const sub = Notifications.addNotificationResponseReceivedListener(() => onTap());
+export type NotificationTapData = {
+  billId?: number;
+  lendId?: number;
+};
+
+function toId(val: unknown): number | undefined {
+  if (val == null) return undefined;
+  const n = Number(val);
+  return isNaN(n) ? undefined : n;
+}
+
+export function initNotificationListeners(onTap: (data: NotificationTapData) => void): () => void {
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    const raw = response.notification.request.content.data ?? {};
+    // Coerce to number — some platforms serialise notification data as strings
+    onTap({ billId: toId(raw.billId), lendId: toId(raw.lendId) });
+  });
   return () => sub.remove();
 }
