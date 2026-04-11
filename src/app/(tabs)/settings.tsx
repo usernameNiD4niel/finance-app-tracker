@@ -69,6 +69,7 @@ export default function SettingsScreen() {
   const [showColors, setShowColors] = React.useState(false);
   const [syncing, setSyncing] = React.useState(false);
   const [colorPremiumVisible, setColorPremiumVisible] = React.useState(false);
+  const [exportPremiumVisible, setExportPremiumVisible] = React.useState(false);
 
   async function handleSyncNow() {
     if (!user) return;
@@ -189,6 +190,13 @@ export default function SettingsScreen() {
             if (!isPremium) setPrimaryColor('#6366f1');
           }}
         />
+        <PremiumModal
+          visible={exportPremiumVisible}
+          userId={user?.uid ?? ''}
+          userEmail={user?.email ?? ''}
+          onSubscribeSuccess={() => setExportPremiumVisible(false)}
+          onDismiss={() => setExportPremiumVisible(false)}
+        />
 
         {/* Financial */}
         <MutedLabel uppercase style={styles.sectionTitle}>Financial</MutedLabel>
@@ -218,7 +226,7 @@ export default function SettingsScreen() {
           icon="export"
           iconColor={theme.colors.primary}
           label="Export Data"
-          onPress={() => router.push('/modals/export')}
+          onPress={() => isPremium ? router.push('/modals/export') : setExportPremiumVisible(true)}
         />
 
         {/* Security */}

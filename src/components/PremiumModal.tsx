@@ -23,6 +23,11 @@ const FEATURES = [
     desc: 'Visual expense analysis on your stats page',
   },
   {
+    icon: 'export' as const,
+    title: 'Export Data',
+    desc: 'Export your transactions as CSV or JSON',
+  },
+  {
     icon: 'palette-outline' as const,
     title: 'Custom Theme Colors',
     desc: 'Unlock accent colors to personalize the app',
