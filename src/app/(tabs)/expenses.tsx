@@ -13,7 +13,7 @@ import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getMonthBounds } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
-import { neuChip, neuButton } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 export default function ExpensesScreen() {
@@ -65,7 +65,7 @@ export default function ExpensesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
         >
-          <View style={[styles.chip, { backgroundColor: selectedMonth === null ? primary + '22' : theme.custom.cardBg, boxShadow: selectedMonth === null ? (neuChip(theme) as any) : undefined }]}>
+          <View style={[styles.chip, { backgroundColor: selectedMonth === null ? primary + '20' : theme.custom.glassBg, borderWidth: 1, borderColor: selectedMonth === null ? primary + '50' : theme.custom.glassBorder }]}>
             <Text onPress={() => setSelectedMonth(null)} style={[styles.chipLabel, { color: selectedMonth === null ? primary : theme.colors.onSurface }]}>
               All Time
             </Text>
@@ -73,7 +73,7 @@ export default function ExpensesScreen() {
           {months.map((m) => {
             const isActive = selectedMonth !== null && format(m, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
             return (
-              <View key={m.toISOString()} style={[styles.chip, { backgroundColor: isActive ? primary + '22' : theme.custom.cardBg, boxShadow: isActive ? (neuChip(theme) as any) : undefined }]}>
+              <View key={m.toISOString()} style={[styles.chip, { backgroundColor: isActive ? primary + '20' : theme.custom.glassBg, borderWidth: 1, borderColor: isActive ? primary + '50' : theme.custom.glassBorder }]}>
                 <Text onPress={() => setSelectedMonth(m)} style={[styles.chipLabel, { color: isActive ? primary : theme.colors.onSurface }]}>
                   {format(m, 'MMM yyyy')}
                 </Text>
@@ -98,8 +98,9 @@ export default function ExpensesScreen() {
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: isActive ? primary + '22' : theme.custom.cardBg,
-                    boxShadow: isActive ? (neuChip(theme) as any) : undefined,
+                    backgroundColor: isActive ? primary + '20' : theme.custom.glassBg,
+                    borderWidth: 1,
+                    borderColor: isActive ? primary + '50' : theme.custom.glassBorder,
                   },
                 ]}
               >
@@ -156,7 +157,7 @@ export default function ExpensesScreen() {
           {
             bottom: insets.bottom + 90,
             backgroundColor: theme.colors.primary,
-            boxShadow: neuButton(theme) as any,
+            boxShadow: glassShadow(theme, 'sm') as any,
           },
         ]}
         color={theme.custom.buttonText}

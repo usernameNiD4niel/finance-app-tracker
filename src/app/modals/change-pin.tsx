@@ -5,6 +5,7 @@ import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PINPad } from '../../components/PINPad';
+import { GlassBackground } from '../../components/ui/GlassBackground';
 import { useSettingsStore } from '../../store/settingsStore';
 import { hashPin, verifyPin } from '../../services/auth';
 import type { AppTheme } from '../../theme';
@@ -52,8 +53,9 @@ export default function ChangePINScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -71,7 +73,7 @@ export default function ChangePINScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,

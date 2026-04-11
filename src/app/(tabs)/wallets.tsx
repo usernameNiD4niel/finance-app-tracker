@@ -16,7 +16,7 @@ import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { formatCurrency } from '../../utils/currency';
 import { buildInitialNextRunDate } from '../../services/recurring';
-import { neuButton, neuCardLg, neuChip } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 import type { MoneySource, RecurringTransaction } from '../../db/schema';
 
@@ -439,8 +439,9 @@ export default function WalletsScreen() {
                   style={[
                     styles.freqChip,
                     {
-                      backgroundColor: dwFrequency === f.value ? theme.colors.primary + '22' : theme.custom.cardBg,
-                      boxShadow: dwFrequency === f.value ? (neuChip(theme) as any) : undefined,
+                      backgroundColor: dwFrequency === f.value ? theme.colors.primary + '20' : theme.custom.glassBg,
+                      borderWidth: 1,
+                      borderColor: dwFrequency === f.value ? theme.colors.primary + '50' : theme.custom.glassBorder,
                     },
                   ]}
                   onPress={() => setDwFrequency(f.value)}
@@ -476,7 +477,7 @@ export default function WalletsScreen() {
         <TouchableOpacity
           style={[styles.saveBtn, {
             backgroundColor: dwMode === 'deposit' ? theme.custom.income : theme.custom.expense,
-            boxShadow: neuButton(theme) as any,
+            boxShadow: glassShadow(theme, 'sm') as any,
           }]}
           onPress={handleDwConfirm}
         >
@@ -547,8 +548,9 @@ export default function WalletsScreen() {
               style={[
                 styles.freqChip,
                 {
-                  backgroundColor: arFrequency === f.value ? theme.colors.primary + '22' : theme.custom.cardBg,
-                  boxShadow: arFrequency === f.value ? (neuChip(theme) as any) : undefined,
+                  backgroundColor: arFrequency === f.value ? theme.colors.primary + '20' : theme.custom.glassBg,
+                  borderWidth: 1,
+                  borderColor: arFrequency === f.value ? theme.colors.primary + '50' : theme.custom.glassBorder,
                 },
               ]}
               onPress={() => setArFrequency(f.value)}
@@ -588,7 +590,7 @@ export default function WalletsScreen() {
           <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.saveBtn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+          style={[styles.saveBtn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
           onPress={handleAddRecurringConfirm}
         >
           <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save</Text>
@@ -726,7 +728,7 @@ export default function WalletsScreen() {
           <TouchableOpacity
             style={[styles.saveBtn, {
               backgroundColor: !trToSource || !Number(trAmount) ? theme.colors.surfaceVariant : theme.colors.primary,
-              boxShadow: trToSource && Number(trAmount) ? (neuButton(theme) as any) : undefined,
+              boxShadow: trToSource && Number(trAmount) ? (glassShadow(theme, 'sm') as any) : undefined,
               opacity: !trToSource || !Number(trAmount) ? 0.5 : 1,
             }]}
             onPress={handleTransferConfirm}
@@ -779,7 +781,7 @@ export default function WalletsScreen() {
         )}
         ListFooterComponent={
           <TouchableOpacity
-            style={[styles.addWalletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}
+            style={[styles.addWalletCard, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}
             onPress={openAdd}
             activeOpacity={0.7}
           >
@@ -854,8 +856,9 @@ export default function WalletsScreen() {
                       style={[
                         styles.typeChip,
                         {
-                          backgroundColor: selectedType === t.value ? theme.colors.primary + '22' : theme.custom.cardBg,
-                          boxShadow: selectedType === t.value ? (neuChip(theme) as any) : undefined,
+                          backgroundColor: selectedType === t.value ? theme.colors.primary + '20' : theme.custom.glassBg,
+                          borderWidth: 1,
+                          borderColor: selectedType === t.value ? theme.colors.primary + '50' : theme.custom.glassBorder,
                         },
                       ]}
                       onPress={() => setSelectedType(t.value)}
@@ -874,8 +877,9 @@ export default function WalletsScreen() {
                       <TouchableOpacity
                         key={icon}
                         style={[styles.iconOption, {
-                          backgroundColor: selectedIcon === icon ? theme.colors.primary + '22' : theme.custom.cardBg,
-                          boxShadow: selectedIcon === icon ? (neuChip(theme) as any) : undefined,
+                          backgroundColor: selectedIcon === icon ? theme.colors.primary + '20' : theme.custom.glassBg,
+                          borderWidth: 1,
+                          borderColor: selectedIcon === icon ? theme.colors.primary + '50' : theme.custom.glassBorder,
                         }]}
                         onPress={() => setSelectedIcon(icon)}
                       >
@@ -916,7 +920,7 @@ export default function WalletsScreen() {
                     <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.saveBtn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+                    style={[styles.saveBtn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
                     onPress={handleSave}
                   >
                     <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save</Text>

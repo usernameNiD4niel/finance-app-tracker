@@ -10,7 +10,8 @@ import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
-import { neuCard, neuButton } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 const FILTERS = [
@@ -52,8 +53,9 @@ export default function LendsScreen() {
   });
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -82,7 +84,7 @@ export default function LendsScreen() {
         }
       >
         {filtered.length === 0 ? (
-          <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+          <View style={[styles.empty, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
             <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
               {filter === 'active' ? 'No active lends' : filter === 'paid' ? 'No paid lends' : 'No lends yet'}
@@ -129,7 +131,7 @@ export default function LendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

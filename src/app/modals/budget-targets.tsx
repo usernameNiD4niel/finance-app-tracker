@@ -10,7 +10,8 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { getCurrentMonth } from '../../utils/date';
-import { neuButton, neuCard, neuListItem } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 export default function BudgetTargetsScreen() {
@@ -63,7 +64,8 @@ export default function BudgetTargetsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
       <PremiumModal
         visible={premiumVisible}
         userId={user?.uid ?? ''}
@@ -75,7 +77,7 @@ export default function BudgetTargetsScreen() {
         }}
         onDismiss={() => { setPremiumVisible(false); router.back(); }}
       />
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -84,7 +86,7 @@ export default function BudgetTargetsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={[styles.card, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+        <View style={[styles.card, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
           <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
             Monthly Overall Limit
           </Text>
@@ -102,7 +104,7 @@ export default function BudgetTargetsScreen() {
           Per Category Limits
         </Text>
         {categories.map(cat => (
-          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}>
+          <View key={cat.id} style={[styles.catRow, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}>
             <View style={[styles.catIcon, { backgroundColor: cat.color + '22' }]}>
               <MaterialCommunityIcons name={cat.icon as any} size={18} color={cat.color} />
             </View>
@@ -127,7 +129,7 @@ export default function BudgetTargetsScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: saving ? 0.7 : 1,
-              boxShadow: neuButton(theme) as any,
+              boxShadow: glassShadow(theme, 'sm') as any,
             },
           ]}
           onPress={handleSave}
@@ -141,7 +143,7 @@ export default function BudgetTargetsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,

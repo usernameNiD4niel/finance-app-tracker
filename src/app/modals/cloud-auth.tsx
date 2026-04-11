@@ -7,6 +7,7 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
+import { GlassBackground } from '../../components/ui/GlassBackground';
 import { runSync } from '../../services/syncEngine';
 import { refreshAllStores } from '../../store';
 import { seedCategories, seedMoneySources, dedupPredefinedCategories, dedupPredefinedSources } from '../../db/migrations';
@@ -161,14 +162,15 @@ export default function CloudAuthModal() {
     return e?.message ?? 'Something went wrong. Please try again.';
   }
 
-  const bg = theme.colors.background;
-  const card = theme.custom.cardBg;
+  const bg = theme.custom.bgGradientEnd;
+  const card = theme.custom.glassBg;
   const primary = theme.colors.primary;
   const onSurface = theme.colors.onSurface;
   const muted = theme.colors.onSurfaceVariant;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: bg, overflow: 'hidden' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <GlassBackground />
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Header — show close button unless opened as auth gate (user must sign in) */}
         {!gate && router.canGoBack() && (
@@ -187,7 +189,7 @@ export default function CloudAuthModal() {
 
         {/* Google Sign-In */}
         <TouchableOpacity
-          style={[styles.googleBtn, { backgroundColor: card, borderColor: theme.colors.outline }]}
+          style={[styles.googleBtn, { backgroundColor: card, borderColor: theme.custom.glassBorder }]}
           onPress={handleGoogleSignIn}
           disabled={loading}
           activeOpacity={0.8}
@@ -206,7 +208,7 @@ export default function CloudAuthModal() {
         </View>
 
         {/* Email / Password */}
-        <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.colors.outline }]}>
+        <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.custom.glassBorder }]}>
           <MaterialCommunityIcons name="email-outline" size={18} color={muted} style={styles.inputIcon} />
           <TextInput
             style={[styles.input, { color: onSurface }]}
@@ -221,7 +223,7 @@ export default function CloudAuthModal() {
           />
         </View>
 
-        <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.colors.outline }]}>
+        <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.custom.glassBorder }]}>
           <MaterialCommunityIcons name="lock-outline" size={18} color={muted} style={styles.inputIcon} />
           <TextInput
             style={[styles.input, { color: onSurface }]}
@@ -235,7 +237,7 @@ export default function CloudAuthModal() {
         </View>
 
         {mode === 'register' && (
-          <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.colors.outline }]}>
+          <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.custom.glassBorder }]}>
             <MaterialCommunityIcons name="lock-check-outline" size={18} color={muted} style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { color: onSurface }]}

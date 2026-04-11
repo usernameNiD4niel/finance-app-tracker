@@ -6,7 +6,8 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { exportExpenses } from '../../services/export';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 type ExportFormat = 'csv' | 'json';
@@ -55,8 +56,9 @@ export default function ExportScreen() {
   ];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -75,8 +77,10 @@ export default function ExportScreen() {
               style={[
                 styles.formatBtn,
                 {
-                  backgroundColor: exportFormat === f ? theme.colors.primary + '22' : theme.custom.cardBg,
-                  boxShadow: exportFormat === f ? (neuChip(theme) as any) : undefined,
+                  backgroundColor: exportFormat === f ? theme.colors.primary + '20' : theme.custom.glassBg,
+                  borderWidth: 1,
+                  borderColor: exportFormat === f ? theme.colors.primary + '50' : theme.custom.glassBorder,
+                  boxShadow: glassShadow(theme, 'sm') as any,
                 },
               ]}
               onPress={() => setExportFormat(f)}
@@ -104,8 +108,10 @@ export default function ExportScreen() {
               style={[
                 styles.rangeOption,
                 {
-                  backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
-                  boxShadow: isSelected ? (neuCard(theme) as any) : undefined,
+                  backgroundColor: isSelected ? theme.colors.primary + '20' : theme.custom.glassBg,
+                  borderWidth: 1,
+                  borderColor: isSelected ? theme.colors.primary + '50' : theme.custom.glassBorder,
+                  boxShadow: glassShadow(theme, 'sm') as any,
                 },
               ]}
               onPress={() => setRangeOption(opt.key)}
@@ -126,7 +132,7 @@ export default function ExportScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: exporting ? 0.7 : 1,
-              boxShadow: neuButton(theme) as any,
+              boxShadow: glassShadow(theme, 'sm') as any,
             },
           ]}
           onPress={handleExport}
@@ -143,7 +149,7 @@ export default function ExportScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,

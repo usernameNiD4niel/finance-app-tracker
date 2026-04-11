@@ -22,7 +22,7 @@ import { useSourceStore } from '../../store/sourceStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
-import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import { getUnreadNotificationCount } from '../../db/queries';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
@@ -138,7 +138,7 @@ export default function DashboardScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.notifBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCircle(theme) as any }]}
+            style={[styles.notifBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={() => router.push('/modals/notifications')}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
@@ -174,8 +174,10 @@ export default function DashboardScreen() {
                   style={[
                     styles.upcomingBill,
                     {
-                      backgroundColor: theme.custom.cardBg,
-                      boxShadow: neuListItem(theme) as any,
+                      backgroundColor: theme.custom.glassBg,
+                      borderWidth: 1,
+                      borderColor: theme.custom.glassBorder,
+                      boxShadow: glassShadow(theme, 'sm') as any,
                     },
                   ]}
                   onPress={() => router.push('/(tabs)/bills')}
@@ -242,7 +244,7 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <SectionHeader title="Active Lends" onSeeAll={() => router.push('/modals/lends')} />
             {activeLends.length === 0 ? (
-              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+              <View style={[styles.empty, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
                 <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                   No active lends
@@ -295,7 +297,7 @@ export default function DashboardScreen() {
               return (
                 <Pressable
                   key={rt.id}
-                  style={[styles.recurringRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                  style={[styles.recurringRow, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
                   onPress={() => router.push('/modals/recurring')}
                 >
                   <View style={[styles.recurringIcon, { backgroundColor: (source?.color ?? theme.colors.primary) + '22' }]}>
@@ -341,7 +343,7 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+            <View style={[styles.empty, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet

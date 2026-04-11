@@ -9,7 +9,8 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { formatCurrency } from '../../utils/currency';
-import { neuCard, neuListItem } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 const FREQ_LABELS: Record<string, string> = {
@@ -52,7 +53,8 @@ export default function RecurringScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
       <PremiumModal
         visible={premiumVisible}
         userId={user?.uid ?? ''}
@@ -60,7 +62,7 @@ export default function RecurringScreen() {
         onSubscribeSuccess={() => { setPremiumVisible(false); loadAllRecurring(); }}
         onDismiss={() => { setPremiumVisible(false); router.back(); }}
       />
-      <View style={[styles.header, { paddingTop: 16 + insets.top }]}>
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -75,7 +77,7 @@ export default function RecurringScreen() {
         showsVerticalScrollIndicator={false}
       >
         {allRecurring.length === 0 ? (
-          <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+          <View style={[styles.empty, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
             <MaterialCommunityIcons name="refresh" size={40} color={theme.colors.onSurfaceVariant} />
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
               No recurring transactions
@@ -91,7 +93,7 @@ export default function RecurringScreen() {
             return (
               <View
                 key={rt.id}
-                style={[styles.card, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                style={[styles.card, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
               >
                 {/* Source icon + info */}
                 <View style={[styles.iconWrap, { backgroundColor: (source?.color ?? theme.colors.primary) + '22' }]}>
@@ -147,6 +149,7 @@ export default function RecurringScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',

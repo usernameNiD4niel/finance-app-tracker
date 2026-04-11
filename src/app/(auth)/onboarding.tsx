@@ -14,7 +14,8 @@ import { useSourceStore } from '../../store/sourceStore';
 import { hashPin } from '../../services/auth';
 import { CURRENCIES } from '../../utils/currency';
 import { PremiumModal } from '../../components/PremiumModal';
-import { neuCardLg, neuButton, neuListItem, neuCard, neuChip } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 type Step = 'welcome' | 'currency' | 'wallets' | 'transactions' | 'pin' | 'confirm-pin';
@@ -135,10 +136,11 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd, overflow: 'hidden' }]}>
+      <GlassBackground />
       {step === 'welcome' && (
         <View style={styles.center}>
-          <View style={[styles.logoWrap, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
+          <View style={[styles.logoWrap, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
             <MaterialCommunityIcons name="wallet" size={64} color={theme.colors.primary} />
           </View>
           <Text variant="displaySmall" style={[styles.title, { color: theme.colors.onSurface }]}>
@@ -148,7 +150,7 @@ export default function OnboardingScreen() {
             Track your expenses, manage bills, and stay on budget — all offline, all private.
           </Text>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={() => setStep('currency')}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Get Started</Text>
@@ -173,8 +175,10 @@ export default function OnboardingScreen() {
                   style={[
                     styles.currencyItem,
                     {
-                      backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
-                      boxShadow: neuListItem(theme) as any,
+                      backgroundColor: isSelected ? theme.colors.primary + '20' : theme.custom.glassBg,
+                      borderWidth: 1,
+                      borderColor: isSelected ? theme.colors.primary + '50' : theme.custom.glassBorder,
+                      boxShadow: glassShadow(theme, 'sm') as any,
                     },
                   ]}
                   onPress={() => setSelectedCurrency(c.code)}
@@ -193,7 +197,7 @@ export default function OnboardingScreen() {
             })}
           </ScrollView>
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={() => setStep('wallets')}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>
@@ -221,7 +225,7 @@ export default function OnboardingScreen() {
               return (
                 <View
                   key={source.id}
-                  style={[styles.walletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                  style={[styles.walletCard, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
                 >
                   <TouchableOpacity
                     style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
@@ -262,7 +266,7 @@ export default function OnboardingScreen() {
             {pendingCustomSources.map((cs, i) => (
               <View
                 key={`custom-${i}`}
-                style={[styles.walletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                style={[styles.walletCard, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <View style={[styles.walletIconWrap, { backgroundColor: '#6b728022' }]}>
@@ -278,14 +282,14 @@ export default function OnboardingScreen() {
 
             {!showAddCustom ? (
               <TouchableOpacity
-                style={[styles.addTxBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+                style={[styles.addTxBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
                 onPress={() => setShowAddCustom(true)}
               >
                 <MaterialCommunityIcons name="plus-circle-outline" size={22} color={theme.colors.primary} />
                 <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Add Custom Wallet</Text>
               </TouchableOpacity>
             ) : (
-              <View style={[styles.addForm, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+              <View style={[styles.addForm, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}>
                 <Text variant="labelLarge" style={{ color: theme.colors.onSurface, marginBottom: 8 }}>Custom Wallet</Text>
                 <TextInput
                   mode="outlined"
@@ -313,7 +317,7 @@ export default function OnboardingScreen() {
                     <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.addFormBtn, { backgroundColor: theme.colors.primary, flex: 1, boxShadow: neuButton(theme) as any }]}
+                    style={[styles.addFormBtn, { backgroundColor: theme.colors.primary, flex: 1, boxShadow: glassShadow(theme, 'sm') as any }]}
                     onPress={handleAddCustomWallet}
                   >
                     <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Add</Text>
@@ -324,7 +328,7 @@ export default function OnboardingScreen() {
           </ScrollView>
 
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={handleWalletsContinue}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>
@@ -350,7 +354,7 @@ export default function OnboardingScreen() {
             {addedExpenses.map((exp, i) => (
               <View
                 key={i}
-                style={[styles.txItem, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                style={[styles.txItem, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
               >
                 <View style={[styles.txIconWrap, { backgroundColor: exp.categoryColor + '22' }]}>
                   <MaterialCommunityIcons name={exp.categoryIcon as any} size={18} color={exp.categoryColor} />
@@ -366,14 +370,14 @@ export default function OnboardingScreen() {
 
             {!isAddingTx ? (
               <TouchableOpacity
-                style={[styles.addTxBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+                style={[styles.addTxBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
                 onPress={() => setIsAddingTx(true)}
               >
                 <MaterialCommunityIcons name="plus-circle-outline" size={22} color={theme.colors.primary} />
                 <Text variant="labelLarge" style={{ color: theme.colors.primary }}>Add Expense</Text>
               </TouchableOpacity>
             ) : (
-              <View style={[styles.addForm, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+              <View style={[styles.addForm, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}>
                 <TextInput
                   mode="outlined"
                   label="Amount"
@@ -397,8 +401,10 @@ export default function OnboardingScreen() {
                         style={[
                           styles.categoryGridItem,
                           {
-                            backgroundColor: isSelected ? cat.color + '22' : theme.custom.cardBg,
-                            boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
+                            backgroundColor: isSelected ? cat.color + '22' : theme.custom.glassBg,
+                            borderWidth: 1,
+                            borderColor: isSelected ? cat.color + '55' : theme.custom.glassBorder,
+                            boxShadow: isSelected ? (glassShadow(theme, 'sm') as any) : undefined,
                           },
                         ]}
                         onPress={() => setTxCategoryId(cat.id)}
@@ -428,7 +434,7 @@ export default function OnboardingScreen() {
                     <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.addFormBtn, { backgroundColor: theme.colors.primary, flex: 1, boxShadow: neuButton(theme) as any }]}
+                    style={[styles.addFormBtn, { backgroundColor: theme.colors.primary, flex: 1, boxShadow: glassShadow(theme, 'sm') as any }]}
                     onPress={handleAddExpense}
                   >
                     <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save</Text>
@@ -439,7 +445,7 @@ export default function OnboardingScreen() {
           </ScrollView>
 
           <TouchableOpacity
-            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+            style={[styles.btn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={() => setStep('pin')}
           >
             <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Continue</Text>

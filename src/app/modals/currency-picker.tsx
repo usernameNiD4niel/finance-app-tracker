@@ -4,9 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CURRENCIES } from '../../utils/currency';
-import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function CurrencyPickerScreen() {
@@ -23,8 +24,9 @@ export default function CurrencyPickerScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -43,8 +45,10 @@ export default function CurrencyPickerScreen() {
               style={[
                 styles.item,
                 {
-                  backgroundColor: isSelected ? theme.colors.primaryContainer : theme.custom.cardBg,
-                  boxShadow: neuListItem(theme) as any,
+                  backgroundColor: isSelected ? theme.colors.primary + '20' : theme.custom.glassBg,
+                  borderWidth: 1,
+                  borderColor: isSelected ? theme.colors.primary + '50' : theme.custom.glassBorder,
+                  boxShadow: glassShadow(theme, 'sm') as any,
                 },
               ]}
               onPress={() => handleSelect(item.code)}
@@ -66,7 +70,7 @@ export default function CurrencyPickerScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,

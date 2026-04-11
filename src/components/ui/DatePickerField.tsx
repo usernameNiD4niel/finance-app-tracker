@@ -4,7 +4,7 @@ import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import { neuCard, neuCardLg } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -70,10 +70,10 @@ export function DatePickerField({
         style={[
           styles.field,
           {
-            backgroundColor: theme.custom.cardBg,
-            boxShadow: neuCard(theme) as any,
-            borderWidth: error ? 1 : 0,
-            borderColor: error ? theme.custom.expense : 'transparent',
+            backgroundColor: theme.custom.glassBg,
+            borderWidth: 1,
+            borderColor: error ? theme.custom.expense : theme.custom.glassBorder,
+            boxShadow: glassShadow(theme, 'sm') as any,
           },
         ]}
         onPress={() => setShowPicker(true)}
@@ -110,7 +110,7 @@ export function DatePickerField({
       {Platform.OS === 'ios' && (
         <Modal visible={showPicker} transparent animationType="slide" onRequestClose={() => setShowPicker(false)}>
           <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
-            <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
+            <View style={[styles.sheet, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderTopColor: theme.custom.glassBorder, borderLeftColor: theme.custom.glassBorder, borderRightColor: theme.custom.glassBorder, borderBottomWidth: 0, boxShadow: glassShadow(theme, 'lg') as any }]}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
               <View style={styles.sheetHeader}>
                 <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700' }}>

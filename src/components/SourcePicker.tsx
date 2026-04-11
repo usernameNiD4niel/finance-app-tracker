@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
+import { BlurView } from 'expo-blur';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { neuCardLg, neuChip } from '../theme/neumorphism';
+import { glassShadow } from '../theme/glass';
 import type { MoneySource } from '../db/schema';
 import type { AppTheme } from '../theme';
 
@@ -20,28 +21,31 @@ export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
-        <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
-          <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
-          <Text variant="titleLarge" style={{ color: theme.colors.onSurface, marginBottom: 16, fontWeight: '700' }}>
-            Select Source
-          </Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.grid}>
-              {sources.filter(s => s.isActive).map((src) => {
-                const isSelected = src.id === selectedId;
-                return (
-                  <TouchableOpacity
-                    key={src.id}
-                    style={[
-                      styles.item,
-                      {
-                        backgroundColor: isSelected ? src.color + '22' : theme.custom.cardBg,
-                        boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
-                      },
-                    ]}
-                    onPress={() => { onSelect(src); onClose(); }}
-                    activeOpacity={0.7}
-                  >
+        <View style={styles.sheetOuter}>
+          <BlurView intensity={60} tint={theme.custom.glassTint as any} style={StyleSheet.absoluteFill} />
+          <View style={[styles.sheet, { backgroundColor: theme.custom.glassBg, borderTopWidth: 0.5, borderTopColor: theme.custom.glassBorder }]}>
+            <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
+            <Text variant="titleLarge" style={{ color: theme.colors.onSurface, marginBottom: 16, fontWeight: '700' }}>
+              Select Source
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.grid}>
+                {sources.filter(s => s.isActive).map((src) => {
+                  const isSelected = src.id === selectedId;
+                  return (
+                    <TouchableOpacity
+                      key={src.id}
+                      style={[
+                        styles.item,
+                        {
+                          backgroundColor: isSelected ? src.color + '22' : theme.custom.glassBg,
+                          borderWidth: 1,
+                          borderColor: isSelected ? src.color + '50' : theme.custom.glassBorder,
+                        },
+                      ]}
+                      onPress={() => { onSelect(src); onClose(); }}
+                      activeOpacity={0.7}
+                    >
                     <MaterialCommunityIcons
                       name={src.icon as any}
                       size={28}
@@ -58,13 +62,14 @@ export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }
                 );
               })}
             </View>
-          </ScrollView>
-          <TouchableOpacity
-            style={[styles.closeBtn, { backgroundColor: theme.colors.surfaceVariant }]}
-            onPress={onClose}
-          >
-            <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
-          </TouchableOpacity>
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.closeBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder }]}
+              onPress={onClose}
+            >
+              <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -76,11 +81,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
   },
-  sheet: {
+  sheetOuter: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
     maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  sheet: {
+    padding: 24,
   },
   handle: {
     width: 40,

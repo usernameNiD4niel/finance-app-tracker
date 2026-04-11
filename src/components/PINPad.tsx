@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { neuButton, neuInset } from '../theme/neumorphism';
+import { neuInset } from '../theme/neumorphism';
+import { glassShadow } from '../theme/glass';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -86,8 +87,10 @@ export function PINPad({ onComplete, title = 'Enter PIN', subtitle, maxLength = 
                 style={[
                   styles.key,
                   {
-                    backgroundColor: key === '' ? 'transparent' : theme.custom.cardBg,
-                    boxShadow: key === '' ? undefined : (neuButton(theme) as any),
+                    backgroundColor: key === '' ? 'transparent' : theme.custom.glassBg,
+                    borderWidth: key === '' ? 0 : 1,
+                    borderColor: theme.custom.glassBorder,
+                    boxShadow: key === '' ? undefined : (glassShadow(theme, 'sm') as any),
                   },
                 ]}
                 onPress={() => handleKey(key)}

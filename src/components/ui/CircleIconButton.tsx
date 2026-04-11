@@ -2,12 +2,13 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
+import { BlurView } from 'expo-blur';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { neuCircle } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -33,16 +34,20 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
           onPressOut={() => { scale.value = withSpring(1, { damping: 10, stiffness: 300 }); }}
           style={styles.pressable}
         >
-          <View
-            style={[
-              styles.circle,
-              {
-                backgroundColor: theme.custom.cardBg,
-                boxShadow: neuCircle(theme) as any,
-              },
-            ]}
-          >
-            <MaterialCommunityIcons name={icon as any} size={26} color={color} />
+          <View style={[styles.circleOuter, { boxShadow: glassShadow(theme, 'sm') as any }]}>
+            <BlurView intensity={50} tint={theme.custom.glassTint} style={styles.blur}>
+              <View
+                style={[
+                  styles.circleInner,
+                  {
+                    backgroundColor: theme.custom.glassBg,
+                    borderColor: theme.custom.glassBorder,
+                  },
+                ]}
+              >
+                <MaterialCommunityIcons name={icon as any} size={26} color={color} />
+              </View>
+            </BlurView>
           </View>
           <Text style={[styles.label, { color }]}>{label}</Text>
         </Pressable>
@@ -59,9 +64,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  circle: {
+  circleOuter: {
     width: 62,
     height: 62,
+    borderRadius: 31,
+    overflow: 'hidden',
+  },
+  blur: {
+    flex: 1,
+  },
+  circleInner: {
+    flex: 1,
+    borderWidth: 1,
     borderRadius: 31,
     alignItems: 'center',
     justifyContent: 'center',

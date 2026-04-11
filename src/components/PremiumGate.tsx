@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { RoundedCard } from './ui/RoundedCard';
-import { neuButton } from '../theme/neumorphism';
+import { glassShadow } from '../theme/glass';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -41,7 +41,7 @@ export function PremiumGate({ isPremium, onUpgrade, children }: Props) {
         </View>
 
         {/* Overlay */}
-        <View style={[styles.overlay, { backgroundColor: theme.custom.cardBg + 'dd' }]}>
+        <View style={[styles.overlay, { backgroundColor: theme.custom.glassBg }]}>
           <View style={[styles.lockIcon, { backgroundColor: theme.colors.primary + '18' }]}>
             <MaterialCommunityIcons name="lock" size={28} color={theme.colors.primary} />
           </View>
@@ -52,7 +52,7 @@ export function PremiumGate({ isPremium, onUpgrade, children }: Props) {
             Unlock detailed graph reports
           </Text>
           <TouchableOpacity
-            style={[styles.upgradeBtn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+            style={[styles.upgradeBtn, { backgroundColor: theme.colors.primary, boxShadow: glassShadow(theme, 'sm') as any }]}
             onPress={onUpgrade}
             activeOpacity={0.8}
           >

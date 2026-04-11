@@ -11,7 +11,7 @@ import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { cancelNotification } from '../../services/notifications';
 import { formatCurrency } from '../../utils/currency';
-import { neuButton } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 export default function BillsScreen() {
@@ -111,7 +111,7 @@ export default function BillsScreen() {
           {
             bottom: insets.bottom + 90,
             backgroundColor: theme.colors.primary,
-            boxShadow: neuButton(theme) as any,
+            boxShadow: glassShadow(theme, 'sm') as any,
           },
         ]}
         color={theme.custom.buttonText}

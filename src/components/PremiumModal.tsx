@@ -3,7 +3,8 @@ import { View, StyleSheet, TouchableOpacity, Alert, BackHandler } from 'react-na
 import { Text, useTheme, Portal } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useStripe } from '@stripe/stripe-react-native';
-import { neuButton, neuCard } from '@/theme/neumorphism';
+import { BlurView } from 'expo-blur';
+import { glassShadow } from '@/theme/glass';
 import { useSettingsStore } from '@/store/settingsStore';
 import { activatePremiumInFirestore } from '@/services/subscription';
 import type { AppTheme } from '@/theme';
@@ -119,14 +120,13 @@ export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, o
   return (
     <Portal>
       <View style={styles.overlay}>
-        <View style={[styles.card, { backgroundColor: theme.custom.cardBg }]}>
+        <View style={[styles.cardOuter, { boxShadow: glassShadow(theme, 'lg') as any }]}>
+          <BlurView intensity={65} tint={theme.custom.glassTint} style={styles.cardBlur}>
+        <View style={[styles.card, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder }]}>
           <View
             style={[
               styles.iconWrap,
-              {
-                backgroundColor: theme.colors.primary + '18',
-                boxShadow: neuCard(theme) as any,
-              },
+              { backgroundColor: theme.colors.primary + '22', borderWidth: 1, borderColor: theme.colors.primary + '40' },
             ]}
           >
             <MaterialCommunityIcons name="crown" size={44} color={theme.colors.primary} />
@@ -152,8 +152,9 @@ export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, o
                 style={[
                   styles.featureRow,
                   {
-                    backgroundColor: theme.colors.background,
-                    boxShadow: neuCard(theme) as any,
+                    backgroundColor: theme.custom.glassBg,
+                    borderWidth: 1,
+                    borderColor: theme.custom.glassBorder,
                   },
                 ]}
               >
@@ -177,7 +178,7 @@ export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, o
               styles.subscribeBtn,
               {
                 backgroundColor: loading ? theme.colors.primary + '88' : theme.colors.primary,
-                boxShadow: neuButton(theme) as any,
+                boxShadow: glassShadow(theme, 'sm') as any,
               },
             ]}
             onPress={handleSubscribe}
@@ -195,6 +196,8 @@ export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, o
             </Text>
           </TouchableOpacity>
         </View>
+          </BlurView>
+        </View>
       </View>
     </Portal>
   );
@@ -207,6 +210,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  cardOuter: {
+    width: '100%',
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  cardBlur: {
+    flex: 1,
   },
   card: {
     width: '100%',

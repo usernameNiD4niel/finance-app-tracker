@@ -14,7 +14,8 @@ import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { scheduleBillNotification, cancelNotification } from '../../services/notifications';
-import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -124,8 +125,9 @@ export default function AddBillScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -156,7 +158,7 @@ export default function AddBillScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Category</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
           onPress={() => setCategoryPickerVisible(true)}
         >
           {selectedCategory ? (
@@ -177,7 +179,7 @@ export default function AddBillScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Source</Text>
         <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+          style={[styles.categoryBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
           onPress={() => setSourcePickerVisible(true)}
         >
           {selectedSource ? (
@@ -204,8 +206,9 @@ export default function AddBillScreen() {
               style={[
                 styles.freqBtn,
                 {
-                  backgroundColor: frequency === f ? theme.colors.primary + '22' : theme.custom.cardBg,
-                  boxShadow: frequency === f ? (neuChip(theme) as any) : undefined,
+                  backgroundColor: frequency === f ? theme.colors.primary + '20' : theme.custom.glassBg,
+                  borderWidth: 1,
+                  borderColor: frequency === f ? theme.colors.primary + '50' : theme.custom.glassBorder,
                 },
               ]}
               onPress={() => setFrequency(f)}
@@ -250,7 +253,7 @@ export default function AddBillScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              boxShadow: neuButton(theme) as any,
+              boxShadow: glassShadow(theme, 'sm') as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
@@ -282,7 +285,7 @@ export default function AddBillScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,

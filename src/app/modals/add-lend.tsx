@@ -16,7 +16,8 @@ import { useAuthStore } from '../../store/authStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { scheduleLendNotification, cancelNotification } from '../../services/notifications';
 import { format } from 'date-fns';
-import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -144,8 +145,9 @@ export default function AddLendScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -194,7 +196,7 @@ export default function AddLendScreen() {
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Source Wallet</Text>
         <TouchableOpacity
-          style={[styles.pickerBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+          style={[styles.pickerBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
           onPress={() => setSourcePickerVisible(true)}
         >
           {selectedSource ? (
@@ -241,8 +243,9 @@ export default function AddLendScreen() {
                 style={[
                   styles.typeChip,
                   {
-                    backgroundColor: interestType === 'fixed' ? theme.colors.primary + '22' : theme.custom.cardBg,
-                    boxShadow: interestType === 'fixed' ? (neuChip(theme) as any) : undefined,
+                    backgroundColor: interestType === 'fixed' ? theme.colors.primary + '20' : theme.custom.glassBg,
+                    borderWidth: 1,
+                    borderColor: interestType === 'fixed' ? theme.colors.primary + '50' : theme.custom.glassBorder,
                   },
                 ]}
                 onPress={() => setInterestType('fixed')}
@@ -256,8 +259,9 @@ export default function AddLendScreen() {
                 style={[
                   styles.typeChip,
                   {
-                    backgroundColor: interestType === 'percentage' ? theme.colors.primary + '22' : theme.custom.cardBg,
-                    boxShadow: interestType === 'percentage' ? (neuChip(theme) as any) : undefined,
+                    backgroundColor: interestType === 'percentage' ? theme.colors.primary + '20' : theme.custom.glassBg,
+                    borderWidth: 1,
+                    borderColor: interestType === 'percentage' ? theme.colors.primary + '50' : theme.custom.glassBorder,
                   },
                 ]}
                 onPress={() => setInterestType('percentage')}
@@ -352,7 +356,7 @@ export default function AddLendScreen() {
             {
               backgroundColor: theme.colors.primary,
               opacity: submitting ? 0.7 : 1,
-              boxShadow: neuButton(theme) as any,
+              boxShadow: glassShadow(theme, 'sm') as any,
             },
           ]}
           onPress={handleSubmit(onSubmit)}
@@ -384,7 +388,7 @@ export default function AddLendScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

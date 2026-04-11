@@ -7,8 +7,9 @@ import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useAuthStore } from '../../store/authStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
+import { GlassBackground } from '../../components/ui/GlassBackground';
 import { PremiumModal } from '../../components/PremiumModal';
-import { neuCardLg, neuButton } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 export default function LockScreen() {
@@ -70,9 +71,10 @@ export default function LockScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd, overflow: 'hidden' }]}>
+      <GlassBackground />
       <View style={styles.header}>
-        <View style={[styles.logoWrap, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}>
+        <View style={[styles.logoWrap, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'md') as any }]}>
           <MaterialCommunityIcons name="lock" size={40} color={theme.colors.primary} />
         </View>
         <Text variant="headlineMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginTop: 16 }}>
@@ -89,7 +91,7 @@ export default function LockScreen() {
 
       {bioAvailable && (
         <TouchableOpacity
-          style={[styles.biometricBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuButton(theme) as any }]}
+          style={[styles.biometricBtn, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}
           onPress={tryBiometric}
         >
           <MaterialCommunityIcons name="fingerprint" size={28} color={theme.colors.primary} />

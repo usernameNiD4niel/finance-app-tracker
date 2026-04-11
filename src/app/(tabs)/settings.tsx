@@ -12,7 +12,7 @@ import { PremiumModal } from '../../components/PremiumModal';
 import { runSync } from '../../services/syncEngine';
 import { sendTestNotification } from '../../services/notifications';
 import { refreshAllStores } from '../../store';
-import { neuListItem } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 import { PRIMARY_COLORS } from '../../theme';
 
@@ -32,8 +32,10 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
       style={[
         styles.row,
         {
-          backgroundColor: theme.custom.cardBg,
-          boxShadow: neuListItem(theme) as any,
+          backgroundColor: theme.custom.glassBg,
+          borderWidth: 1,
+          borderColor: theme.custom.glassBorder,
+          boxShadow: glassShadow(theme, 'sm') as any,
         },
       ]}
       onPress={onPress}

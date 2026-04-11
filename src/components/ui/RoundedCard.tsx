@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View, ViewStyle } from 'react-native';
 import { useTheme } from 'react-native-paper';
-import { neuCard } from '../../theme/neumorphism';
+import { BlurView } from 'expo-blur';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 interface Props {
@@ -12,25 +13,43 @@ interface Props {
 
 export function RoundedCard({ children, style, padding = 16 }: Props) {
   const theme = useTheme<AppTheme>();
+
   return (
     <View
       style={[
-        styles.card,
-        {
-          backgroundColor: theme.custom.cardBg,
-          boxShadow: neuCard(theme) as any,
-        },
-        { padding },
+        styles.outer,
+        { boxShadow: glassShadow(theme, 'md') as any },
         style,
       ]}
     >
-      {children}
+      <BlurView intensity={55} tint={theme.custom.glassTint} style={styles.blur}>
+        <View
+          style={[
+            styles.inner,
+            {
+              backgroundColor: theme.custom.glassBg,
+              borderColor: theme.custom.glassBorder,
+              padding,
+            },
+          ]}
+        >
+          {children}
+        </View>
+      </BlurView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
+const styles = {
+  outer: {
+    borderRadius: 22,
+    overflow: 'hidden' as const,
+  },
+  blur: {
+    flex: 1,
+  },
+  inner: {
+    borderWidth: 1,
     borderRadius: 22,
   },
-});
+};

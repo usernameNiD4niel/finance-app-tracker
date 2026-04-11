@@ -5,7 +5,9 @@ import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCategoryStore } from '../../store/categoryStore';
-import { neuButton, neuListItem, neuCardLg, neuChip } from '../../theme/neumorphism';
+import { BlurView } from 'expo-blur';
+import { GlassBackground } from '../../components/ui/GlassBackground';
+import { glassShadow } from '../../theme/glass';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -69,8 +71,9 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.custom.bgGradientEnd }]}>
+      <GlassBackground />
+      <View style={[styles.header, { backgroundColor: theme.custom.glassBg, borderBottomWidth: 0.5, borderBottomColor: theme.custom.glassBorder, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
         </TouchableOpacity>
@@ -85,7 +88,7 @@ export default function CategoriesScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={{ padding: 16 }}
         renderItem={({ item }) => (
-          <View style={[styles.catRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}>
+          <View style={[styles.catRow, { backgroundColor: theme.custom.glassBg, borderWidth: 1, borderColor: theme.custom.glassBorder, boxShadow: glassShadow(theme, 'sm') as any }]}>
             <View style={[styles.catIcon, { backgroundColor: item.color + '22' }]}>
               <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
             </View>
@@ -110,7 +113,9 @@ export default function CategoriesScreen() {
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
-          <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
+          <View style={styles.sheetOuter}>
+            <BlurView intensity={65} tint={theme.custom.glassTint} style={styles.sheetBlur}>
+          <View style={[styles.sheet, { backgroundColor: theme.custom.glassBg, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: theme.custom.glassBorder }]}>
             <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
             <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
               {editingId ? 'Edit Category' : 'New Category'}
@@ -129,8 +134,9 @@ export default function CategoriesScreen() {
                   <TouchableOpacity
                     key={icon}
                     style={[styles.iconOption, {
-                      backgroundColor: selectedIcon === icon ? theme.colors.primary + '22' : theme.custom.cardBg,
-                      boxShadow: selectedIcon === icon ? (neuChip(theme) as any) : undefined,
+                      backgroundColor: selectedIcon === icon ? theme.colors.primary + '20' : theme.custom.glassBg,
+                      borderWidth: 1,
+                      borderColor: selectedIcon === icon ? theme.colors.primary + '50' : theme.custom.glassBorder,
                     }]}
                     onPress={() => setSelectedIcon(icon)}
                   >
@@ -158,7 +164,7 @@ export default function CategoriesScreen() {
                   styles.saveBtn,
                   {
                     backgroundColor: theme.colors.primary,
-                    boxShadow: neuButton(theme) as any,
+                    boxShadow: glassShadow(theme, 'sm') as any,
                   },
                 ]}
                 onPress={handleSave}
@@ -167,6 +173,8 @@ export default function CategoriesScreen() {
               </TouchableOpacity>
             </View>
           </View>
+            </BlurView>
+          </View>
         </View>
       </Modal>
     </View>
@@ -174,7 +182,7 @@ export default function CategoriesScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, overflow: 'hidden' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
@@ -185,6 +193,8 @@ const styles = StyleSheet.create({
   catIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 12 },
   overlay: { flex: 1, justifyContent: 'flex-end' },
+  sheetOuter: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  sheetBlur: { flex: 1 },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   handle: { width: 40, height: 4, borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
   iconOption: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

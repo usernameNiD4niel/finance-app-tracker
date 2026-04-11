@@ -4,7 +4,7 @@ import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '../utils/currency';
-import { neuHero } from '../theme/neumorphism';
+import { glassShadow } from '../theme/glass';
 import type { AppTheme } from '../theme';
 
 interface Props {
@@ -29,7 +29,9 @@ export function BalanceCard({ balance, walletBalance, spent, billsDue, currency 
       style={[
         styles.card,
         {
-          boxShadow: neuHero(theme) as any,
+          boxShadow: glassShadow(theme, 'lg') as any,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.20)',
         },
       ]}
     >

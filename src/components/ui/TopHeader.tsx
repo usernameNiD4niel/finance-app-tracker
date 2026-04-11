@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from 'react-native-paper';
+import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppTheme } from '../../theme';
 
@@ -14,18 +15,21 @@ export function TopHeader({ title, rightElement }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View
+    <BlurView
+      intensity={60}
+      tint={theme.custom.glassTint}
       style={[
         styles.header,
         {
-          backgroundColor: theme.colors.background,
           paddingTop: insets.top + 16,
+          backgroundColor: theme.custom.glassBg,
+          borderBottomColor: theme.custom.glassBorder,
         },
       ]}
     >
       <Text style={[styles.title, { color: theme.colors.onSurface }]}>{title}</Text>
       {rightElement && <View>{rightElement}</View>}
-    </View>
+    </BlurView>
   );
 }
 
@@ -36,6 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingHorizontal: 20,
     paddingBottom: 16,
+    borderBottomWidth: 0.5,
   },
   title: {
     fontSize: 28,

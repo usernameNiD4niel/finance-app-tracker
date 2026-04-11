@@ -10,7 +10,8 @@ import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
 import { getPeriodProgress } from '../utils/date';
-import { neuCard, neuInset } from '../theme/neumorphism';
+import { neuInset } from '../theme/neumorphism';
+import { glassShadow } from '../theme/glass';
 import type { AppTheme } from '../theme';
 
 export function SalaryPeriodBar() {
@@ -40,8 +41,10 @@ export function SalaryPeriodBar() {
       style={[
         styles.container,
         {
-          backgroundColor: theme.custom.cardBg,
-          boxShadow: neuCard(theme) as any,
+          backgroundColor: theme.custom.glassBg,
+          borderWidth: 1,
+          borderColor: theme.custom.glassBorder,
+          boxShadow: glassShadow(theme, 'md') as any,
         },
       ]}
     >

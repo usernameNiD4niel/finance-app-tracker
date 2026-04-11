@@ -17,7 +17,8 @@ import { useAuthStore } from '../../store/authStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
-import { neuChip, neuInset } from '../../theme/neumorphism';
+import { neuInset } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 export default function StatsScreen() {
@@ -69,8 +70,9 @@ export default function StatsScreen() {
                 style={[
                   styles.monthChip,
                   {
-                    backgroundColor: isSelected ? primary + '22' : theme.custom.cardBg,
-                    boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
+                    backgroundColor: isSelected ? primary + '20' : theme.custom.glassBg,
+                    borderWidth: 1,
+                    borderColor: isSelected ? primary + '50' : theme.custom.glassBorder,
                   },
                 ]}
                 onPress={() => setSelectedMonth(m)}

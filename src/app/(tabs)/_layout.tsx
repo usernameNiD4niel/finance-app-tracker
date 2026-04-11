@@ -10,8 +10,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
 import { useTabStore } from '../../store/tabStore';
-import { neuTabBar } from '../../theme/neumorphism';
+import { glassShadow } from '../../theme/glass';
 import type { AppTheme } from '../../theme';
 
 const TAB_CONFIG = [
@@ -88,15 +89,17 @@ function FloatingTabBar({ state, navigation }: any) {
       style={[styles.outerContainer, { bottom: insets.bottom + 10 }]}
       pointerEvents="box-none"
     >
-      <View
-        style={[
-          styles.bar,
-          {
-            backgroundColor: theme.custom.tabBarBg,
-            boxShadow: neuTabBar(theme) as any,
-          },
-        ]}
-      >
+      <View style={[styles.barOuter, { boxShadow: glassShadow(theme, 'lg') as any }]}>
+        <BlurView intensity={70} tint={theme.custom.glassTint} style={styles.blur}>
+          <View
+            style={[
+              styles.bar,
+              {
+                backgroundColor: theme.custom.glassBg,
+                borderColor: theme.custom.glassBorder,
+              },
+            ]}
+          >
         {state.routes.map((route: any, index: number) => {
           const config = TAB_CONFIG.find((t) => t.name === route.name);
           const focused = state.index === index;
@@ -129,6 +132,8 @@ function FloatingTabBar({ state, navigation }: any) {
             />
           );
         })}
+          </View>
+        </BlurView>
       </View>
     </View>
   );
@@ -140,7 +145,7 @@ export default function TabsLayout() {
     <Tabs
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{ headerShown: false }}
-      sceneContainerStyle={{ backgroundColor: theme.colors.background }}
+      sceneContainerStyle={{ backgroundColor: theme.custom.bgGradientEnd }}
     />
   );
 }
@@ -152,12 +157,21 @@ const styles = StyleSheet.create({
     right: 20,
     alignItems: 'center',
   },
+  barOuter: {
+    width: '100%',
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
+  blur: {
+    flex: 1,
+  },
   bar: {
     flexDirection: 'row',
     width: '100%',
     borderRadius: 28,
     paddingHorizontal: 6,
     paddingVertical: 8,
+    borderWidth: 1,
   },
   tabItem: {
     flex: 1,
