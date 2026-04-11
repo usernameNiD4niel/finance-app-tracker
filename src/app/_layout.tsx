@@ -11,7 +11,6 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
-import { configureGoogleSignIn } from '../services/firebaseAuth';
 import { verifyPremiumStatus } from '../services/subscription';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
@@ -40,9 +39,6 @@ export default function RootLayout() {
   useNetworkSync();
 
   useEffect(() => {
-    // Configure Google Sign-In once at startup
-    configureGoogleSignIn();
-
     // Initialize local DB and settings
     (async () => {
       try {

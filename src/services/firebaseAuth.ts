@@ -2,8 +2,6 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as authSignOut,
-  GoogleAuthProvider,
-  signInWithCredential,
   onAuthStateChanged as firebaseOnAuthStateChanged,
   type User,
 } from 'firebase/auth';
@@ -19,23 +17,10 @@ export async function registerWithEmail(email: string, password: string): Promis
   return result.user;
 }
 
-// Called from the cloud-auth modal after expo-auth-session returns a Google ID token.
-export async function signInWithGoogleIdToken(idToken: string): Promise<User> {
-  const credential = GoogleAuthProvider.credential(idToken);
-  const result = await signInWithCredential(auth, credential);
-  return result.user;
-}
-
 export async function signOut(): Promise<void> {
   await authSignOut(auth);
 }
 
 export function onAuthStateChanged(callback: (user: User | null) => void): () => void {
   return firebaseOnAuthStateChanged(auth, callback);
-}
-
-// Google Sign-In via the native SDK is only available in development builds, not Expo Go.
-// In a dev build, import GoogleSignin and call configure here.
-export function configureGoogleSignIn(): void {
-  // no-op in Expo Go
 }

@@ -3,7 +3,6 @@ import type { User } from 'firebase/auth';
 import {
   signInWithEmail as emailSignIn,
   registerWithEmail as emailRegister,
-  signInWithGoogleIdToken,
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from '../services/firebaseAuth';
@@ -26,8 +25,6 @@ interface AuthState {
   initAuthListener: () => () => void;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   registerWithEmail: (email: string, password: string) => Promise<void>;
-  // Called after expo-auth-session returns a Google ID token from the UI.
-  handleGoogleIdToken: (idToken: string) => Promise<void>;
   signOut: () => Promise<void>;
   // Safe sign-out: syncs if online, always signs out.
   // Returns { wasOnline, pendingCount } so UI can warn about unsynced data.
@@ -53,11 +50,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   registerWithEmail: async (email, password) => {
     const user = await emailRegister(email, password);
-    set({ user, isAuthenticated: true });
-  },
-
-  handleGoogleIdToken: async (idToken) => {
-    const user = await signInWithGoogleIdToken(idToken);
     set({ user, isAuthenticated: true });
   },
 

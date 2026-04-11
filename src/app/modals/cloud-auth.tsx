@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput } from 'react-native';
+import { StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, TextInput, View } from 'react-native';
 import { Text, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { runSync } from '../../services/syncEngine';
@@ -13,13 +11,11 @@ import { seedCategories, seedMoneySources, dedupPredefinedCategories, dedupPrede
 import { sqlite, deleteOrphanedRows } from '../../db/client';
 import type { AppTheme } from '../../theme';
 
-WebBrowser.maybeCompleteAuthSession();
-
 export default function CloudAuthModal() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const { gate } = useLocalSearchParams<{ gate?: string }>();
-  const { signInWithEmail, registerWithEmail, handleGoogleIdToken, user, isAuthenticated } = useAuthStore();
+  const { signInWithEmail, registerWithEmail, user, isAuthenticated } = useAuthStore();
   const { setCloudSyncEnabled, setFirebaseUid, setLastSyncedAt } = useSettingsStore();
 
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
@@ -30,35 +26,6 @@ export default function CloudAuthModal() {
   const [error, setError] = useState<string | null>(null);
   const hasNavigatedRef = React.useRef(false);
 
-  // Google OAuth via expo-auth-session (works in Expo Go + dev builds + production)
-  // Android client ID: from google-services.json (type 1)
-  // iOS client ID: create one at console.cloud.google.com → APIs & Services → Credentials
-  //   → Create Credentials → OAuth 2.0 Client ID → iOS → Bundle ID: com.ledgerist.app
-  // Web client ID: from google-services.json (type 3) — also used by Expo Go
-  const [_request, googleResponse, promptAsync] = Google.useAuthRequest({
-    androidClientId: '278595331130-nbcct1ss0uc44ck7g6k1kqtmdesu78hp.apps.googleusercontent.com',
-    iosClientId: '671746422382-u3vto9s6ae84ikirpup4fk9ppaorkvj6.apps.googleusercontent.com',
-    webClientId: '671746422382-djugdhfaue7bp4qjevp0j7s68q276ok7.apps.googleusercontent.com',
-  });
-
-  // Handle Google OAuth response
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const idToken = googleResponse.authentication?.idToken;
-      if (idToken) {
-        setLoading(true);
-        handleGoogleIdToken(idToken)
-          .then(() => onSignInSuccess())
-          .catch((e: any) => setError(friendlyError(e)))
-          .finally(() => setLoading(false));
-      } else {
-        setError('Could not get Google credentials. Please try again.');
-      }
-    } else if (googleResponse?.type === 'error') {
-      setError(googleResponse.error?.message ?? 'Google Sign-In failed. Please try again.');
-    }
-  }, [googleResponse]);
-
   // If user is already authenticated, go straight to the main app
   useEffect(() => {
     if (isAuthenticated && user && !hasNavigatedRef.current) {
@@ -66,11 +33,6 @@ export default function CloudAuthModal() {
       router.replace('/(tabs)');
     }
   }, [isAuthenticated]);
-
-  async function handleGoogleSignIn() {
-    setError(null);
-    await promptAsync();
-  }
 
   async function handleEmailAuth() {
     setError(null);
@@ -185,26 +147,6 @@ export default function CloudAuthModal() {
           Back up your data and access it from any device
         </Text>
 
-        {/* Google Sign-In */}
-        <TouchableOpacity
-          style={[styles.googleBtn, { backgroundColor: card, borderColor: theme.colors.outline }]}
-          onPress={handleGoogleSignIn}
-          disabled={loading}
-          activeOpacity={0.8}
-        >
-          <MaterialCommunityIcons name="google" size={20} color="#EA4335" />
-          <Text variant="bodyLarge" style={{ color: onSurface, marginLeft: 10, fontWeight: '600' }}>
-            Continue with Google
-          </Text>
-        </TouchableOpacity>
-
-        {/* Divider */}
-        <View style={styles.divider}>
-          <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
-          <Text variant="bodySmall" style={{ color: muted, marginHorizontal: 12 }}>or</Text>
-          <View style={[styles.dividerLine, { backgroundColor: theme.colors.outline }]} />
-        </View>
-
         {/* Email / Password */}
         <View style={[styles.inputWrapper, { backgroundColor: card, borderColor: theme.colors.outline }]}>
           <MaterialCommunityIcons name="email-outline" size={18} color={muted} style={styles.inputIcon} />
@@ -287,12 +229,6 @@ const styles = StyleSheet.create({
   closeBtn: { position: 'absolute', top: 16, right: 20, padding: 8 },
   title: { textAlign: 'center', fontWeight: '700', marginBottom: 8 },
   subtitle: { textAlign: 'center', marginBottom: 32 },
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 14, borderRadius: 14, borderWidth: 1, marginBottom: 24,
-  },
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  dividerLine: { flex: 1, height: 1 },
   inputWrapper: {
     flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 14,
     paddingHorizontal: 14, paddingVertical: 4, marginBottom: 12,

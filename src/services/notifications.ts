@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import {
   insertNotificationLogsBatch,
   getExistingNotificationLogDates,
@@ -6,18 +7,25 @@ import {
   updateBill,
 } from '../db/queries';
 
+// expo-notifications push token registration is unsupported in Expo Go (SDK 53+).
+// All notification functions are no-ops when running in Expo Go.
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
 // Show notifications even when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (!IS_EXPO_GO) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 // ── Permissions ───────────────────────────────────────────────────────────────
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  if (IS_EXPO_GO) return false;
   const { status: existing } = await Notifications.getPermissionsAsync();
   if (existing === 'granted') return true;
   const { status } = await Notifications.requestPermissionsAsync();
@@ -48,6 +56,7 @@ function subtractOneDay(date: Date): Date {
 // Supports comma-separated IDs (we store "beforeId,onDayId" per bill/lend).
 
 export async function cancelNotification(notificationId: string) {
+  if (IS_EXPO_GO) return;
   for (const id of notificationId.split(',')) {
     const trimmed = id.trim();
     if (trimmed) {
@@ -57,6 +66,7 @@ export async function cancelNotification(notificationId: string) {
 }
 
 export async function cancelAllNotifications() {
+  if (IS_EXPO_GO) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
@@ -75,6 +85,7 @@ export async function scheduleBillNotification(
   currency: string,
   frequency: string = 'monthly'
 ): Promise<string | null> {
+  if (IS_EXPO_GO) return null;
   if (frequency !== 'monthly') return null;
 
   const hasPermission = await requestNotificationPermissions();
@@ -133,6 +144,7 @@ export async function scheduleLendNotification(
   expectedPayDate: string,
   currency: string
 ): Promise<string | null> {
+  if (IS_EXPO_GO) return null;
   const hasPermission = await requestNotificationPermissions();
   if (!hasPermission) return null;
 
@@ -279,6 +291,7 @@ export async function rescheduleAllBillNotifications(
   billsList: BillForNotification[],
   currency: string
 ) {
+  if (IS_EXPO_GO) return;
   try {
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     const scheduledIds = new Set(scheduled.map(n => n.identifier));
@@ -306,6 +319,7 @@ export async function rescheduleAllBillNotifications(
 // Schedules 2 notifications that fire 5 s and 10 s from now.
 
 export async function sendTestNotification(): Promise<void> {
+  if (IS_EXPO_GO) return;
   const hasPermission = await requestNotificationPermissions();
   if (!hasPermission) return;
 
@@ -352,6 +366,7 @@ function toId(val: unknown): number | undefined {
 }
 
 export function initNotificationListeners(onTap: (data: NotificationTapData) => void): () => void {
+  if (IS_EXPO_GO) return () => {};
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
     const raw = response.notification.request.content.data ?? {};
     // Coerce to number — some platforms serialise notification data as strings
