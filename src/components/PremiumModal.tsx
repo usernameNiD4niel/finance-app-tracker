@@ -10,6 +10,7 @@ import type { AppTheme } from '@/theme';
 
 const SERVER_URL = 'https://snowy-truth-4248.addressnidaniel2.workers.dev';
 
+
 const FEATURES = [
   {
     icon: 'hand-coin' as const,
@@ -137,7 +138,7 @@ export function PremiumModal({ visible, userId, userEmail, onSubscribeSuccess, o
 
           <View style={styles.priceRow}>
             <Text variant="displaySmall" style={{ color: theme.colors.primary, fontWeight: '800' }}>
-              $5
+              $0.90
             </Text>
             <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant, marginLeft: 4 }}>
               /month
