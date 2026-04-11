@@ -322,17 +322,28 @@ const PREDEFINED_CATEGORIES = [
 ];
 
 export function seedCategories(userId: string | null = null) {
-  // Guard per category name — ignores user_id so a second sign-in never re-inserts.
+  // Guard is scoped per (name, user_id) so each user gets their own predefined rows.
   for (const cat of PREDEFINED_CATEGORIES) {
     try {
-      sqlite.runSync(
-        `INSERT INTO categories (name, icon, color, is_custom, user_id)
-         SELECT ?, ?, ?, 0, ?
-         WHERE NOT EXISTS (
-           SELECT 1 FROM categories WHERE name = ? AND is_custom = 0
-         )`,
-        [cat.name, cat.icon, cat.color, userId, cat.name]
-      );
+      if (userId) {
+        sqlite.runSync(
+          `INSERT INTO categories (name, icon, color, is_custom, user_id)
+           SELECT ?, ?, ?, 0, ?
+           WHERE NOT EXISTS (
+             SELECT 1 FROM categories WHERE name = ? AND is_custom = 0 AND user_id = ?
+           )`,
+          [cat.name, cat.icon, cat.color, userId, cat.name, userId]
+        );
+      } else {
+        sqlite.runSync(
+          `INSERT INTO categories (name, icon, color, is_custom, user_id)
+           SELECT ?, ?, ?, 0, NULL
+           WHERE NOT EXISTS (
+             SELECT 1 FROM categories WHERE name = ? AND is_custom = 0 AND user_id IS NULL
+           )`,
+          [cat.name, cat.icon, cat.color, cat.name]
+        );
+      }
     } catch (_e) {}
   }
 }
@@ -347,17 +358,28 @@ const PREDEFINED_SOURCES = [
 ];
 
 export function seedMoneySources(userId: string | null = null) {
-  // Guard per source name — ignores user_id so a second sign-in never re-inserts.
+  // Guard is scoped per (name, user_id) so each user gets their own predefined rows.
   for (const src of PREDEFINED_SOURCES) {
     try {
-      sqlite.runSync(
-        `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
-         SELECT ?, ?, ?, ?, 0, ?
-         WHERE NOT EXISTS (
-           SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0
-         )`,
-        [src.name, src.type, src.icon, src.color, userId, src.name]
-      );
+      if (userId) {
+        sqlite.runSync(
+          `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
+           SELECT ?, ?, ?, ?, 0, ?
+           WHERE NOT EXISTS (
+             SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0 AND user_id = ?
+           )`,
+          [src.name, src.type, src.icon, src.color, userId, src.name, userId]
+        );
+      } else {
+        sqlite.runSync(
+          `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
+           SELECT ?, ?, ?, ?, 0, NULL
+           WHERE NOT EXISTS (
+             SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0 AND user_id IS NULL
+           )`,
+          [src.name, src.type, src.icon, src.color, src.name]
+        );
+      }
     } catch (_e) {}
   }
 }
