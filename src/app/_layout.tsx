@@ -4,14 +4,13 @@ import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
-import { StripeProvider } from '@stripe/stripe-react-native';
-import Constants from 'expo-constants';
 import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
 import { verifyPremiumStatus } from '../services/subscription';
+import { GuestWarningModal } from '../components/GuestWarningModal';
 import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
 import { getBills, getActiveLends } from '../db/queries';
@@ -101,10 +100,7 @@ export default function RootLayout() {
     contentStyle: { backgroundColor: resolvedTheme.colors.background },
   };
 
-  const stripeKey = Constants.expoConfig?.extra?.stripePublishableKey ?? '';
-
   return (
-    <StripeProvider publishableKey={stripeKey}>
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: resolvedTheme.colors.background }}>
       <StatusBar style={resolvedTheme.dark ? 'light' : 'dark'} />
       <PaperProvider theme={resolvedTheme}>
@@ -125,8 +121,8 @@ export default function RootLayout() {
           <Stack.Screen name="modals/cloud-auth" options={modalScreenOptions} />
           <Stack.Screen name="modals/recurring" options={modalScreenOptions} />
         </Stack>
+        <GuestWarningModal />
       </PaperProvider>
     </GestureHandlerRootView>
-    </StripeProvider>
   );
 }

@@ -15,6 +15,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { scheduleBillNotification, cancelNotification } from '../../services/notifications';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -48,6 +49,8 @@ export default function AddBillScreen() {
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  useGuestWarning();
 
   const isEditing = !!id;
   const existing = isEditing ? bills.find(b => b.id === Number(id)) : null;

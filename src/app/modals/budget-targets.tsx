@@ -11,6 +11,7 @@ import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { getCurrentMonth } from '../../utils/date';
 import { neuButton, neuCard, neuListItem } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { AppTheme } from '../../theme';
 
 export default function BudgetTargetsScreen() {
@@ -27,6 +28,8 @@ export default function BudgetTargetsScreen() {
   const [catLimits, setCatLimits] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
   const [premiumVisible, setPremiumVisible] = useState(false);
+
+  useGuestWarning();
 
   useEffect(() => {
     if (!isPremium) {

@@ -17,6 +17,7 @@ import { useSourceStore } from '../../store/sourceStore';
 import { scheduleLendNotification, cancelNotification } from '../../services/notifications';
 import { format } from 'date-fns';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -46,6 +47,8 @@ export default function AddLendScreen() {
   const [premiumVisible, setPremiumVisible] = useState(false);
   const [hasInterest, setHasInterest] = useState(false);
   const [interestType, setInterestType] = useState<'fixed' | 'percentage'>('fixed');
+
+  useGuestWarning();
 
   const isEditing = !!id;
   const existing = isEditing ? lends.find(l => l.id === Number(id)) : null;

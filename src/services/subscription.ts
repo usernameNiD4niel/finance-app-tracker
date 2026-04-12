@@ -1,4 +1,4 @@
-import { doc, getDocFromCache, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDocFromCache, getDoc } from 'firebase/firestore';
 import { firestore } from './firebase';
 import { useSettingsStore } from '../store/settingsStore';
 
@@ -28,11 +28,11 @@ export async function verifyPremiumStatus(uid: string): Promise<void> {
 
     if (!snap.exists()) return;
 
-    const { isPremium, subscriptionStatus, stripeCustomerId } = snap.data();
+    const { isPremium, subscriptionStatus, lsCustomerId } = snap.data();
     const store = useSettingsStore.getState();
     await store.setPremium(!!isPremium);
     if (subscriptionStatus) await store.setSubscriptionStatus(subscriptionStatus);
-    if (stripeCustomerId) await store.setStripeCustomerId(stripeCustomerId);
+    if (lsCustomerId) await store.setLsCustomerId(lsCustomerId);
   } catch {
     // Offline or Firestore unavailable — local SQLite value is already loaded,
     // so the user experience is unaffected. No log needed.
@@ -40,17 +40,18 @@ export async function verifyPremiumStatus(uid: string): Promise<void> {
 }
 
 /**
- * Called immediately after successful payment to write premium status to Firestore.
+ * Called by the "Restore Purchase" button to force-read Firestore and sync
+ * local premium state. Returns true if an active subscription was found.
  */
-export async function activatePremiumInFirestore(
-  uid: string,
-  stripeCustomerId: string,
-  subscriptionId: string
-): Promise<void> {
+export async function syncPremiumFromFirestore(uid: string): Promise<boolean> {
   const ref = doc(firestore, 'users', uid, 'profile', 'subscription');
-  await setDoc(
-    ref,
-    { isPremium: true, subscriptionStatus: 'active', stripeCustomerId, subscriptionId },
-    { merge: true }
-  );
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return false;
+
+  const { isPremium, subscriptionStatus, lsCustomerId } = snap.data();
+  const store = useSettingsStore.getState();
+  await store.setPremium(!!isPremium);
+  if (subscriptionStatus) await store.setSubscriptionStatus(subscriptionStatus);
+  if (lsCustomerId) await store.setLsCustomerId(lsCustomerId);
+  return !!isPremium;
 }

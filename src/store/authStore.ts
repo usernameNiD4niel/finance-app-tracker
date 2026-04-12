@@ -57,7 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await firebaseSignOut();
     const settings = useSettingsStore.getState();
     await settings.setPremium(false);
-    await settings.setStripeCustomerId('');
+    await settings.setLsCustomerId('');
     await settings.setSubscriptionStatus('');
     set({ user: null, isAuthenticated: false });
   },
@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await firebaseSignOut();
     const settings = useSettingsStore.getState();
     await settings.setPremium(false);
-    await settings.setStripeCustomerId('');
+    await settings.setLsCustomerId('');
     await settings.setSubscriptionStatus('');
     set({ user: null, isAuthenticated: false });
 

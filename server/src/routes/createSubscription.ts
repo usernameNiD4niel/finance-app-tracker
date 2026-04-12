@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express';
-import Stripe from 'stripe';
 import { db } from '../firebase-admin';
 
 const router = Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-04-10' });
+
+const LS_API = 'https://api.lemonsqueezy.com/v1';
 
 router.post('/', async (req: Request, res: Response) => {
   const { userId, email } = req.body as { userId: string; email: string };
@@ -13,42 +13,52 @@ router.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    // Reuse existing customer if available
-    const profileRef = db.collection('users').doc(userId).collection('profile').doc('subscription');
-    const profileSnap = await profileRef.get();
-    const existingCustomerId: string | undefined = profileSnap.exists ? profileSnap.data()?.stripeCustomerId : undefined;
+    const lsRes = await fetch(`${LS_API}/checkouts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.LEMONSQUEEZY_API_KEY!}`,
+        'Content-Type': 'application/vnd.api+json',
+        Accept: 'application/vnd.api+json',
+      },
+      body: JSON.stringify({
+        data: {
+          type: 'checkouts',
+          attributes: {
+            checkout_data: {
+              email,
+              custom: { userId },
+            },
+            product_options: {
+              redirect_url: 'ledgerist://payment-success',
+            },
+          },
+          relationships: {
+            store: {
+              data: { type: 'stores', id: String(process.env.LEMONSQUEEZY_STORE_ID) },
+            },
+            variant: {
+              data: { type: 'variants', id: String(process.env.LEMONSQUEEZY_VARIANT_ID) },
+            },
+          },
+        },
+      }),
+    });
 
-    let customerId = existingCustomerId;
-    if (!customerId) {
-      const customer = await stripe.customers.create({ email, metadata: { userId } });
-      customerId = customer.id;
+    const result = await lsRes.json() as any;
+
+    if (result.errors) {
+      const msg = result.errors[0]?.detail ?? 'Lemon Squeezy error';
+      return res.status(502).json({ error: msg });
     }
 
-    // Create subscription in incomplete state — requires payment method confirmation
-    const subscription = await stripe.subscriptions.create({
-      customer: customerId,
-      items: [{ price: process.env.STRIPE_PRICE_ID! }],
-      payment_behavior: 'default_incomplete',
-      payment_settings: { save_default_payment_method: 'on_subscription' },
-      expand: ['latest_invoice.payment_intent'],
-    });
+    const checkoutUrl = result.data?.attributes?.url;
+    if (!checkoutUrl) {
+      return res.status(502).json({ error: 'No checkout URL returned' });
+    }
 
-    const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = invoice.payment_intent as Stripe.PaymentIntent;
-
-    // Persist customer + subscription IDs to Firestore
-    await profileRef.set(
-      { stripeCustomerId: customerId, subscriptionId: subscription.id },
-      { merge: true }
-    );
-
-    return res.json({
-      clientSecret: paymentIntent.client_secret,
-      customerId,
-      subscriptionId: subscription.id,
-    });
+    return res.json({ checkoutUrl });
   } catch (err: any) {
-    console.error('[createSubscription]', err.message);
+    console.error('[createCheckout]', err.message);
     return res.status(500).json({ error: err.message });
   }
 });

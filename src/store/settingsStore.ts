@@ -12,8 +12,9 @@ interface SettingsState {
   cloudSyncEnabled: boolean;
   firebaseUid: string | null;
   lastSyncedAt: string | null;
-  stripeCustomerId: string | null;
+  lsCustomerId: string | null;
   subscriptionStatus: string | null;
+  guestWarningDismissed: boolean;
   setCurrency: (currency: string) => Promise<void>;
   setTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>;
   setPrimaryColor: (color: string) => Promise<void>;
@@ -23,8 +24,9 @@ interface SettingsState {
   setCloudSyncEnabled: (enabled: boolean) => Promise<void>;
   setFirebaseUid: (uid: string | null) => Promise<void>;
   setLastSyncedAt: (timestamp: string) => Promise<void>;
-  setStripeCustomerId: (id: string) => Promise<void>;
+  setLsCustomerId: (id: string) => Promise<void>;
   setSubscriptionStatus: (status: string) => Promise<void>;
+  setGuestWarningDismissed: (val: boolean) => Promise<void>;
   loadSettings: () => Promise<void>;
 }
 
@@ -39,11 +41,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   cloudSyncEnabled: false,
   firebaseUid: null,
   lastSyncedAt: null,
-  stripeCustomerId: null,
+  lsCustomerId: null,
   subscriptionStatus: null,
+  guestWarningDismissed: false,
 
   loadSettings: async () => {
-    const [currency, theme, onboarding, pin, primaryColor, premium, cloudSync, firebaseUid, lastSyncedAt, stripeCustomerId, subscriptionStatus] = await Promise.all([
+    const [currency, theme, onboarding, pin, primaryColor, premium, cloudSync, firebaseUid, lastSyncedAt, lsCustomerId, subscriptionStatus, guestWarningDismissed] = await Promise.all([
       getSetting('currency'),
       getSetting('theme'),
       getSetting('onboarding_done'),
@@ -53,8 +56,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       getSetting('cloud_sync_enabled'),
       getSetting('firebase_uid'),
       getSetting('last_synced_at'),
-      getSetting('stripe_customer_id'),
+      getSetting('ls_customer_id'),
       getSetting('subscription_status'),
+      getSetting('guest_warning_dismissed'),
     ]);
     set({
       currency: currency ?? 'USD',
@@ -67,8 +71,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       cloudSyncEnabled: cloudSync === 'true',
       firebaseUid: firebaseUid ?? null,
       lastSyncedAt: lastSyncedAt ?? null,
-      stripeCustomerId: stripeCustomerId ?? null,
+      lsCustomerId: lsCustomerId ?? null,
       subscriptionStatus: subscriptionStatus ?? null,
+      guestWarningDismissed: guestWarningDismissed === 'true',
     });
   },
 
@@ -119,13 +124,18 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     set({ lastSyncedAt: timestamp });
   },
 
-  setStripeCustomerId: async (id) => {
-    await setSetting('stripe_customer_id', id);
-    set({ stripeCustomerId: id });
+  setLsCustomerId: async (id) => {
+    await setSetting('ls_customer_id', id);
+    set({ lsCustomerId: id });
   },
 
   setSubscriptionStatus: async (status) => {
     await setSetting('subscription_status', status);
     set({ subscriptionStatus: status });
+  },
+
+  setGuestWarningDismissed: async (val) => {
+    await setSetting('guest_warning_dismissed', val ? 'true' : 'false');
+    set({ guestWarningDismissed: val });
   },
 }));

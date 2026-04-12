@@ -16,6 +16,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { format } from 'date-fns';
 import { neuButton, neuCard } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -41,6 +42,8 @@ export default function AddExpenseScreen() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useGuestWarning();
 
   const isEditing = !!id;
   const existing = isEditing ? expenses.find(e => e.id === Number(id)) : null;

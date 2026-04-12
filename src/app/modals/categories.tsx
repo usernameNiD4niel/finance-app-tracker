@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCategoryStore } from '../../store/categoryStore';
 import { neuButton, neuListItem, neuCardLg, neuChip } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -31,6 +32,8 @@ export default function CategoriesScreen() {
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
+
+  useGuestWarning();
 
   useEffect(() => { loadCategories(); }, []);
 

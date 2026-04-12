@@ -10,6 +10,7 @@ import { useAuthStore } from '../../store/authStore';
 import { PremiumModal } from '../../components/PremiumModal';
 import { formatCurrency } from '../../utils/currency';
 import { neuCard, neuListItem } from '../../theme/neumorphism';
+import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { AppTheme } from '../../theme';
 
 const FREQ_LABELS: Record<string, string> = {
@@ -28,6 +29,8 @@ export default function RecurringScreen() {
   const { user } = useAuthStore();
   const { allRecurring, loadAllRecurring, sources, removeRecurring } = useSourceStore();
   const [premiumVisible, setPremiumVisible] = useState(false);
+
+  useGuestWarning();
 
   useEffect(() => {
     if (!isPremium) {

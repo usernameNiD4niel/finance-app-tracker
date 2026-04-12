@@ -1,61 +1,36 @@
 // ============================================================
-// Cloudflare Worker — Stripe + Firestore backend
+// Cloudflare Worker — Lemon Squeezy + Firestore backend
 // Handles 3 routes:
-//   POST /api/create-subscription
+//   POST /api/create-checkout
 //   POST /api/webhook
 //   GET  /api/subscription-status/:userId
 //
 // Required secrets (set in Cloudflare Dashboard → Settings → Variables):
-//   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID
+//   LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_WEBHOOK_SECRET
+//   LEMONSQUEEZY_STORE_ID, LEMONSQUEEZY_VARIANT_ID
 //   FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
 // ============================================================
 
-// ── Stripe helpers (pure fetch, no SDK) ──────────────────────
+// ── Lemon Squeezy helpers ────────────────────────────────────
 
-async function stripeRequest(env, method, path, params) {
-  const body = params ? buildFormBody(params) : undefined;
-  const res = await fetch(`https://api.stripe.com/v1${path}`, {
+async function lsRequest(env, method, path, body) {
+  const res = await fetch(`https://api.lemonsqueezy.com/v1${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Bearer ${env.LEMONSQUEEZY_API_KEY}`,
+      'Content-Type': 'application/vnd.api+json',
+      Accept: 'application/vnd.api+json',
     },
-    body,
+    body: body ? JSON.stringify(body) : undefined,
   });
   return res.json();
 }
 
-// Builds URL-encoded form body; supports nested keys and arrays
-function buildFormBody(params, prefix = '') {
-  const parts = [];
-  for (const [key, val] of Object.entries(params)) {
-    const fullKey = prefix ? `${prefix}[${key}]` : key;
-    if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
-      parts.push(buildFormBody(val, fullKey));
-    } else if (Array.isArray(val)) {
-      for (const item of val) {
-        parts.push(`${encodeURIComponent(fullKey + '[]')}=${encodeURIComponent(item)}`);
-      }
-    } else {
-      parts.push(`${encodeURIComponent(fullKey)}=${encodeURIComponent(val)}`);
-    }
-  }
-  return parts.join('&');
-}
+// ── Lemon Squeezy webhook signature verification ─────────────
+// LS signs the raw body with HMAC-SHA256 and puts the hex digest in X-Signature.
 
-// ── Stripe webhook signature verification ───────────────────
-
-async function verifyStripeSignature(rawBody, sigHeader, secret) {
-  if (!sigHeader) throw new Error('Missing Stripe-Signature header');
-
-  const parts = sigHeader.split(',');
-  const tPart = parts.find(p => p.startsWith('t='));
-  const v1Part = parts.find(p => p.startsWith('v1='));
-  if (!tPart || !v1Part) throw new Error('Invalid Stripe-Signature header');
-
-  const timestamp = tPart.slice(2);
-  const expectedSig = v1Part.slice(3);
-  const signedPayload = `${timestamp}.${rawBody}`;
+async function verifyLSSignature(rawBody, signatureHeader, secret) {
+  if (!signatureHeader) throw new Error('Missing X-Signature header');
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -64,17 +39,12 @@ async function verifyStripeSignature(rawBody, sigHeader, secret) {
     false,
     ['sign']
   );
-  const sigBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
+  const sigBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody));
   const computedSig = Array.from(new Uint8Array(sigBytes))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
 
-  if (computedSig !== expectedSig) throw new Error('Signature mismatch');
-
-  const tolerance = 300; // 5 minutes
-  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > tolerance) {
-    throw new Error('Timestamp too old');
-  }
+  if (computedSig !== signatureHeader) throw new Error('Signature mismatch');
 }
 
 // ── Firebase / Firestore helpers ─────────────────────────────
@@ -193,18 +163,9 @@ async function firestoreMerge(env, userId, data) {
   }
 }
 
-// ── Shared: look up userId from a Stripe customerId ──────────
+// ── Route: POST /api/create-checkout ─────────────────────────
 
-async function getUserIdFromCustomer(env, customerId) {
-  const customer = await stripeRequest(env, 'GET', `/customers/${customerId}`, null);
-  const userId = customer.metadata?.userId;
-  if (!userId) throw new Error(`No userId in Stripe customer metadata for ${customerId}`);
-  return userId;
-}
-
-// ── Route: POST /api/create-subscription ─────────────────────
-
-async function handleCreateSubscription(req, env) {
+async function handleCreateCheckout(req, env) {
   let body;
   try {
     body = await req.json();
@@ -217,74 +178,95 @@ async function handleCreateSubscription(req, env) {
     return Response.json({ error: 'userId and email are required' }, { status: 400 });
   }
 
-  // Reuse existing Stripe customer if one was saved to Firestore
-  const existingDoc = await firestoreGet(env, userId);
-  let customerId = existingDoc?.fields
-    ? fromFirestoreValue(existingDoc.fields.stripeCustomerId)
-    : undefined;
+  const result = await lsRequest(env, 'POST', '/checkouts', {
+    data: {
+      type: 'checkouts',
+      attributes: {
+        checkout_data: {
+          email,
+          custom: { userId },
+        },
+        product_options: {
+          redirect_url: 'ledgerist://payment-success',
+        },
+      },
+      relationships: {
+        store: {
+          data: { type: 'stores', id: String(env.LEMONSQUEEZY_STORE_ID) },
+        },
+        variant: {
+          data: { type: 'variants', id: String(env.LEMONSQUEEZY_VARIANT_ID) },
+        },
+      },
+    },
+  });
 
-  if (!customerId) {
-    const customer = await stripeRequest(env, 'POST', '/customers', {
-      email,
-      'metadata[userId]': userId,
-    });
-    if (customer.error) throw new Error(customer.error.message);
-    customerId = customer.id;
+  if (result.errors) {
+    const msg = result.errors[0]?.detail ?? 'Lemon Squeezy error';
+    return Response.json({ error: msg }, { status: 502 });
   }
 
-  const subscription = await stripeRequest(env, 'POST', '/subscriptions', {
-    customer: customerId,
-    'items[0][price]': env.STRIPE_PRICE_ID,
-    payment_behavior: 'default_incomplete',
-    'payment_settings[save_default_payment_method]': 'on_subscription',
-    'expand[]': 'latest_invoice.payment_intent',
-  });
-  if (subscription.error) throw new Error(subscription.error.message);
+  const checkoutUrl = result.data?.attributes?.url;
+  if (!checkoutUrl) {
+    return Response.json({ error: 'No checkout URL returned' }, { status: 502 });
+  }
 
-  const clientSecret = subscription.latest_invoice?.payment_intent?.client_secret;
-  const subscriptionId = subscription.id;
-
-  await firestoreMerge(env, userId, { stripeCustomerId: customerId, subscriptionId });
-
-  return Response.json({ clientSecret, customerId, subscriptionId });
+  return Response.json({ checkoutUrl });
 }
 
 // ── Route: POST /api/webhook ──────────────────────────────────
 
 async function handleWebhook(req, env) {
   const rawBody = await req.text();
-  const sig = req.headers.get('stripe-signature') ?? '';
+  // Cloudflare Workers normalise headers to lowercase
+  const sig = req.headers.get('x-signature') ?? '';
 
   try {
-    await verifyStripeSignature(rawBody, sig, env.STRIPE_WEBHOOK_SECRET);
+    await verifyLSSignature(rawBody, sig, env.LEMONSQUEEZY_WEBHOOK_SECRET);
   } catch (err) {
     console.error('[webhook] Signature error:', err.message);
     return new Response(`Webhook Error: ${err.message}`, { status: 400 });
   }
 
   const event = JSON.parse(rawBody);
+  const eventName = event.meta?.event_name;
+  const userId = event.meta?.custom_data?.userId;
+  const attrs = event.data?.attributes;
+
+  if (!userId) {
+    // No userId means we cannot update the right Firestore document.
+    // Return 200 so Lemon Squeezy does not keep retrying.
+    console.error('[webhook] No userId in meta.custom_data');
+    return Response.json({ received: true });
+  }
 
   try {
-    switch (event.type) {
-      case 'customer.subscription.updated': {
-        const sub = event.data.object;
-        const userId = await getUserIdFromCustomer(env, sub.customer);
+    switch (eventName) {
+      case 'subscription_created': {
+        const lsCustomerId = String(attrs.customer_id);
+        const subscriptionId = String(event.data.id);
         await firestoreMerge(env, userId, {
-          isPremium: sub.status === 'active',
-          subscriptionStatus: sub.status,
+          isPremium: attrs.status === 'active',
+          subscriptionStatus: attrs.status,
+          lsCustomerId,
+          subscriptionId,
         });
         break;
       }
-      case 'customer.subscription.deleted': {
-        const sub = event.data.object;
-        const userId = await getUserIdFromCustomer(env, sub.customer);
-        await firestoreMerge(env, userId, { isPremium: false, subscriptionStatus: 'canceled' });
+      case 'subscription_updated': {
+        const isActive = attrs.status === 'active';
+        await firestoreMerge(env, userId, {
+          isPremium: isActive,
+          subscriptionStatus: attrs.status,
+        });
         break;
       }
-      case 'invoice.payment_failed': {
-        const invoice = event.data.object;
-        const userId = await getUserIdFromCustomer(env, invoice.customer);
-        await firestoreMerge(env, userId, { isPremium: false, subscriptionStatus: 'past_due' });
+      case 'subscription_cancelled':
+      case 'subscription_expired': {
+        await firestoreMerge(env, userId, {
+          isPremium: false,
+          subscriptionStatus: attrs.status ?? eventName.replace('subscription_', ''),
+        });
         break;
       }
       default:
@@ -317,7 +299,7 @@ async function handleSubscriptionStatus(env, userId) {
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, stripe-signature',
+  'Access-Control-Allow-Headers': 'Content-Type',
 };
 
 function withCors(res) {
@@ -338,11 +320,11 @@ export default {
     }
 
     try {
-      if (method === 'POST' && pathname === '/api/create-subscription') {
-        return withCors(await handleCreateSubscription(request, env));
+      if (method === 'POST' && pathname === '/api/create-checkout') {
+        return withCors(await handleCreateCheckout(request, env));
       }
 
-      // Webhook does NOT need CORS — called by Stripe server-to-server
+      // Webhook does NOT need CORS — called by Lemon Squeezy server-to-server
       if (method === 'POST' && pathname === '/api/webhook') {
         return handleWebhook(request, env);
       }
