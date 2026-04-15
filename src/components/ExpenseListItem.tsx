@@ -21,7 +21,7 @@ interface Props {
   index?: number;
 }
 
-export function ExpenseListItem({
+export const ExpenseListItem = React.memo(function ExpenseListItem({
   id, amount, note, date,
   categoryName, categoryIcon, categoryColor,
   currency, onDelete, onEdit, index = 0,
@@ -66,7 +66,7 @@ export function ExpenseListItem({
       </Text>
     </ListRowCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

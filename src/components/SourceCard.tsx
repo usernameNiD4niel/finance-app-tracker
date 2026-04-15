@@ -31,7 +31,7 @@ interface Props {
   index?: number;
 }
 
-export function SourceCard({
+export const SourceCard = React.memo(function SourceCard({
   id, name, type, icon, color, balance, isCustom, isActive,
   currency, onDeposit, onWithdraw, onTransfer, onEdit, onDelete, index = 0,
 }: Props) {
@@ -95,7 +95,7 @@ export function SourceCard({
       </View>
     </ListRowCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

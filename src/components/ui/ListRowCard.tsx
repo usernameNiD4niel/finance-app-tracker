@@ -26,25 +26,23 @@ export function ListRowCard({ children, onPress, onLongPress, index = 0, style }
   }));
 
   return (
-    <Animated.View>
-      <Animated.View style={pressStyle}>
-        <Pressable
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.custom.cardBg,
-              boxShadow: neuListItem(theme) as any,
-            },
-            style,
-          ]}
-          onPress={onPress}
-          onLongPress={onLongPress}
-          onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 300 }); }}
-          onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300 }); }}
-        >
-          {children}
-        </Pressable>
-      </Animated.View>
+    <Animated.View style={pressStyle}>
+      <Pressable
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.custom.cardBg,
+            boxShadow: neuListItem(theme) as any,
+          },
+          style,
+        ]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 300 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 300 }); }}
+      >
+        {children}
+      </Pressable>
     </Animated.View>
   );
 }

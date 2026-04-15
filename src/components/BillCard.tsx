@@ -23,7 +23,7 @@ interface Props {
   index?: number;
 }
 
-export function BillCard({
+export const BillCard = React.memo(function BillCard({
   id, name, amount, dueDay, isActive, frequency,
   categoryIcon, categoryColor, currency,
   onToggle, onDelete, onEdit, index = 0,
@@ -86,7 +86,7 @@ export function BillCard({
       </View>
     </ListRowCard>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

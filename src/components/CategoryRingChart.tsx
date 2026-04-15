@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,8 +34,11 @@ function AnimatedSegment({ flex, color, delay }: { flex: number; color: string; 
 export function CategoryRingChart({ categoryTotals, currency }: Props) {
   const theme = useTheme<AppTheme>();
 
-  const sorted = [...categoryTotals].sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
-  const grandTotal = sorted.reduce((sum, c) => sum + (c.total ?? 0), 0);
+  const { sorted, grandTotal } = useMemo(() => {
+    const s = [...categoryTotals].sort((a, b) => (b.total ?? 0) - (a.total ?? 0));
+    const total = s.reduce((sum, c) => sum + (c.total ?? 0), 0);
+    return { sorted: s, grandTotal: total };
+  }, [categoryTotals]);
 
   if (sorted.length === 0 || grandTotal === 0) {
     return (

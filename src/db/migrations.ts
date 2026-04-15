@@ -247,6 +247,21 @@ export function runMigrations() {
     }
   }
 
+  // ── Performance indexes ──────────────────────────────────────────────────────
+  sqlite.execSync(`
+    CREATE INDEX IF NOT EXISTS idx_expenses_user_date ON expenses(user_id, date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
+    CREATE INDEX IF NOT EXISTS idx_expenses_deleted ON expenses(user_id, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_bills_user_deleted ON bills(user_id, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_targets_user_month ON targets(user_id, month, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_category_targets_target ON category_targets(target_id, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_lends_user_active ON lends(user_id, is_paid, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_money_sources_user ON money_sources(user_id, is_active, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_notification_log_bill ON notification_log(bill_id);
+    CREATE INDEX IF NOT EXISTS idx_notification_log_schedule ON notification_log(scheduled_for, read_at);
+    CREATE INDEX IF NOT EXISTS idx_recurring_source ON recurring_transactions(source_id, deleted_at);
+  `);
+
   // ── Dedup predefined categories ─────────────────────────────────────────────
   try { dedupPredefinedCategories(); } catch (_e) {}
 

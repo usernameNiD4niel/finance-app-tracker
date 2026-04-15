@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -43,22 +43,23 @@ export function DailySpendingChart({ dailyTotals, month, currency }: Props) {
   const isCurrentMonth = format(today, 'yyyy-MM') === format(month, 'yyyy-MM');
   const todayDay = getDate(today);
 
-  const dailyMap = new Map<number, number>();
-  for (const dt of dailyTotals) {
-    const day = parseInt(dt.date.split('-')[2], 10);
-    dailyMap.set(day, dt.total);
-  }
-
-  const maxDaily = Math.max(...Array.from(dailyMap.values()), 1);
-
-  let peakDay = 0;
-  let peakAmount = 0;
-  dailyMap.forEach((total, day) => {
-    if (total > peakAmount) {
-      peakAmount = total;
-      peakDay = day;
+  const { dailyMap, maxDaily, peakDay, peakAmount } = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const dt of dailyTotals) {
+      const day = parseInt(dt.date.split('-')[2], 10);
+      map.set(day, dt.total);
     }
-  });
+    const max = Math.max(...Array.from(map.values()), 1);
+    let pDay = 0;
+    let pAmount = 0;
+    map.forEach((total, day) => {
+      if (total > pAmount) {
+        pAmount = total;
+        pDay = day;
+      }
+    });
+    return { dailyMap: map, maxDaily: max, peakDay: pDay, peakAmount: pAmount };
+  }, [dailyTotals]);
 
   if (dailyTotals.length === 0) {
     return (

@@ -342,9 +342,7 @@ export async function upsertTarget(month: string, overallLimit: number | null, u
 }
 
 export async function getCategoryTargetsForMonth(month: string, userId: string | null = null) {
-  const target = await getTargetForMonth(month, userId);
-  if (!target) return [];
-
+  const userFilter = userId ? eq(targets.userId, userId) : isNull(targets.userId);
   return db
     .select({
       id: categoryTargets.id,
@@ -356,8 +354,9 @@ export async function getCategoryTargetsForMonth(month: string, userId: string |
       categoryColor: categories.color,
     })
     .from(categoryTargets)
+    .innerJoin(targets, eq(categoryTargets.targetId, targets.id))
     .leftJoin(categories, eq(categoryTargets.categoryId, categories.id))
-    .where(and(eq(categoryTargets.targetId, target.id), isNull(categoryTargets.deletedAt)))
+    .where(and(eq(targets.month, month), isNull(targets.deletedAt), userFilter, isNull(categoryTargets.deletedAt)))
     .all();
 }
 

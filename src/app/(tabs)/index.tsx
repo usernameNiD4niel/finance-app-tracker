@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -27,6 +27,11 @@ import { getUnreadNotificationCount } from '../../db/queries';
 import type { AppTheme } from '../../theme';
 import type { UpcomingBill } from '../../services/balance';
 
+const FREQ_LABELS: Record<string, string> = {
+  daily: 'Daily', weekly: 'Weekly',
+  start_of_month: 'Start of Month', end_of_month: 'End of Month', specific_day: 'Specific Day',
+};
+
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour < 12) return 'Good morning';
@@ -46,12 +51,21 @@ export default function DashboardScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { currency, isPremium, lastSyncedAt } = useSettingsStore();
-  const { user } = useAuthStore();
-  const { expenses, loadExpenses, removeExpense } = useExpenseStore();
-  const { currentTarget, categoryTargets, loadTargets } = useTargetStore();
-  const { activeLends, loadActiveLends, markPaid: markLendPaid } = useLendStore();
-  const { allRecurring, loadAllRecurring, sources } = useSourceStore();
+  const currency = useSettingsStore(s => s.currency);
+  const isPremium = useSettingsStore(s => s.isPremium);
+  const user = useAuthStore(s => s.user);
+  const expenses = useExpenseStore(s => s.expenses);
+  const loadExpenses = useExpenseStore(s => s.loadExpenses);
+  const removeExpense = useExpenseStore(s => s.removeExpense);
+  const currentTarget = useTargetStore(s => s.currentTarget);
+  const categoryTargets = useTargetStore(s => s.categoryTargets);
+  const loadTargets = useTargetStore(s => s.loadTargets);
+  const activeLends = useLendStore(s => s.activeLends);
+  const loadActiveLends = useLendStore(s => s.loadActiveLends);
+  const markLendPaid = useLendStore(s => s.markPaid);
+  const allRecurring = useSourceStore(s => s.allRecurring);
+  const loadAllRecurring = useSourceStore(s => s.loadAllRecurring);
+  const sources = useSourceStore(s => s.sources);
   const [premiumVisible, setPremiumVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -88,20 +102,36 @@ export default function DashboardScreen() {
     setBalanceData(balance);
   }, [markLendPaid]);
 
+  const onEdit = useCallback((id: number) => {
+    router.push({ pathname: '/modals/add-expense', params: { id } });
+  }, [router]);
+
   useFocusEffect(useCallback(() => {
     load();
     getUnreadNotificationCount(user?.uid ?? null).then(setUnreadCount);
-  }, [load, lastSyncedAt]));
+  }, [load]));
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await load();
     setRefreshing(false);
-  };
+  }, [load]);
 
-  const recentExpenses = expenses.slice(0, 5);
+  const recentExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
+  const topCategoryTargets = useMemo(() => categoryTargets.slice(0, 3), [categoryTargets]);
+  const topLends = useMemo(() => activeLends.slice(0, 3), [activeLends]);
+  const topRecurring = useMemo(() => allRecurring.slice(0, 5), [allRecurring]);
 
-  const quickActions = [
+  const sourceMap = useMemo(() => {
+    const map = new Map<number, typeof sources[0]>();
+    sources.forEach(s => map.set(s.id, s));
+    return map;
+  }, [sources]);
+
+  const neuListItemShadow = useMemo(() => neuListItem(theme), [theme]);
+  const neuCardShadow = useMemo(() => neuCard(theme), [theme]);
+
+  const quickActions = useMemo(() => [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
     { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
     {
@@ -109,7 +139,7 @@ export default function DashboardScreen() {
       onPress: () => isPremium ? router.push('/modals/add-lend') : setPremiumVisible(true),
     },
     { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
-  ];
+  ], [theme, isPremium, router]);
 
   return (
     <ScreenContainer>
@@ -175,7 +205,7 @@ export default function DashboardScreen() {
                     styles.upcomingBill,
                     {
                       backgroundColor: theme.custom.cardBg,
-                      boxShadow: neuListItem(theme) as any,
+                      boxShadow: neuListItemShadow as any,
                     },
                   ]}
                   onPress={() => router.push('/(tabs)/bills')}
@@ -222,7 +252,7 @@ export default function DashboardScreen() {
                 limit={currentTarget.overallLimit}
                 currency={currency}
               />
-              {categoryTargets.slice(0, 3).map((ct) => (
+              {topCategoryTargets.map((ct) => (
                 <BudgetProgressBar
                   key={ct.id}
                   label={ct.categoryName ?? ''}
@@ -242,7 +272,7 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <SectionHeader title="Active Lends" onSeeAll={() => router.push('/modals/lends')} />
             {activeLends.length === 0 ? (
-              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardShadow as any }]}>
                 <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                   No active lends
@@ -252,7 +282,7 @@ export default function DashboardScreen() {
                 </Text>
               </View>
             ) : (
-              activeLends.slice(0, 3).map((lend, i) => (
+              topLends.map((lend, i) => (
                 <LendCard
                   key={lend.id}
                   id={lend.id}
@@ -285,17 +315,13 @@ export default function DashboardScreen() {
               title="Recurring Transactions"
               onSeeAll={allRecurring.length > 5 ? () => router.push('/modals/recurring') : undefined}
             />
-            {allRecurring.slice(0, 5).map((rt) => {
-              const source = sources.find(s => s.id === rt.sourceId);
+            {topRecurring.map((rt) => {
+              const source = sourceMap.get(rt.sourceId);
               const isDeposit = rt.type === 'deposit';
-              const FREQ_LABELS: Record<string, string> = {
-                daily: 'Daily', weekly: 'Weekly',
-                start_of_month: 'Start of Month', end_of_month: 'End of Month', specific_day: 'Specific Day',
-              };
               return (
                 <Pressable
                   key={rt.id}
-                  style={[styles.recurringRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItem(theme) as any }]}
+                  style={[styles.recurringRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItemShadow as any }]}
                   onPress={() => router.push('/modals/recurring')}
                 >
                   <View style={[styles.recurringIcon, { backgroundColor: (source?.color ?? theme.colors.primary) + '22' }]}>
@@ -341,7 +367,7 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
+            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardShadow as any }]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet
@@ -363,7 +389,7 @@ export default function DashboardScreen() {
                 categoryColor={exp.categoryColor ?? null}
                 currency={currency}
                 onDelete={removeExpense}
-                onEdit={(id) => router.push({ pathname: '/modals/add-expense', params: { id } })}
+                onEdit={onEdit}
                 index={i}
               />
             ))

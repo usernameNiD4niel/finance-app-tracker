@@ -17,7 +17,7 @@ interface Props {
   currency: string;
 }
 
-export function BudgetProgressBar({ label, icon, iconColor, spent, limit, currency }: Props) {
+export const BudgetProgressBar = React.memo(function BudgetProgressBar({ label, icon, iconColor, spent, limit, currency }: Props) {
   const theme = useTheme<AppTheme>();
   const ratio = Math.min(spent / limit, 1);
   const animatedWidth = useSharedValue(0);
@@ -60,7 +60,7 @@ export function BudgetProgressBar({ label, icon, iconColor, spent, limit, curren
       </Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
