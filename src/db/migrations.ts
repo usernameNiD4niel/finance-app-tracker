@@ -96,6 +96,10 @@ export function runMigrations() {
   try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
 
+  // Add charge_time and last_charged_date to bills
+  try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN charge_time TEXT NOT NULL DEFAULT '20:00'`); } catch (_e) {}
+  try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN last_charged_date TEXT`); } catch (_e) {}
+
   // Add interest columns to lends (ignore if already exists)
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN has_interest INTEGER NOT NULL DEFAULT 0`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_type TEXT`); } catch (_e) { /* column exists */ }

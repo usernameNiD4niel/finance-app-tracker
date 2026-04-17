@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '../../components/CategoryPicker';
 import { SourcePicker } from '../../components/SourcePicker';
+import { TimePickerField } from '../../components/ui/TimePickerField';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useBillStore } from '../../store/billStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -19,14 +20,26 @@ import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
+function formatAmountDisplay(raw: string): string {
+  const stripped = raw.replace(/,/g, '');
+  const [int, dec] = stripped.split('.');
+  const formatted = (int || '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return dec !== undefined ? `${formatted}.${dec}` : formatted;
+}
+
+function stripCommas(val: string): string {
+  return val.replace(/,/g, '');
+}
+
 const schema = z.object({
   name: z.string().min(1, 'Required'),
-  amount: z.string().min(1, 'Required').refine(v => !isNaN(Number(v)) && Number(v) > 0, 'Enter a valid amount'),
+  amount: z.string().min(1, 'Required').refine(v => !isNaN(Number(stripCommas(v))) && Number(stripCommas(v)) > 0, 'Enter a valid amount'),
   dueDay: z.string().min(1, 'Required').refine(v => {
     const n = Number(v);
     return Number.isInteger(n) && n >= 1 && n <= 31;
   }, 'Enter a day 1-31'),
   notifyDaysBefore: z.string(),
+  chargeTime: z.string().min(1, 'Required'),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -62,6 +75,7 @@ export default function AddBillScreen() {
       amount: existing ? String(existing.amount) : '',
       dueDay: existing ? String(existing.dueDay) : '',
       notifyDaysBefore: existing ? String(existing.notifyDaysBefore) : '1',
+      chargeTime: existing?.chargeTime ?? '20:00',
     },
   });
 
@@ -93,12 +107,13 @@ export default function AddBillScreen() {
     try {
       const payload = {
         name: data.name,
-        amount: Number(data.amount),
+        amount: Number(stripCommas(data.amount)),
         categoryId: selectedCategory.id,
         sourceId: selectedSource?.id ?? null,
         frequency,
         dueDay: Number(data.dueDay),
         notifyDaysBefore: notifyEnabled ? Number(data.notifyDaysBefore) : 0,
+        chargeTime: data.chargeTime,
         isActive: true,
       };
 
@@ -153,7 +168,16 @@ export default function AddBillScreen() {
           control={control}
           name="amount"
           render={({ field: { onChange, value } }) => (
-            <TextInput value={value} onChangeText={onChange} keyboardType="decimal-pad" mode="outlined" placeholder="0.00" left={<TextInput.Affix text={currency} />} error={!!errors.amount} style={styles.input} />
+            <TextInput
+              value={formatAmountDisplay(value)}
+              onChangeText={raw => onChange(stripCommas(raw))}
+              keyboardType="decimal-pad"
+              mode="outlined"
+              placeholder="0.00"
+              left={<TextInput.Affix text={currency} />}
+              error={!!errors.amount}
+              style={styles.input}
+            />
           )}
         />
 
@@ -226,6 +250,19 @@ export default function AddBillScreen() {
           name="dueDay"
           render={({ field: { onChange, value } }) => (
             <TextInput value={value} onChangeText={onChange} keyboardType="number-pad" mode="outlined" placeholder="e.g. 15" error={!!errors.dueDay} style={styles.input} />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="chargeTime"
+          render={({ field: { onChange, value } }) => (
+            <TimePickerField
+              label="Charge Time"
+              value={value}
+              onChange={onChange}
+              error={!!errors.chargeTime}
+            />
           )}
         />
 

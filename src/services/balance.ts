@@ -22,11 +22,18 @@ export async function calculateCurrentBalance(): Promise<{
 
   const spent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
 
+  // Only count active monthly bills not yet charged this month as "upcoming"
+  const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const billsDue = allBills
-    .filter(b => b.isActive && b.frequency === 'monthly')
+    .filter(b => {
+      if (!b.isActive || b.frequency !== 'monthly') return false;
+      return (b.lastChargedDate ?? '').substring(0, 7) !== currentMonthKey;
+    })
     .reduce((sum, b) => sum + b.amount, 0);
 
-  const balance = walletBalance - spent - billsDue;
+  // walletBalance already reflects all actual charges (adjustSourceBalance),
+  // so it is the authoritative "money you have now" figure.
+  const balance = walletBalance;
 
   return { spent, billsDue, walletBalance, balance };
 }

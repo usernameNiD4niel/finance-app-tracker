@@ -136,6 +136,7 @@ function collectPendingBills(uid: string): PushItem[] {
               sourceId: sourceSyncId ?? null, frequency: r.frequency, dueDay: r.due_day,
               isActive: r.is_active === 1, notifyDaysBefore: r.notify_days_before,
               notificationId: r.notification_id ?? null,
+              chargeTime: r.charge_time ?? '20:00', lastChargedDate: r.last_charged_date ?? null,
               createdAt: r.created_at, updatedAt: r.updated_at, deletedAt: r.deleted_at ?? null },
       syncId: r.sync_id,
       table: 'bills',
@@ -334,13 +335,13 @@ async function pullBills(uid: string, since: string | null): Promise<number> {
     );
     if (existing) {
       if (isNewer(data.updatedAt, existing.updated_at)) {
-        sqlite.runSync(`UPDATE bills SET name=?, amount=?, category_id=?, source_id=?, frequency=?, due_day=?, is_active=?, notify_days_before=?, notification_id=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
-          [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
+        sqlite.runSync(`UPDATE bills SET name=?, amount=?, category_id=?, source_id=?, frequency=?, due_day=?, is_active=?, notify_days_before=?, notification_id=?, charge_time=?, last_charged_date=?, updated_at=?, deleted_at=?, user_id=?, sync_status='synced' WHERE id=?`,
+          [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.chargeTime ?? '20:00', data.lastChargedDate ?? null, data.updatedAt, data.deletedAt ?? null, uid, existing.id]);
         count++;
       }
     } else {
-      sqlite.runSync(`INSERT INTO bills (name, amount, category_id, source_id, frequency, due_day, is_active, notify_days_before, notification_id, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
-        [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
+      sqlite.runSync(`INSERT INTO bills (name, amount, category_id, source_id, frequency, due_day, is_active, notify_days_before, notification_id, charge_time, last_charged_date, created_at, sync_id, updated_at, deleted_at, user_id, sync_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'synced')`,
+        [data.name, data.amount, categoryId, sourceId ?? null, data.frequency, data.dueDay, data.isActive ? 1 : 0, data.notifyDaysBefore, data.notificationId ?? null, data.chargeTime ?? '20:00', data.lastChargedDate ?? null, data.createdAt, d.id, data.updatedAt, data.deletedAt ?? null, uid]);
       count++;
     }
   }

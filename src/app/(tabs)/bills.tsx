@@ -78,6 +78,7 @@ export default function BillsScreen() {
             name={item.name}
             amount={item.amount}
             dueDay={item.dueDay}
+            chargeTime={item.chargeTime}
             isActive={item.isActive}
             frequency={item.frequency}
             categoryIcon={item.categoryIcon ?? null}

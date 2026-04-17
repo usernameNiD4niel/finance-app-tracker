@@ -172,6 +172,8 @@ export async function getBills(userId: string | null = null) {
       isActive: bills.isActive,
       notifyDaysBefore: bills.notifyDaysBefore,
       notificationId: bills.notificationId,
+      chargeTime: bills.chargeTime,
+      lastChargedDate: bills.lastChargedDate,
       createdAt: bills.createdAt,
       categoryName: categories.name,
       categoryIcon: categories.icon,

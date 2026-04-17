@@ -9,6 +9,8 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
+import { processDueBills } from '../services/billCharging';
+import { registerBillChargeTask } from '../services/backgroundTasks';
 import { verifyPremiumStatus } from '../services/subscription';
 import { GuestWarningModal } from '../components/GuestWarningModal';
 import { useNetworkSync } from '../hooks/useNetworkSync';
@@ -47,6 +49,8 @@ export default function RootLayout() {
         seedCategories(uid);
         seedMoneySources(uid);
         await processDueRecurringTransactions();
+        await processDueBills();
+        registerBillChargeTask().catch(() => {});
 
         // Notification setup
         await requestNotificationPermissions();

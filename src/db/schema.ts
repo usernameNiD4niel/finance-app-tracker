@@ -40,6 +40,8 @@ export const bills = sqliteTable('bills', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   notifyDaysBefore: integer('notify_days_before').notNull().default(1),
   notificationId: text('notification_id'),
+  chargeTime: text('charge_time').notNull().default('20:00'),
+  lastChargedDate: text('last_charged_date'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
   syncId: text('sync_id').unique(),
   updatedAt: text('updated_at'),

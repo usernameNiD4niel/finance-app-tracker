@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -20,6 +20,7 @@ import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
+import { processDueBills } from '../../services/billCharging';
 import { getCurrentMonth } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { neuCircle, neuListItem, neuCard } from '../../theme/neumorphism';
@@ -107,9 +108,18 @@ export default function DashboardScreen() {
   }, [router]);
 
   useFocusEffect(useCallback(() => {
-    load();
+    processDueBills().then(() => load());
     getUnreadNotificationCount(user?.uid ?? null).then(setUnreadCount);
   }, [load]));
+
+  // Poll every 60s for bills whose charge time has arrived while the app is open
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const charged = await processDueBills();
+      if (charged > 0) load();
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, [load]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

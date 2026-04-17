@@ -12,6 +12,7 @@ interface Props {
   name: string;
   amount: number;
   dueDay: number;
+  chargeTime: string;
   isActive: boolean;
   frequency: string;
   categoryIcon: string | null;
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export const BillCard = React.memo(function BillCard({
-  id, name, amount, dueDay, isActive, frequency,
+  id, name, amount, dueDay, chargeTime, isActive, frequency,
   categoryIcon, categoryColor, currency,
   onToggle, onDelete, onEdit, index = 0,
 }: Props) {
@@ -66,6 +67,9 @@ export const BillCard = React.memo(function BillCard({
         <View style={styles.meta}>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, textTransform: 'capitalize' }}>
             {frequency}
+          </Text>
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+            {chargeTime}
           </Text>
           <View style={[styles.badge, { backgroundColor: badgeColor + '22' }]}>
             <Text variant="labelSmall" style={{ color: badgeColor }}>

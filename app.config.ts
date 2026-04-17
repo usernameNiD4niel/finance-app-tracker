@@ -59,6 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-font',
     '@react-native-community/datetimepicker',
     'expo-web-browser',
+    'expo-background-task',
   ],
   scheme: 'ledgerist',
   extra: {
