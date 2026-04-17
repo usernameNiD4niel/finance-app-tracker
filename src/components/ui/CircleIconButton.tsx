@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
@@ -17,12 +17,13 @@ interface Props {
   onPress: () => void;
 }
 
-export function CircleIconButton({ icon, label, color, onPress }: Props) {
+export const CircleIconButton = React.memo(function CircleIconButton({ icon, label, color, onPress }: Props) {
   const theme = useTheme<AppTheme>();
   const scale = useSharedValue(1);
   const pressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+  const shadow = useMemo(() => neuCircle(theme), [theme]);
 
   return (
     <View style={styles.wrap}>
@@ -38,7 +39,7 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
               styles.circle,
               {
                 backgroundColor: theme.custom.cardBg,
-                boxShadow: neuCircle(theme) as any,
+                boxShadow: shadow as any,
               },
             ]}
           >
@@ -49,7 +50,7 @@ export function CircleIconButton({ icon, label, color, onPress }: Props) {
       </Animated.View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: {

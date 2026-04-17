@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -15,7 +15,7 @@ interface Props {
   currency: string;
 }
 
-export function BalanceCard({ balance, walletBalance, spent, billsDue, currency }: Props) {
+export const BalanceCard = React.memo(function BalanceCard({ balance, walletBalance, spent, billsDue, currency }: Props) {
   const theme = useTheme<AppTheme>();
   const isDark = theme.dark;
   const accent = theme.custom.onAccentSurface;
@@ -24,17 +24,23 @@ export function BalanceCard({ balance, walletBalance, spent, billsDue, currency 
   const today = new Date();
   const monthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+  const heroShadow = useMemo(() => neuHero(theme), [theme]);
+  const gradientColors = useMemo<[string, string]>(
+    () => isDark ? ['#2e3148', '#252839'] : [theme.colors.primary, theme.colors.primaryContainer],
+    [isDark, theme.colors.primary, theme.colors.primaryContainer],
+  );
+
   return (
     <View
       style={[
         styles.card,
         {
-          boxShadow: neuHero(theme) as any,
+          boxShadow: heroShadow as any,
         },
       ]}
     >
       <LinearGradient
-        colors={isDark ? ['#2e3148', '#252839'] : [theme.colors.primary, theme.colors.primaryContainer]}
+        colors={gradientColors}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -96,9 +102,9 @@ export function BalanceCard({ balance, walletBalance, spent, billsDue, currency 
       </View>
     </View>
   );
-}
+});
 
-function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string; label: string; value: string; accentMuted: string; accent: string }) {
+const BalanceStat = React.memo(function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string; label: string; value: string; accentMuted: string; accent: string }) {
   return (
     <View style={styles.stat}>
       <MaterialCommunityIcons name={icon as any} size={17} color={accentMuted} />
@@ -106,7 +112,7 @@ function BalanceStat({ icon, label, value, accentMuted, accent }: { icon: string
       <Text style={[styles.statValue, { color: accent }]}>{value}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

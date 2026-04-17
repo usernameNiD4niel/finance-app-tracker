@@ -130,16 +130,49 @@ export default function DashboardScreen() {
 
   const neuListItemShadow = useMemo(() => neuListItem(theme), [theme]);
   const neuCardShadow = useMemo(() => neuCard(theme), [theme]);
+  const neuCircleShadow = useMemo(() => neuCircle(theme), [theme]);
+
+  const billCardStyle = useMemo(() => ({
+    backgroundColor: theme.custom.cardBg,
+    boxShadow: neuListItemShadow as any,
+  }), [theme.custom.cardBg, neuListItemShadow]);
+
+  const recurringRowStyle = useMemo(() => ({
+    backgroundColor: theme.custom.cardBg,
+    boxShadow: neuListItemShadow as any,
+  }), [theme.custom.cardBg, neuListItemShadow]);
+
+  const emptyStyle = useMemo(() => ({
+    backgroundColor: theme.custom.cardBg,
+    boxShadow: neuCardShadow as any,
+  }), [theme.custom.cardBg, neuCardShadow]);
+
+  const notifBtnStyle = useMemo(() => ({
+    backgroundColor: theme.custom.cardBg,
+    boxShadow: neuCircleShadow as any,
+  }), [theme.custom.cardBg, neuCircleShadow]);
+
+  const goToBills = useCallback(() => router.push('/(tabs)/bills'), [router]);
+  const goToRecurring = useCallback(() => router.push('/modals/recurring'), [router]);
+  const goToBudgetTargets = useCallback(() => router.push('/modals/budget-targets'), [router]);
+  const goToExpenses = useCallback(() => router.push('/(tabs)/expenses'), [router]);
+  const goToLends = useCallback(() => router.push('/modals/lends'), [router]);
+  const goToNotifications = useCallback(() => router.push('/modals/notifications'), [router]);
+  const showPremium = useCallback(() => setPremiumVisible(true), []);
+  const hidePremium = useCallback(() => setPremiumVisible(false), []);
+
+  const goToAddExpense = useCallback(() => router.push('/modals/add-expense'), [router]);
+  const goToAddLend = useCallback(() => {
+    if (isPremium) router.push('/modals/add-lend');
+    else setPremiumVisible(true);
+  }, [isPremium, router]);
 
   const quickActions = useMemo(() => [
-    { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: () => router.push('/modals/add-expense') },
-    { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: () => router.push('/(tabs)/bills') },
-    {
-      icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary,
-      onPress: () => isPremium ? router.push('/modals/add-lend') : setPremiumVisible(true),
-    },
-    { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: () => router.push('/(tabs)/expenses') },
-  ], [theme, isPremium, router]);
+    { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: goToAddExpense },
+    { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: goToBills },
+    { icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary, onPress: goToAddLend },
+    { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: goToExpenses },
+  ], [theme, goToAddExpense, goToBills, goToAddLend, goToExpenses]);
 
   return (
     <ScreenContainer>
@@ -168,8 +201,8 @@ export default function DashboardScreen() {
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.notifBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCircle(theme) as any }]}
-            onPress={() => router.push('/modals/notifications')}
+            style={[styles.notifBtn, notifBtnStyle]}
+            onPress={goToNotifications}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={theme.colors.onSurface} />
             {unreadCount > 0 && (
@@ -197,18 +230,12 @@ export default function DashboardScreen() {
         {/* Upcoming Bills */}
         {upcomingBills.length > 0 && (
           <View style={styles.section}>
-            <SectionHeader title="Upcoming Bills" onSeeAll={() => router.push('/(tabs)/bills')} />
+            <SectionHeader title="Upcoming Bills" onSeeAll={goToBills} />
             {upcomingBills.map((bill) => (
               <View key={bill.id}>
                 <Pressable
-                  style={[
-                    styles.upcomingBill,
-                    {
-                      backgroundColor: theme.custom.cardBg,
-                      boxShadow: neuListItemShadow as any,
-                    },
-                  ]}
-                  onPress={() => router.push('/(tabs)/bills')}
+                  style={[styles.upcomingBill, billCardStyle]}
+                  onPress={goToBills}
                 >
                   <View style={[styles.billIcon, { backgroundColor: (bill.categoryColor ?? theme.colors.primary) + '22' }]}>
                     <MaterialCommunityIcons
@@ -217,7 +244,7 @@ export default function DashboardScreen() {
                       color={bill.categoryColor ?? theme.colors.primary}
                     />
                   </View>
-                  <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, flex: 1 }}>
+                  <Text variant="bodyMedium" style={[styles.flex1, { color: theme.colors.onSurface }]}>
                     {bill.name}
                   </Text>
                   <View style={[styles.dueBadge, {
@@ -225,14 +252,13 @@ export default function DashboardScreen() {
                       ? theme.custom.expense + '22'
                       : theme.colors.surfaceVariant,
                   }]}>
-                    <Text variant="labelSmall" style={{
+                    <Text variant="labelSmall" style={[styles.dueBadgeText, {
                       color: bill.daysUntilDue <= 2 ? theme.custom.expense : theme.colors.onSurfaceVariant,
-                      fontWeight: '600',
-                    }}>
+                    }]}>
                       {bill.daysUntilDue === 0 ? 'Today' : `${bill.daysUntilDue}d`}
                     </Text>
                   </View>
-                  <Text variant="labelMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginLeft: 8 }}>
+                  <Text variant="labelMedium" style={[styles.billAmount, { color: theme.colors.onSurface }]}>
                     {formatCurrency(bill.amount, currency)}
                   </Text>
                 </Pressable>
@@ -245,7 +271,7 @@ export default function DashboardScreen() {
         {currentTarget?.overallLimit && (
           <View style={styles.section}>
             <RoundedCard>
-              <SectionHeader title="Monthly Budget" onSeeAll={() => router.push('/modals/budget-targets')} />
+              <SectionHeader title="Monthly Budget" onSeeAll={goToBudgetTargets} />
               <BudgetProgressBar
                 label="Overall"
                 spent={balanceData.spent}
@@ -270,9 +296,9 @@ export default function DashboardScreen() {
         {/* Active Lends (Premium) */}
         {isPremium && (
           <View style={styles.section}>
-            <SectionHeader title="Active Lends" onSeeAll={() => router.push('/modals/lends')} />
+            <SectionHeader title="Active Lends" onSeeAll={goToLends} />
             {activeLends.length === 0 ? (
-              <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardShadow as any }]}>
+              <View style={[styles.empty, emptyStyle]}>
                 <MaterialCommunityIcons name="hand-coin" size={40} color={theme.colors.onSurfaceVariant} />
                 <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                   No active lends
@@ -313,7 +339,7 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <SectionHeader
               title="Recurring Transactions"
-              onSeeAll={allRecurring.length > 5 ? () => router.push('/modals/recurring') : undefined}
+              onSeeAll={allRecurring.length > 5 ? goToRecurring : undefined}
             />
             {topRecurring.map((rt) => {
               const source = sourceMap.get(rt.sourceId);
@@ -321,8 +347,8 @@ export default function DashboardScreen() {
               return (
                 <Pressable
                   key={rt.id}
-                  style={[styles.recurringRow, { backgroundColor: theme.custom.cardBg, boxShadow: neuListItemShadow as any }]}
-                  onPress={() => router.push('/modals/recurring')}
+                  style={[styles.recurringRow, recurringRowStyle]}
+                  onPress={goToRecurring}
                 >
                   <View style={[styles.recurringIcon, { backgroundColor: (source?.color ?? theme.colors.primary) + '22' }]}>
                     <MaterialCommunityIcons
@@ -331,8 +357,8 @@ export default function DashboardScreen() {
                       color={source?.color ?? theme.colors.primary}
                     />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text variant="bodyMedium" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+                  <View style={styles.flex1}>
+                    <Text variant="bodyMedium" style={[styles.recurringName, { color: theme.colors.onSurface }]}>
                       {source?.name ?? 'Unknown Wallet'}
                     </Text>
                     <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -342,7 +368,7 @@ export default function DashboardScreen() {
                   </View>
                   <Text
                     variant="titleSmall"
-                    style={{ color: isDeposit ? theme.custom.income : theme.custom.expense, fontWeight: '700' }}
+                    style={[styles.recurringAmount, { color: isDeposit ? theme.custom.income : theme.custom.expense }]}
                   >
                     {isDeposit ? '+' : '-'}{formatCurrency(rt.amount, currency)}
                   </Text>
@@ -352,9 +378,9 @@ export default function DashboardScreen() {
             {allRecurring.length > 5 && (
               <Pressable
                 style={[styles.seeAllRow, { backgroundColor: theme.custom.cardBg }]}
-                onPress={() => router.push('/modals/recurring')}
+                onPress={goToRecurring}
               >
-                <Text variant="bodySmall" style={{ color: theme.colors.primary, fontWeight: '600' }}>
+                <Text variant="bodySmall" style={[styles.seeAllText, { color: theme.colors.primary }]}>
                   See all {allRecurring.length} recurring transactions
                 </Text>
                 <MaterialCommunityIcons name="chevron-right" size={16} color={theme.colors.primary} />
@@ -365,9 +391,9 @@ export default function DashboardScreen() {
 
         {/* Recent Expenses */}
         <View style={styles.section}>
-          <SectionHeader title="Recent Expenses" onSeeAll={() => router.push('/(tabs)/expenses')} />
+          <SectionHeader title="Recent Expenses" onSeeAll={goToExpenses} />
           {recentExpenses.length === 0 ? (
-            <View style={[styles.empty, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardShadow as any }]}>
+            <View style={[styles.empty, emptyStyle]}>
               <MaterialCommunityIcons name="cash-remove" size={40} color={theme.colors.onSurfaceVariant} />
               <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 8 }}>
                 No expenses yet
@@ -396,15 +422,15 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        <View style={{ height: 120 }} />
+        <View style={styles.bottomSpacer} />
       </ScrollView>
 
       <PremiumModal
         visible={premiumVisible}
         userId={user?.uid ?? ''}
         userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => setPremiumVisible(false)}
-        onDismiss={() => setPremiumVisible(false)}
+        onSubscribeSuccess={hidePremium}
+        onDismiss={hidePremium}
       />
     </ScreenContainer>
   );
@@ -517,5 +543,27 @@ const styles = StyleSheet.create({
     padding: 36,
     borderRadius: 18,
     gap: 4,
+  },
+  flex1: {
+    flex: 1,
+  },
+  seeAllText: {
+    fontWeight: '600',
+  },
+  dueBadgeText: {
+    fontWeight: '600',
+  },
+  billAmount: {
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  recurringName: {
+    fontWeight: '600',
+  },
+  recurringAmount: {
+    fontWeight: '700',
+  },
+  bottomSpacer: {
+    height: 120,
   },
 });

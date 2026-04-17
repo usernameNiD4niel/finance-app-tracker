@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import { neuCard } from '../../theme/neumorphism';
@@ -10,24 +10,26 @@ interface Props {
   padding?: number;
 }
 
-export function RoundedCard({ children, style, padding = 16 }: Props) {
+export const RoundedCard = React.memo(function RoundedCard({ children, style, padding = 16 }: Props) {
   const theme = useTheme<AppTheme>();
+  const shadow = useMemo(() => neuCard(theme), [theme]);
+  const paddingStyle = useMemo(() => ({ padding }), [padding]);
   return (
     <View
       style={[
         styles.card,
         {
           backgroundColor: theme.custom.cardBg,
-          boxShadow: neuCard(theme) as any,
+          boxShadow: shadow as any,
         },
-        { padding },
+        paddingStyle,
         style,
       ]}
     >
       {children}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {
