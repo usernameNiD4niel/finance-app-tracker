@@ -24,6 +24,14 @@ interface Props {
   index?: number;
 }
 
+function formatChargeTime(timeStr: string): string {
+  const [h, m] = timeStr.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return timeStr;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
 export const BillCard = React.memo(function BillCard({
   id, name, amount, dueDay, chargeTime, isActive, frequency,
   categoryIcon, categoryColor, currency,
@@ -69,7 +77,7 @@ export const BillCard = React.memo(function BillCard({
             {frequency}
           </Text>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            {chargeTime}
+            {formatChargeTime(chargeTime)}
           </Text>
           <View style={[styles.badge, { backgroundColor: badgeColor + '22' }]}>
             <Text variant="labelSmall" style={{ color: badgeColor }}>

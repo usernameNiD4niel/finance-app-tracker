@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, Switch, useTheme } from 'react-native-paper';
@@ -66,7 +66,11 @@ export default function AddBillScreen() {
   useGuestWarning();
 
   const isEditing = !!id;
-  const existing = isEditing ? bills.find(b => b.id === Number(id)) : null;
+  const existing = useMemo(
+    () => (isEditing ? bills.find(b => b.id === Number(id)) ?? null : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id], // bills list won't change while modal is open; id is stable
+  );
 
   const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -79,18 +83,28 @@ export default function AddBillScreen() {
     },
   });
 
+  // Load reference data once on mount — do NOT re-run when length changes
+  // (that pattern caused double-loads: mount fires, then load completes → length changes → fires again)
   useEffect(() => {
     loadCategories();
     loadSources();
     if (existing) {
-      const cat = categories.find(c => c.id === existing.categoryId);
-      if (cat) setSelectedCategory(cat);
-      if (existing.sourceId) {
-        const src = sources.find(s => s.id === existing.sourceId);
-        if (src) setSelectedSource(src);
-      }
       setFrequency(existing.frequency);
       setNotifyEnabled(existing.notifyDaysBefore > 0);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Populate pickers once categories/sources have arrived (edit mode only)
+  useEffect(() => {
+    if (!existing) return;
+    if (categories.length > 0) {
+      const cat = categories.find(c => c.id === existing.categoryId);
+      if (cat) setSelectedCategory(cat);
+    }
+    if (sources.length > 0 && existing.sourceId) {
+      const src = sources.find(s => s.id === existing.sourceId);
+      if (src) setSelectedSource(src);
     }
   }, [categories.length, sources.length]);
 

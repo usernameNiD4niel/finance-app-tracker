@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -12,6 +12,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { cancelNotification } from '../../services/notifications';
 import { formatCurrency } from '../../utils/currency';
 import { neuButton } from '../../theme/neumorphism';
+import type { BillWithCategory } from '../../store/billStore';
 import type { AppTheme } from '../../theme';
 
 export default function BillsScreen() {
@@ -23,10 +24,12 @@ export default function BillsScreen() {
 
   useFocusEffect(useCallback(() => { loadBills(); }, []));
 
-  const activeBills = bills.filter(b => b.isActive);
-  const monthlyTotal = activeBills.reduce((sum, b) => sum + b.amount, 0);
+  const monthlyTotal = useMemo(
+    () => bills.filter(b => b.isActive).reduce((sum, b) => sum + b.amount, 0),
+    [bills],
+  );
 
-  const handleToggle = (id: number, active: boolean) => {
+  const handleToggle = useCallback((id: number, active: boolean) => {
     if (!active) {
       Alert.alert(
         'Disable Bill',
@@ -47,13 +50,36 @@ export default function BillsScreen() {
     } else {
       editBill(id, { isActive: true });
     }
-  };
+  }, [bills, editBill]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     const bill = bills.find(b => b.id === id);
     if (bill?.notificationId) await cancelNotification(bill.notificationId);
     await removeBill(id);
-  };
+  }, [bills, removeBill]);
+
+  const handleEdit = useCallback((id: number) => {
+    router.push({ pathname: '/modals/add-bill', params: { id } });
+  }, [router]);
+
+  const renderItem = useCallback(({ item, index }: { item: BillWithCategory; index: number }) => (
+    <BillCard
+      id={item.id}
+      name={item.name}
+      amount={item.amount}
+      dueDay={item.dueDay}
+      chargeTime={item.chargeTime}
+      isActive={item.isActive}
+      frequency={item.frequency}
+      categoryIcon={item.categoryIcon ?? null}
+      categoryColor={item.categoryColor ?? null}
+      currency={currency}
+      onToggle={handleToggle}
+      onDelete={handleDelete}
+      onEdit={handleEdit}
+      index={index}
+    />
+  ), [currency, handleToggle, handleDelete, handleEdit]);
 
   return (
     <ScreenContainer>
@@ -71,25 +97,8 @@ export default function BillsScreen() {
 
       <FlatList
         data={bills}
-        keyExtractor={(item) => String(item.id)}
-        renderItem={({ item, index }) => (
-          <BillCard
-            id={item.id}
-            name={item.name}
-            amount={item.amount}
-            dueDay={item.dueDay}
-            chargeTime={item.chargeTime}
-            isActive={item.isActive}
-            frequency={item.frequency}
-            categoryIcon={item.categoryIcon ?? null}
-            categoryColor={item.categoryColor ?? null}
-            currency={currency}
-            onToggle={handleToggle}
-            onDelete={handleDelete}
-            onEdit={(id) => router.push({ pathname: '/modals/add-bill', params: { id } })}
-            index={index}
-          />
-        )}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
         ListEmptyComponent={
           <View style={styles.empty}>
             <MaterialCommunityIcons name={'receipt' as any} size={60} color={theme.colors.onSurfaceVariant} />
@@ -120,6 +129,11 @@ export default function BillsScreen() {
       />
     </ScreenContainer>
   );
+}
+
+// Stable reference — defined outside component so it never changes
+function keyExtractor(item: BillWithCategory) {
+  return String(item.id);
 }
 
 const styles = StyleSheet.create({

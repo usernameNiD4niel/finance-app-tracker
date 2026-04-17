@@ -1,19 +1,9 @@
 import { getBills, createExpense, adjustSourceBalance, updateBill } from '../db/queries';
 import { useSettingsStore } from '../store/settingsStore';
 
-function isChargeTimeMet(chargeTime: string): boolean {
-  const [h, m] = chargeTime.split(':').map(Number);
-  const now = new Date();
-  return now.getHours() * 60 + now.getMinutes() >= h * 60 + m;
-}
-
-function todayStr(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function currentMonthKey(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+// Single source of truth for "today" as a local YYYY-MM-DD string
+function toLocalDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function isDueBill(
@@ -21,24 +11,30 @@ function isDueBill(
   dueDay: number,
   chargeTime: string,
   lastChargedDate: string | null,
+  now: Date,
 ): boolean {
-  if (!isChargeTimeMet(chargeTime)) return false;
+  // Check charge time first (fast exit)
+  const [h, m] = chargeTime.split(':').map(Number);
+  if (now.getHours() * 60 + now.getMinutes() < h * 60 + m) return false;
 
-  const today = new Date();
-  const todayDate = todayStr();
+  const todayDate = toLocalDateStr(now);
 
   if (frequency === 'monthly') {
-    if (today.getDate() !== dueDay) return false;
-    const monthKey = currentMonthKey();
+    // Clamp dueDay to last day of current month (handles 31 in 30-day months, etc.)
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const effectiveDueDay = Math.min(dueDay, lastDayOfMonth);
+    if (now.getDate() !== effectiveDueDay) return false;
     if (!lastChargedDate) return true;
-    // Already charged this month?
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     return lastChargedDate.substring(0, 7) !== monthKey;
   }
 
   if (frequency === 'weekly') {
     if (!lastChargedDate) return true;
-    const last = new Date(lastChargedDate);
-    const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+    // Parse as local date to avoid UTC-offset day shift
+    const [ly, lm, ld] = lastChargedDate.split('-').map(Number);
+    const last = new Date(ly, lm - 1, ld);
+    const diffDays = Math.floor((now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
     return diffDays >= 7;
   }
 
@@ -49,36 +45,43 @@ function isDueBill(
   return false;
 }
 
+// Guard against concurrent invocations (e.g. rapid focus events)
+let charging = false;
+
 export async function processDueBills(): Promise<number> {
-  const userId = useSettingsStore.getState().firebaseUid ?? null;
-  const allBills = await getBills(userId);
-  const today = todayStr();
-  let charged = 0;
+  if (charging) return 0;
+  charging = true;
 
-  for (const bill of allBills) {
-    if (!bill.isActive) continue;
-    if (!bill.sourceId) continue;
+  try {
+    const userId = useSettingsStore.getState().firebaseUid ?? null;
+    const allBills = await getBills(userId);
+    // Single time snapshot for the entire run — prevents midnight edge cases
+    const now = new Date();
+    const today = toLocalDateStr(now);
+    let charged = 0;
 
-    if (!isDueBill(bill.frequency, bill.dueDay, bill.chargeTime, bill.lastChargedDate ?? null)) {
-      continue;
+    for (const bill of allBills) {
+      if (!bill.isActive || !bill.sourceId) continue;
+      if (!isDueBill(bill.frequency, bill.dueDay, bill.chargeTime, bill.lastChargedDate ?? null, now)) continue;
+
+      await createExpense(
+        {
+          amount: bill.amount,
+          categoryId: bill.categoryId,
+          sourceId: bill.sourceId,
+          note: `Bill: ${bill.name}`,
+          date: today,
+          createdAt: new Date().toISOString(),
+        },
+        userId,
+      );
+      await adjustSourceBalance(bill.sourceId, -bill.amount);
+      await updateBill(bill.id, { lastChargedDate: today });
+      charged++;
     }
 
-    await createExpense(
-      {
-        amount: bill.amount,
-        categoryId: bill.categoryId,
-        sourceId: bill.sourceId,
-        note: `Bill: ${bill.name}`,
-        date: today,
-        createdAt: new Date().toISOString(),
-      },
-      userId,
-    );
-
-    await adjustSourceBalance(bill.sourceId, -bill.amount);
-    await updateBill(bill.id, { lastChargedDate: today });
-    charged++;
+    return charged;
+  } finally {
+    charging = false;
   }
-
-  return charged;
 }
