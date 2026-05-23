@@ -6,11 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSourceStore } from '../../store/sourceStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
-import { PremiumModal } from '../../components/PremiumModal';
 import { formatCurrency } from '../../utils/currency';
 import { neuCard, neuListItem } from '../../theme/neumorphism';
-import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { AppTheme } from '../../theme';
 
 const FREQ_LABELS: Record<string, string> = {
@@ -25,20 +22,12 @@ export default function RecurringScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currency, isPremium } = useSettingsStore();
-  const { user } = useAuthStore();
+  const { currency } = useSettingsStore();
   const { allRecurring, loadAllRecurring, sources, removeRecurring } = useSourceStore();
-  const [premiumVisible, setPremiumVisible] = useState(false);
-
-  useGuestWarning();
 
   useEffect(() => {
-    if (!isPremium) {
-      setPremiumVisible(true);
-      return;
-    }
     loadAllRecurring();
-  }, [isPremium]);
+  }, []);
 
   const getSource = (sourceId: number) =>
     sources.find(s => s.id === sourceId);
@@ -56,13 +45,6 @@ export default function RecurringScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <PremiumModal
-        visible={premiumVisible}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => { setPremiumVisible(false); loadAllRecurring(); }}
-        onDismiss={() => { setPremiumVisible(false); router.back(); }}
-      />
       <View style={[styles.header, { paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="arrow-left" size={24} color={theme.colors.onSurface} />

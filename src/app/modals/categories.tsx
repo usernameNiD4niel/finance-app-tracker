@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCategoryStore } from '../../store/categoryStore';
 import { neuButton, neuListItem, neuCardLg, neuChip } from '../../theme/neumorphism';
-import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -32,8 +31,6 @@ export default function CategoriesScreen() {
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
-
-  useGuestWarning();
 
   useEffect(() => { loadCategories(); }, []);
 
@@ -112,6 +109,7 @@ export default function CategoriesScreen() {
 
       {/* Add/Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
           <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
             <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -171,6 +169,7 @@ export default function CategoriesScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

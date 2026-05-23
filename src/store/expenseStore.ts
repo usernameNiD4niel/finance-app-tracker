@@ -1,11 +1,9 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import {
   getExpenses, createExpense, updateExpense, deleteExpense, getExpenseTotalByCategory,
   getDailyExpenseTotals, adjustSourceBalance,
 } from '../db/queries';
-import type { Expense, NewExpense } from '../db/schema';
-import { triggerAutoSync } from '../services/autoSync';
-import { useAuthStore } from './authStore';
+import type { NewExpense } from '../db/schema';
 
 export type ExpenseWithCategory = Awaited<ReturnType<typeof getExpenses>>[number];
 export type CategoryTotal = Awaited<ReturnType<typeof getExpenseTotalByCategory>>[number];
@@ -37,32 +35,27 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
 
   loadExpenses: async (filters) => {
     set({ isLoading: true });
-    const userId = useAuthStore.getState().user?.uid ?? null;
     const f = filters ?? get().filters;
-    const data = await getExpenses(f, userId);
+    const data = await getExpenses(f);
     set({ expenses: data, isLoading: false });
   },
 
   loadCategoryTotals: async (startDate, endDate) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const data = await getExpenseTotalByCategory(startDate, endDate, userId);
+    const data = await getExpenseTotalByCategory(startDate, endDate);
     set({ categoryTotals: data });
   },
 
   loadDailyTotals: async (startDate, endDate) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const data = await getDailyExpenseTotals(startDate, endDate, userId);
+    const data = await getDailyExpenseTotals(startDate, endDate);
     set({ dailyTotals: data });
   },
 
   addExpense: async (data) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await createExpense(data, userId);
+    await createExpense(data);
     if (data.sourceId) {
       await adjustSourceBalance(data.sourceId, -data.amount);
     }
     await get().loadExpenses();
-    triggerAutoSync();
   },
 
   editExpense: async (id, data) => {
@@ -79,7 +72,6 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
       await adjustSourceBalance(newSourceId, -newAmount);
     }
     await get().loadExpenses();
-    triggerAutoSync();
   },
 
   removeExpense: async (id) => {
@@ -89,6 +81,5 @@ export const useExpenseStore = create<ExpenseState>((set, get) => ({
     }
     await deleteExpense(id);
     await get().loadExpenses();
-    triggerAutoSync();
   },
 }));

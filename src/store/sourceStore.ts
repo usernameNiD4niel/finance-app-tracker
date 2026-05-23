@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import {
   getMoneySources, getActiveMoneySources, createMoneySource,
   updateMoneySource, deleteMoneySource, adjustSourceBalance, getTotalSourceBalance,
@@ -6,8 +6,6 @@ import {
   executeTransfer,
 } from '../db/queries';
 import type { MoneySource, NewMoneySource, RecurringTransaction, NewRecurringTransaction } from '../db/schema';
-import { triggerAutoSync } from '../services/autoSync';
-import { useAuthStore } from './authStore';
 
 interface SourceState {
   sources: MoneySource[];
@@ -38,82 +36,67 @@ export const useSourceStore = create<SourceState>((set, get) => ({
 
   loadSources: async () => {
     set({ isLoading: true });
-    const userId = useAuthStore.getState().user?.uid ?? null;
     const [data, total] = await Promise.all([
-      getMoneySources(userId),
-      getTotalSourceBalance(userId),
+      getMoneySources(),
+      getTotalSourceBalance(),
     ]);
     set({ sources: data, totalBalance: total, isLoading: false });
   },
 
   addSource: async (data) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await createMoneySource(data, userId);
+    await createMoneySource(data);
     await get().loadSources();
-    triggerAutoSync();
   },
 
   editSource: async (id, data) => {
     await updateMoneySource(id, data);
     await get().loadSources();
-    triggerAutoSync();
   },
 
   removeSource: async (id) => {
     await deleteMoneySource(id);
     await get().loadSources();
-    triggerAutoSync();
   },
 
   deposit: async (id, amount) => {
     await adjustSourceBalance(id, amount);
     await get().loadSources();
-    triggerAutoSync();
   },
 
   withdraw: async (id, amount) => {
     await adjustSourceBalance(id, -amount);
     await get().loadSources();
-    triggerAutoSync();
   },
 
   refreshTotalBalance: async () => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const total = await getTotalSourceBalance(userId);
+    const total = await getTotalSourceBalance();
     set({ totalBalance: total });
   },
 
   loadRecurring: async (sourceId) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const rows = await getRecurringTransactions(sourceId, userId);
+    const rows = await getRecurringTransactions(sourceId);
     set(state => ({ recurringMap: { ...state.recurringMap, [sourceId]: rows } }));
   },
 
   loadAllRecurring: async () => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const rows = await getRecurringTransactions(undefined, userId);
+    const rows = await getRecurringTransactions(undefined);
     set({ allRecurring: rows });
   },
 
   addRecurring: async (data) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await createRecurringTransaction(data, userId);
+    await createRecurringTransaction(data);
     await get().loadRecurring(data.sourceId);
     await get().loadAllRecurring();
-    triggerAutoSync();
   },
 
   removeRecurring: async (id, sourceId) => {
     await deleteRecurringTransaction(id);
     await get().loadRecurring(sourceId);
     await get().loadAllRecurring();
-    triggerAutoSync();
   },
 
   transfer: async (fromId, toId, amount, fee, note, date) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await executeTransfer(fromId, toId, amount, fee, note, date, userId);
+    await executeTransfer(fromId, toId, amount, fee, note, date);
     await get().loadSources();
-    triggerAutoSync();
   },
 }));

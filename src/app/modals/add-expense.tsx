@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,7 +16,6 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { format } from 'date-fns';
 import { neuButton, neuCard } from '../../theme/neumorphism';
-import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -42,8 +41,6 @@ export default function AddExpenseScreen() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useGuestWarning();
 
   const isEditing = !!id;
   const existing = isEditing ? expenses.find(e => e.id === Number(id)) : null;
@@ -100,7 +97,10 @@ export default function AddExpenseScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
@@ -111,7 +111,7 @@ export default function AddExpenseScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
         <Controller
           control={control}
@@ -242,7 +242,7 @@ export default function AddExpenseScreen() {
         onSelect={setSelectedSource}
         onClose={() => setSourcePickerVisible(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

@@ -9,10 +9,8 @@ import { RoundedCard } from '../../components/ui/RoundedCard';
 import { CompareSpending } from '../../components/CompareSpending';
 import { DailySpendingChart } from '../../components/DailySpendingChart';
 import { CategoryRingChart } from '../../components/CategoryRingChart';
-import { PremiumModal } from '../../components/PremiumModal';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { getMonthBounds, formatMonthYear } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
 import { format, subMonths } from 'date-fns';
@@ -23,12 +21,10 @@ const PLACEHOLDER_HEIGHTS = [0.5, 0.8, 0.35, 0.95, 0.6, 0.75, 0.45];
 
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
-  const { currency, isPremium } = useSettingsStore();
-  const { user } = useAuthStore();
+  const { currency } = useSettingsStore();
   const { expenses, categoryTotals, dailyTotals, loadExpenses, loadCategoryTotals, loadDailyTotals } = useExpenseStore();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [isFocused, setIsFocused] = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const load = useCallback(async () => {
     const { start, end } = getMonthBounds(selectedMonth);
@@ -38,72 +34,11 @@ export default function StatsScreen() {
   }, [selectedMonth]);
 
   useFocusEffect(useCallback(() => {
-    if (!isPremium) return;
     setIsFocused(true);
     load();
     return () => setIsFocused(false);
-  }, [load, isPremium]));
+  }, [load]));
 
-  // ── Non-premium: full-page gate ───────────────────────────────────────────
-  if (!isPremium) {
-    return (
-      <ScreenContainer>
-        <TopHeader title="Statistics" />
-        <View style={styles.gateContainer}>
-          <RoundedCard>
-            <View style={styles.previewWrap}>
-              {/* Placeholder bars */}
-              <View style={styles.barsRow}>
-                {PLACEHOLDER_HEIGHTS.map((h, i) => (
-                  <View key={i} style={styles.barCol}>
-                    <View
-                      style={[
-                        styles.placeholderBar,
-                        { height: h * 100, backgroundColor: theme.custom.trackBg, opacity: 0.4 },
-                      ]}
-                    />
-                  </View>
-                ))}
-              </View>
-
-              {/* Overlay */}
-              <View style={[styles.overlay, { backgroundColor: theme.custom.cardBg + 'dd' }]}>
-                <View style={[styles.lockIcon, { backgroundColor: theme.colors.primary + '18' }]}>
-                  <MaterialCommunityIcons name="lock" size={28} color={theme.colors.primary} />
-                </View>
-                <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginTop: 12 }}>
-                  Premium Feature
-                </Text>
-                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant, marginTop: 4, textAlign: 'center' }}>
-                  Unlock detailed spending statistics,{'\n'}charts, and monthly comparisons
-                </Text>
-                <TouchableOpacity
-                  style={[styles.upgradeBtn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
-                  onPress={() => setShowPremiumModal(true)}
-                  activeOpacity={0.8}
-                >
-                  <MaterialCommunityIcons name="crown" size={16} color={theme.custom.buttonText} />
-                  <Text variant="labelLarge" style={{ color: theme.custom.buttonText, fontWeight: '700', marginLeft: 6 }}>
-                    Go Premium
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </RoundedCard>
-        </View>
-
-        <PremiumModal
-          visible={showPremiumModal}
-          userId={user?.uid ?? ''}
-          userEmail={user?.email ?? ''}
-          onSubscribeSuccess={() => setShowPremiumModal(false)}
-          onDismiss={() => setShowPremiumModal(false)}
-        />
-      </ScreenContainer>
-    );
-  }
-
-  // ── Premium: full stats ───────────────────────────────────────────────────
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
   const maxCategoryTotal = Math.max(...categoryTotals.map(c => c.total ?? 0), 1);
   const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
@@ -234,17 +169,6 @@ export default function StatsScreen() {
 
         <View style={{ height: 120 }} />
       </ScrollView>
-
-      <PremiumModal
-        visible={showPremiumModal}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => {
-          setShowPremiumModal(false);
-          load();
-        }}
-        onDismiss={() => setShowPremiumModal(false)}
-      />
     </ScreenContainer>
   );
 }

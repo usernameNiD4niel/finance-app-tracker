@@ -11,6 +11,31 @@ const fixes = [
     replace: '            fbjni::fbjni\n            android\n            c++_shared\n        )',
   },
   {
+    file: path.join(__dirname, '../node_modules/expo-modules-core/android/CMakeLists.txt'),
+    search: '  android\n  ${JSEXECUTOR_LIB}\n  ${NEW_ARCHITECTURE_DEPENDENCIES}\n)',
+    replace: '  android\n  ${JSEXECUTOR_LIB}\n  ${NEW_ARCHITECTURE_DEPENDENCIES}\n  c++_shared\n)',
+  },
+  {
+    file: path.join(__dirname, '../node_modules/expo-sqlite/android/CMakeLists.txt'),
+    search: '  fbjni::fbjni\n  android\n)',
+    replace: '  fbjni::fbjni\n  android\n  c++_shared\n)',
+  },
+  {
+    file: path.join(__dirname, '../node_modules/react-native-reanimated/android/CMakeLists.txt'),
+    search: 'target_link_libraries(reanimated log ReactAndroid::jsi fbjni::fbjni android\n                      worklets)',
+    replace: 'target_link_libraries(reanimated log ReactAndroid::jsi fbjni::fbjni android\n                      worklets c++_shared)',
+  },
+  {
+    file: path.join(__dirname, '../node_modules/react-native-gesture-handler/android/src/main/jni/CMakeLists.txt'),
+    search: 'target_link_libraries(\n  ${PACKAGE_NAME}\n  ReactAndroid::reactnative\n  ReactAndroid::jsi\n  fbjni::fbjni\n)',
+    replace: 'target_link_libraries(\n  ${PACKAGE_NAME}\n  ReactAndroid::reactnative\n  ReactAndroid::jsi\n  fbjni::fbjni\n  c++_shared\n)',
+  },
+  {
+    file: path.join(__dirname, '../node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt'),
+    search: '  target_link_libraries(\n          ${LIB_TARGET_NAME}\n          fbjni\n          jsi\n          reactnative\n  )',
+    replace: '  target_link_libraries(\n          ${LIB_TARGET_NAME}\n          fbjni\n          jsi\n          reactnative\n          c++_shared\n  )',
+  },
+  {
     // react-native-worklets 0.7.x / 0.8.x format
     file: path.join(__dirname, '../node_modules/react-native-worklets/android/CMakeLists.txt'),
     search: 'target_link_libraries(worklets log ReactAndroid::reactnative ReactAndroid::jsi\n                      fbjni::fbjni)',

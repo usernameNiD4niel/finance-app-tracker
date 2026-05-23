@@ -8,13 +8,11 @@ import { BalanceCard } from '../../components/BalanceCard';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { LendCard } from '../../components/LendCard';
 import { BudgetProgressBar } from '../../components/BudgetProgressBar';
-import { PremiumModal } from '../../components/PremiumModal';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { ActionButtonRow } from '../../components/ui/ActionButtonRow';
 import { RoundedCard } from '../../components/ui/RoundedCard';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
@@ -52,8 +50,6 @@ export default function DashboardScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const currency = useSettingsStore(s => s.currency);
-  const isPremium = useSettingsStore(s => s.isPremium);
-  const user = useAuthStore(s => s.user);
   const expenses = useExpenseStore(s => s.expenses);
   const loadExpenses = useExpenseStore(s => s.loadExpenses);
   const removeExpense = useExpenseStore(s => s.removeExpense);
@@ -66,7 +62,6 @@ export default function DashboardScreen() {
   const allRecurring = useSourceStore(s => s.allRecurring);
   const loadAllRecurring = useSourceStore(s => s.loadAllRecurring);
   const sources = useSourceStore(s => s.sources);
-  const [premiumVisible, setPremiumVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   const [balanceData, setBalanceData] = useState<{
@@ -79,22 +74,19 @@ export default function DashboardScreen() {
 
   const load = useCallback(async () => {
     const month = getCurrentMonth();
-    const promises: Promise<any>[] = [
+    await Promise.all([
       loadExpenses({}),
       loadTargets(month),
       loadAllRecurring(),
-    ];
-    if (isPremium) {
-      promises.push(loadActiveLends());
-    }
-    await Promise.all(promises);
+      loadActiveLends(),
+    ]);
     const [balance, bills] = await Promise.all([
       calculateCurrentBalance(),
       getUpcomingBills(7),
     ]);
     setBalanceData(balance);
     setUpcomingBills(bills);
-  }, [isPremium]);
+  }, []);
 
   const markPaid = useCallback(async (id: number) => {
     await markLendPaid(id);
@@ -108,7 +100,7 @@ export default function DashboardScreen() {
 
   useFocusEffect(useCallback(() => {
     load();
-    getUnreadNotificationCount(user?.uid ?? null).then(setUnreadCount);
+    getUnreadNotificationCount().then(setUnreadCount);
   }, [load]));
 
   const onRefresh = useCallback(async () => {
@@ -158,14 +150,9 @@ export default function DashboardScreen() {
   const goToExpenses = useCallback(() => router.push('/(tabs)/expenses'), [router]);
   const goToLends = useCallback(() => router.push('/modals/lends'), [router]);
   const goToNotifications = useCallback(() => router.push('/modals/notifications'), [router]);
-  const showPremium = useCallback(() => setPremiumVisible(true), []);
-  const hidePremium = useCallback(() => setPremiumVisible(false), []);
 
   const goToAddExpense = useCallback(() => router.push('/modals/add-expense'), [router]);
-  const goToAddLend = useCallback(() => {
-    if (isPremium) router.push('/modals/add-lend');
-    else setPremiumVisible(true);
-  }, [isPremium, router]);
+  const goToAddLend = useCallback(() => router.push('/modals/add-lend'), [router]);
 
   const quickActions = useMemo(() => [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: goToAddExpense },
@@ -293,8 +280,8 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Active Lends (Premium) */}
-        {isPremium && (
+        {/* Active Lends */}
+        {(
           <View style={styles.section}>
             <SectionHeader title="Active Lends" onSeeAll={goToLends} />
             {activeLends.length === 0 ? (
@@ -424,14 +411,6 @@ export default function DashboardScreen() {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-
-      <PremiumModal
-        visible={premiumVisible}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={hidePremium}
-        onDismiss={hidePremium}
-      />
     </ScreenContainer>
   );
 }

@@ -5,11 +5,9 @@ import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LendCard } from '../../components/LendCard';
-import { PremiumModal } from '../../components/PremiumModal';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { neuCard, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -23,20 +21,14 @@ export default function LendsScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currency, isPremium } = useSettingsStore();
-  const { user } = useAuthStore();
+  const { currency } = useSettingsStore();
   const { lends, loadLends, markPaid, removeLend } = useLendStore();
   const [filter, setFilter] = useState<string | number | null>('active');
   const [refreshing, setRefreshing] = useState(false);
-  const [premiumVisible, setPremiumVisible] = useState(false);
 
   useEffect(() => {
-    if (!isPremium) {
-      setPremiumVisible(true);
-      return;
-    }
     loadLends();
-  }, [isPremium]);
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -116,14 +108,6 @@ export default function LendsScreen() {
         )}
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      <PremiumModal
-        visible={premiumVisible}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => { setPremiumVisible(false); loadLends(); }}
-        onDismiss={() => { setPremiumVisible(false); router.back(); }}
-      />
     </View>
   );
 }

@@ -5,8 +5,6 @@ import {
   deleteNotificationLogsByLendId,
 } from '../db/queries';
 import type { NewLend } from '../db/schema';
-import { triggerAutoSync } from '../services/autoSync';
-import { useAuthStore } from './authStore';
 import { cancelNotification } from '../services/notifications';
 
 export type LendWithSource = Awaited<ReturnType<typeof getLends>>[number];
@@ -33,30 +31,26 @@ export const useLendStore = create<LendState>((set, get) => ({
 
   loadLends: async () => {
     set({ isLoading: true });
-    const userId = useAuthStore.getState().user?.uid ?? null;
     const [all, active, total] = await Promise.all([
-      getLends(userId),
-      getActiveLends(userId),
-      getTotalActiveLendAmount(userId),
+      getLends(),
+      getActiveLends(),
+      getTotalActiveLendAmount(),
     ]);
     set({ lends: all, activeLends: active, activeLendTotal: total, isLoading: false });
   },
 
   loadActiveLends: async () => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
     const [active, total] = await Promise.all([
-      getActiveLends(userId),
-      getTotalActiveLendAmount(userId),
+      getActiveLends(),
+      getTotalActiveLendAmount(),
     ]);
     set({ activeLends: active, activeLendTotal: total });
   },
 
   addLend: async (data) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await createLend(data, userId);
+    await createLend(data);
     await adjustSourceBalance(data.sourceId, -data.amount);
     await get().loadLends();
-    triggerAutoSync();
   },
 
   editLend: async (id, data) => {
@@ -74,7 +68,6 @@ export const useLendStore = create<LendState>((set, get) => ({
       await adjustSourceBalance(newSourceId, -newAmount);
     }
     await get().loadLends();
-    triggerAutoSync();
   },
 
   removeLend: async (id) => {
@@ -87,7 +80,6 @@ export const useLendStore = create<LendState>((set, get) => ({
     }
     await deleteLend(id);
     await get().loadLends();
-    triggerAutoSync();
   },
 
   markPaid: async (id) => {
@@ -106,12 +98,10 @@ export const useLendStore = create<LendState>((set, get) => ({
     }
     await adjustSourceBalance(lend.sourceId, returnAmount);
     await get().loadLends();
-    triggerAutoSync();
   },
 
   refreshTotal: async () => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    const total = await getTotalActiveLendAmount(userId);
+    const total = await getTotalActiveLendAmount();
     set({ activeLendTotal: total });
   },
 }));

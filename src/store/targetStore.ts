@@ -1,11 +1,9 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import {
   getTargetForMonth, upsertTarget, getCategoryTargetsForMonth,
   upsertCategoryTarget, deleteCategoryTarget,
 } from '../db/queries';
 import type { Target } from '../db/schema';
-import { triggerAutoSync } from '../services/autoSync';
-import { useAuthStore } from './authStore';
 
 type CategoryTargetRow = Awaited<ReturnType<typeof getCategoryTargetsForMonth>>[number];
 
@@ -26,31 +24,25 @@ export const useTargetStore = create<TargetState>((set, get) => ({
 
   loadTargets: async (month) => {
     set({ isLoading: true });
-    const userId = useAuthStore.getState().user?.uid ?? null;
     const [target, catTargets] = await Promise.all([
-      getTargetForMonth(month, userId),
-      getCategoryTargetsForMonth(month, userId),
+      getTargetForMonth(month),
+      getCategoryTargetsForMonth(month),
     ]);
     set({ currentTarget: target ?? null, categoryTargets: catTargets, isLoading: false });
   },
 
   setOverallTarget: async (month, limit) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await upsertTarget(month, limit, userId);
+    await upsertTarget(month, limit);
     await get().loadTargets(month);
-    triggerAutoSync();
   },
 
   setCategoryTarget: async (month, categoryId, limit) => {
-    const userId = useAuthStore.getState().user?.uid ?? null;
-    await upsertCategoryTarget(month, categoryId, limit, userId);
+    await upsertCategoryTarget(month, categoryId, limit);
     await get().loadTargets(month);
-    triggerAutoSync();
   },
 
   removeCategoryTarget: async (id, month) => {
     await deleteCategoryTarget(id);
     await get().loadTargets(month);
-    triggerAutoSync();
   },
 }));

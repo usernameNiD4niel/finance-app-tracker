@@ -1,6 +1,4 @@
 import { getDueRecurringTransactions, updateRecurringTransaction, adjustSourceBalance } from '../db/queries';
-import { useSettingsStore } from '../store/settingsStore';
-import type { RecurringTransaction } from '../db/schema';
 
 function calculateNextRunDate(frequency: string, dayOfMonth: number | null, fromDate: Date): string {
   const d = new Date(fromDate);
@@ -72,8 +70,7 @@ export async function processDueRecurringTransactions(): Promise<void> {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
-  const userId = useSettingsStore.getState().firebaseUid ?? null;
-  const due = await getDueRecurringTransactions(todayStr, userId);
+  const due = await getDueRecurringTransactions(todayStr);
   if (due.length === 0) return;
 
   for (const rt of due) {

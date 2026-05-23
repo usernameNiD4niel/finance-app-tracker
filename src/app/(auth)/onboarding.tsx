@@ -7,13 +7,11 @@ import { format } from 'date-fns';
 import { PINPad } from '../../components/PINPad';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { hashPin } from '../../services/auth';
 import { CURRENCIES } from '../../utils/currency';
-import { PremiumModal } from '../../components/PremiumModal';
 import { neuCardLg, neuButton, neuListItem, neuCard, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -23,7 +21,6 @@ export default function OnboardingScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
   const { setCurrency, setPin, setOnboardingDone } = useSettingsStore();
-  const { user } = useAuthStore();
   const { addExpense } = useExpenseStore();
   const { loadCategories, categories } = useCategoryStore();
   const { sources, loadSources, addSource, editSource } = useSourceStore();
@@ -46,7 +43,6 @@ export default function OnboardingScreen() {
     Array<{ amount: number; categoryName: string; categoryIcon: string; categoryColor: string }>
   >([]);
   const [isAddingTx, setIsAddingTx] = useState(false);
-  const [showPremium, setShowPremium] = useState(false);
 
   const currencySymbol = CURRENCIES.find((c) => c.code === selectedCurrency)?.symbol ?? '$';
 
@@ -70,11 +66,6 @@ export default function OnboardingScreen() {
     await setPin(hash);
     await setCurrency(selectedCurrency);
     await setOnboardingDone();
-    setShowPremium(true);
-  };
-
-  const handlePremiumDismiss = () => {
-    setShowPremium(false);
     router.replace('/(tabs)');
   };
 
@@ -464,14 +455,6 @@ export default function OnboardingScreen() {
           maxLength={6}
         />
       )}
-
-      <PremiumModal
-        visible={showPremium}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => { setShowPremium(false); router.replace('/(tabs)'); }}
-        onDismiss={handlePremiumDismiss}
-      />
     </View>
   );
 }

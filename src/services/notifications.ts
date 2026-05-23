@@ -221,7 +221,6 @@ export async function syncNotificationLogs(
   billsList: BillForNotification[],
   lendsList: LendForNotification[],
   currency: string,
-  userId: string | null
 ) {
   const now = new Date();
 
@@ -250,7 +249,7 @@ export async function syncNotificationLogs(
         scheduledFor: dueDate.toISOString(),
       });
     }
-    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries, userId);
+    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries);
   }
 
   for (const lend of lendsList) {
@@ -281,7 +280,7 @@ export async function syncNotificationLogs(
         scheduledFor: payDate.toISOString(),
       });
     }
-    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries, userId);
+    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries);
   }
 }
 

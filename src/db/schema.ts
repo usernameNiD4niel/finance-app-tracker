@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
+﻿import { sqliteTable, text, integer, real } from 'drizzle-orm/sqlite-core';
 
 export const categories = sqliteTable('categories', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -7,11 +7,6 @@ export const categories = sqliteTable('categories', {
   color: text('color').notNull(),
   isCustom: integer('is_custom', { mode: 'boolean' }).notNull().default(false),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const expenses = sqliteTable('expenses', {
@@ -22,11 +17,6 @@ export const expenses = sqliteTable('expenses', {
   note: text('note'),
   date: text('date').notNull(),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const bills = sqliteTable('bills', {
@@ -41,11 +31,6 @@ export const bills = sqliteTable('bills', {
   notifyDaysBefore: integer('notify_days_before').notNull().default(1),
   notificationId: text('notification_id'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const moneySources = sqliteTable('money_sources', {
@@ -58,11 +43,6 @@ export const moneySources = sqliteTable('money_sources', {
   isCustom: integer('is_custom', { mode: 'boolean' }).notNull().default(false),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const recurringTransactions = sqliteTable('recurring_transactions', {
@@ -77,11 +57,6 @@ export const recurringTransactions = sqliteTable('recurring_transactions', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   note: text('note'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const targets = sqliteTable('targets', {
@@ -89,11 +64,6 @@ export const targets = sqliteTable('targets', {
   month: text('month').notNull(), // YYYY-MM
   overallLimit: real('overall_limit'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const categoryTargets = sqliteTable('category_targets', {
@@ -101,11 +71,6 @@ export const categoryTargets = sqliteTable('category_targets', {
   targetId: integer('target_id').notNull().references(() => targets.id),
   categoryId: integer('category_id').notNull().references(() => categories.id),
   limitAmount: real('limit_amount').notNull(),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const lends = sqliteTable('lends', {
@@ -123,11 +88,6 @@ export const lends = sqliteTable('lends', {
   interestValue: real('interest_value'), // exact amount or percentage
   notificationId: text('notification_id'),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const transfers = sqliteTable('transfers', {
@@ -139,11 +99,6 @@ export const transfers = sqliteTable('transfers', {
   note: text('note'),
   transferDate: text('transfer_date').notNull(),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
-  syncId: text('sync_id').unique(),
-  updatedAt: text('updated_at'),
-  deletedAt: text('deleted_at'),
-  syncStatus: text('sync_status', { enum: ['synced', 'pending', 'conflict'] }).notNull().default('pending'),
-  userId: text('user_id'),
 });
 
 export const settings = sqliteTable('settings', {
@@ -172,7 +127,6 @@ export type NewTransfer = typeof transfers.$inferInsert;
 
 export const notificationLog = sqliteTable('notification_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: text('user_id'),
   billId: integer('bill_id'),
   lendId: integer('lend_id'),
   title: text('title').notNull(),

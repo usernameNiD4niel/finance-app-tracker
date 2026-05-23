@@ -5,7 +5,6 @@ import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getNotificationLogs, markAllNotificationsRead } from '../../db/queries';
-import { useAuthStore } from '../../store/authStore';
 import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import type { NotificationLog } from '../../db/schema';
@@ -30,17 +29,15 @@ export default function NotificationsScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuthStore();
   const [logs, setLogs] = useState<NotificationLog[]>([]);
 
   useEffect(() => {
-    const uid = user?.uid ?? null;
     (async () => {
-      const data = await getNotificationLogs(uid);
+      const data = await getNotificationLogs();
       setLogs(data);
-      await markAllNotificationsRead(uid);
+      await markAllNotificationsRead();
     })();
-  }, [user?.uid]);
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>

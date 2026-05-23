@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Text, Switch, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -7,11 +7,7 @@ import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
-import { PremiumModal } from '../../components/PremiumModal';
-import { runSync } from '../../services/syncEngine';
 import { sendTestNotification } from '../../services/notifications';
-import { refreshAllStores } from '../../store';
 import { neuListItem } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 import { PRIMARY_COLORS } from '../../theme';
@@ -62,62 +58,10 @@ function SettingRow({ icon, iconColor, label, value, onPress, right }: SettingRo
 export default function SettingsScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor, setCloudSyncEnabled, setLastSyncedAt, isPremium } = useSettingsStore();
-  const { isAuthenticated, user, safeSignOut } = useAuthStore();
+  const { currency, theme: currentTheme, setTheme, primaryColor, setPrimaryColor } = useSettingsStore();
 
   const isDark = currentTheme === 'dark';
   const [showColors, setShowColors] = React.useState(false);
-  const [syncing, setSyncing] = React.useState(false);
-  const [colorPremiumVisible, setColorPremiumVisible] = React.useState(false);
-  const [exportPremiumVisible, setExportPremiumVisible] = React.useState(false);
-
-  async function handleSyncNow() {
-    if (!user) return;
-    setSyncing(true);
-    try {
-      const result = await runSync(user.uid);
-      if (result.pulled > 0) await refreshAllStores();
-      await setLastSyncedAt(new Date().toISOString());
-      Alert.alert('Sync complete', `Pushed ${result.pushed}, pulled ${result.pulled} changes.`);
-    } catch (e) {
-      Alert.alert('Sync failed', 'Could not sync. Check your connection and try again.');
-    } finally {
-      setSyncing(false);
-    }
-  }
-
-  async function handleSignOut() {
-    Alert.alert('Sign out of cloud?', 'Your data will be synced to the cloud before signing out. If you are offline, you can still sign out — unsynced data will be kept locally.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out', style: 'destructive', onPress: async () => {
-          if (!user) return;
-          setSyncing(true);
-          try {
-            const result = await safeSignOut(user.uid);
-            await setCloudSyncEnabled(false);
-            setSyncing(false);
-            if (result.pendingCount > 0) {
-              Alert.alert(
-                'Signed Out',
-                `You have ${result.pendingCount} pending change${result.pendingCount === 1 ? '' : 's'} that will sync next time you log in on this device.`,
-                [{ text: 'OK', onPress: () => router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any) }]
-              );
-            } else {
-              Alert.alert(
-                'Signed Out',
-                result.wasOnline ? 'Data synced successfully.' : 'All data was already synced.',
-                [{ text: 'OK', onPress: () => router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any) }]
-              );
-            }
-          } catch (e: any) {
-            setSyncing(false);
-            Alert.alert('Sign Out Failed', 'Could not complete sign out. Please try again.');
-          }
-        }
-      },
-    ]);
-  }
 
   const handleThemeToggle = async (val: boolean) => {
     await setTheme(val ? 'dark' : 'light');
@@ -155,48 +99,20 @@ export default function SettingsScreen() {
             {PRIMARY_COLORS.map((c) => {
               const color = isDark ? c.dark : c.light;
               const isSelected = c.light === primaryColor || c.dark === primaryColor;
-              const isLocked = !isPremium && c.light !== '#6366f1';
               return (
                 <TouchableOpacity
                   key={c.name}
-                  onPress={() => {
-                    if (isLocked) {
-                      setColorPremiumVisible(true);
-                    } else {
-                      setPrimaryColor(c.light);
-                    }
-                  }}
+                  onPress={() => setPrimaryColor(c.light)}
                   style={[
                     styles.colorDot,
-                    { backgroundColor: isLocked ? color + '66' : color },
+                    { backgroundColor: color },
                     isSelected && { borderWidth: 2.5, borderColor: theme.colors.onSurface },
                   ]}
-                >
-                  {isLocked && (
-                    <MaterialCommunityIcons name="lock" size={12} color="rgba(255,255,255,0.9)" />
-                  )}
-                </TouchableOpacity>
+                />
               );
             })}
           </View>
         )}
-        <PremiumModal
-          visible={colorPremiumVisible}
-          userId={user?.uid ?? ''}
-          userEmail={user?.email ?? ''}
-          onSubscribeSuccess={() => setColorPremiumVisible(false)}
-          onDismiss={() => {
-            setColorPremiumVisible(false);
-            if (!isPremium) setPrimaryColor('#6366f1');
-          }}
-        />
-        <PremiumModal
-          visible={exportPremiumVisible}
-          userId={user?.uid ?? ''}
-          userEmail={user?.email ?? ''}
-          onSubscribeSuccess={() => setExportPremiumVisible(false)}
-          onDismiss={() => setExportPremiumVisible(false)}
-        />
 
         {/* Financial */}
         <MutedLabel uppercase style={styles.sectionTitle}>Financial</MutedLabel>
@@ -226,7 +142,7 @@ export default function SettingsScreen() {
           icon="export"
           iconColor={theme.colors.primary}
           label="Export Data"
-          onPress={() => isPremium ? router.push('/modals/export') : setExportPremiumVisible(true)}
+          onPress={() => router.push('/modals/export')}
         />
 
         {/* Security */}
@@ -237,39 +153,6 @@ export default function SettingsScreen() {
           label="Change PIN"
           onPress={() => router.push('/modals/change-pin')}
         />
-
-        {/* Cloud Sync */}
-        <MutedLabel uppercase style={styles.sectionTitle}>Cloud Sync</MutedLabel>
-        {isAuthenticated && user ? (
-          <>
-            <SettingRow
-              icon="account-circle-outline"
-              iconColor={theme.colors.primary}
-              label="Signed in as"
-              value={user.email?.split('@')[0] ?? 'Account'}
-            />
-            <SettingRow
-              icon={syncing ? 'loading' : 'sync'}
-              iconColor={theme.colors.secondary}
-              label={syncing ? 'Syncing…' : 'Sync Now'}
-              onPress={syncing ? undefined : handleSyncNow}
-            />
-            <SettingRow
-              icon="logout"
-              iconColor={theme.colors.error}
-              label="Sign Out of Cloud"
-              onPress={handleSignOut}
-            />
-          </>
-        ) : (
-          <SettingRow
-            icon="cloud-upload-outline"
-            iconColor={theme.colors.primary}
-            label="Connect Cloud Account"
-            value="Off"
-            onPress={() => router.push('/modals/cloud-auth')}
-          />
-        )}
 
         {/* About */}
         <MutedLabel uppercase style={styles.sectionTitle}>About</MutedLabel>
@@ -291,7 +174,7 @@ export default function SettingsScreen() {
             await sendTestNotification();
             Alert.alert(
               'Notifications scheduled',
-              'Lock your screen or switch apps — two notifications will arrive in 5 s and 10 s.',
+              'Lock your screen or switch apps â€” two notifications will arrive in 5 s and 10 s.',
             );
           }}
         />

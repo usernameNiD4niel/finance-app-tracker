@@ -1,5 +1,4 @@
 import { getExpenses, getBills, getTotalSourceBalance } from '../db/queries';
-import { useAuthStore } from '../store/authStore';
 import { getDaysUntilDue } from '../utils/date';
 
 export async function calculateCurrentBalance(): Promise<{
@@ -13,11 +12,10 @@ export async function calculateCurrentBalance(): Promise<{
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
     .toISOString().split('T')[0];
 
-  const userId = useAuthStore.getState().user?.uid ?? null;
   const [monthExpenses, allBills, walletBalance] = await Promise.all([
-    getExpenses({ startDate: startOfMonth, endDate: endOfMonth }, userId),
-    getBills(userId),
-    getTotalSourceBalance(userId),
+    getExpenses({ startDate: startOfMonth, endDate: endOfMonth }),
+    getBills(),
+    getTotalSourceBalance(),
   ]);
 
   const spent = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
@@ -41,8 +39,7 @@ export type UpcomingBill = {
 };
 
 export async function getUpcomingBills(days = 7): Promise<UpcomingBill[]> {
-  const userId = useAuthStore.getState().user?.uid ?? null;
-  const allBills = await getBills(userId);
+  const allBills = await getBills();
   return allBills
     .filter(b => b.isActive)
     .map(b => ({

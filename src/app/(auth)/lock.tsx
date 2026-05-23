@@ -5,20 +5,16 @@ import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
-import { PremiumModal } from '../../components/PremiumModal';
 import { neuCardLg, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 export default function LockScreen() {
   const theme = useTheme<AppTheme>();
   const router = useRouter();
-  const { pinHash, isPremium } = useSettingsStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { pinHash } = useSettingsStore();
   const [bioAvailable, setBioAvailable] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [showPremium, setShowPremium] = useState(false);
 
   useEffect(() => {
     checkBiometrics();
@@ -36,25 +32,7 @@ export default function LockScreen() {
   };
 
   const unlock = () => {
-    if (isPremium) {
-      navigateAfterUnlock();
-    } else {
-      setShowPremium(true);
-    }
-  };
-
-  async function navigateAfterUnlock() {
-    if (!isAuthenticated) {
-      // Not signed in → force cloud auth before entering app (required for data safety)
-      router.replace({ pathname: '/modals/cloud-auth', params: { gate: '1' } } as any);
-    } else {
-      router.replace('/(tabs)');
-    }
-  }
-
-  const handlePremiumDismiss = async () => {
-    setShowPremium(false);
-    await navigateAfterUnlock();
+    router.replace('/(tabs)');
   };
 
   const handlePin = async (pin: string) => {
@@ -98,14 +76,6 @@ export default function LockScreen() {
           </Text>
         </TouchableOpacity>
       )}
-
-      <PremiumModal
-        visible={showPremium}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={async () => { setShowPremium(false); await navigateAfterUnlock(); }}
-        onDismiss={handlePremiumDismiss}
-      />
     </View>
   );
 }

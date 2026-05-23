@@ -1,6 +1,5 @@
-import { db, sqlite } from './client';
-import { eq, desc, gte, lte, and, sql, isNull } from 'drizzle-orm';
-import { randomUUID } from 'expo-crypto';
+﻿import { db, sqlite } from './client';
+import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import {
   categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends, notificationLog,
   type NewCategory, type NewExpense, type NewBill,
@@ -8,7 +7,7 @@ import {
   type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
 } from './schema';
 
-// ─── Settings ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function getSetting(key: string): Promise<string | null> {
   const row = await db.select().from(settings).where(eq(settings.key, key)).get();
   return row?.value ?? null;
@@ -21,43 +20,26 @@ export async function setSetting(key: string, value: string) {
   });
 }
 
-// ─── Categories ────────────────────────────────────────────────────────────
-export async function getCategories(userId: string | null = null) {
-  const userFilter = userId ? eq(categories.userId, userId) : isNull(categories.userId);
-  return db.select().from(categories)
-    .where(and(isNull(categories.deletedAt), userFilter))
-    .orderBy(categories.name).all();
+// â”€â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getCategories() {
+  return db.select().from(categories).orderBy(categories.name).all();
 }
 
-export async function createCategory(data: NewCategory, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(categories).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createCategory(data: NewCategory) {
+  return db.insert(categories).values(data).returning().get();
 }
 
 export async function updateCategory(id: number, data: Partial<NewCategory>) {
-  const now = new Date().toISOString();
-  return db.update(categories).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(categories.id, id)).returning().get();
+  return db.update(categories).set(data).where(eq(categories.id, id)).returning().get();
 }
 
 export async function deleteCategory(id: number) {
-  const now = new Date().toISOString();
-  await db.update(categories).set({ deletedAt: now, updatedAt: now, syncStatus: 'pending' }).where(eq(categories.id, id));
+  await db.delete(categories).where(eq(categories.id, id));
 }
 
-// ─── Expenses ──────────────────────────────────────────────────────────────
-export async function getExpenses(filters?: { startDate?: string; endDate?: string; categoryId?: number }, userId: string | null = null) {
-  const userFilter = userId ? eq(expenses.userId, userId) : isNull(expenses.userId);
-  const conditions = [isNull(expenses.deletedAt), userFilter];
+// â”€â”€â”€ Expenses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getExpenses(filters?: { startDate?: string; endDate?: string; categoryId?: number }) {
+  const conditions = [];
   if (filters?.startDate) conditions.push(gte(expenses.date, filters.startDate));
   if (filters?.endDate) conditions.push(lte(expenses.date, filters.endDate));
   if (filters?.categoryId) conditions.push(eq(expenses.categoryId, filters.categoryId));
@@ -81,38 +63,24 @@ export async function getExpenses(filters?: { startDate?: string; endDate?: stri
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
     .leftJoin(moneySources, eq(expenses.sourceId, moneySources.id))
-    .where(and(...conditions))
+    .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(expenses.date), desc(expenses.createdAt))
     .all();
 }
 
-export async function createExpense(data: NewExpense, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(expenses).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createExpense(data: NewExpense) {
+  return db.insert(expenses).values(data).returning().get();
 }
 
 export async function updateExpense(id: number, data: Partial<NewExpense>) {
-  const now = new Date().toISOString();
-  return db.update(expenses).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(expenses.id, id)).returning().get();
+  return db.update(expenses).set(data).where(eq(expenses.id, id)).returning().get();
 }
 
 export async function deleteExpense(id: number) {
-  const now = new Date().toISOString();
-  await db.update(expenses).set({ deletedAt: now, updatedAt: now, syncStatus: 'pending' }).where(eq(expenses.id, id));
+  await db.delete(expenses).where(eq(expenses.id, id));
 }
 
-export async function getExpenseTotalByCategory(startDate: string, endDate: string, userId: string | null = null) {
-  const userFilter = userId ? eq(expenses.userId, userId) : isNull(expenses.userId);
+export async function getExpenseTotalByCategory(startDate: string, endDate: string) {
   return db
     .select({
       categoryId: expenses.categoryId,
@@ -123,43 +91,40 @@ export async function getExpenseTotalByCategory(startDate: string, endDate: stri
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
-    .where(and(isNull(expenses.deletedAt), gte(expenses.date, startDate), lte(expenses.date, endDate), userFilter))
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
     .groupBy(expenses.categoryId)
     .all();
 }
 
 export async function getExpenseTotal(
-  startDate: string, endDate: string, userId: string | null = null
+  startDate: string, endDate: string
 ): Promise<{ total: number; count: number }> {
-  const userFilter = userId ? eq(expenses.userId, userId) : isNull(expenses.userId);
   const result = await db
     .select({
       total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)`,
       count: sql<number>`COUNT(${expenses.id})`,
     })
     .from(expenses)
-    .where(and(isNull(expenses.deletedAt), gte(expenses.date, startDate), lte(expenses.date, endDate), userFilter))
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
     .get();
   return { total: result?.total ?? 0, count: result?.count ?? 0 };
 }
 
-export async function getDailyExpenseTotals(startDate: string, endDate: string, userId: string | null = null) {
-  const userFilter = userId ? eq(expenses.userId, userId) : isNull(expenses.userId);
+export async function getDailyExpenseTotals(startDate: string, endDate: string) {
   return db
     .select({
       date: expenses.date,
       total: sql<number>`SUM(${expenses.amount})`,
     })
     .from(expenses)
-    .where(and(isNull(expenses.deletedAt), gte(expenses.date, startDate), lte(expenses.date, endDate), userFilter))
+    .where(and(gte(expenses.date, startDate), lte(expenses.date, endDate)))
     .groupBy(expenses.date)
     .orderBy(expenses.date)
     .all();
 }
 
-// ─── Bills ──────────────────────────────────────────────────────────────────
-export async function getBills(userId: string | null = null) {
-  const userFilter = userId ? eq(bills.userId, userId) : isNull(bills.userId);
+// â”€â”€â”€ Bills â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getBills() {
   return db
     .select({
       id: bills.id,
@@ -183,37 +148,23 @@ export async function getBills(userId: string | null = null) {
     .from(bills)
     .leftJoin(categories, eq(bills.categoryId, categories.id))
     .leftJoin(moneySources, eq(bills.sourceId, moneySources.id))
-    .where(and(isNull(bills.deletedAt), userFilter))
     .orderBy(bills.dueDay)
     .all();
 }
 
-export async function createBill(data: NewBill, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(bills).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createBill(data: NewBill) {
+  return db.insert(bills).values(data).returning().get();
 }
 
 export async function updateBill(id: number, data: Partial<NewBill>) {
-  const now = new Date().toISOString();
-  return db.update(bills).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(bills.id, id)).returning().get();
+  return db.update(bills).set(data).where(eq(bills.id, id)).returning().get();
 }
 
 export async function deleteBill(id: number) {
-  const now = new Date().toISOString();
-  await db.update(bills).set({ deletedAt: now, updatedAt: now, syncStatus: 'pending' }).where(eq(bills.id, id));
+  await db.delete(bills).where(eq(bills.id, id));
 }
 
-// ─── Transfers ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Transfers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export async function executeTransfer(
   fromSourceId: number,
   toSourceId: number,
@@ -221,7 +172,6 @@ export async function executeTransfer(
   fee: number,
   note: string | null,
   transferDate: string,
-  userId: string | null = null,
 ) {
   await adjustSourceBalance(fromSourceId, -(amount + fee));
   await adjustSourceBalance(toSourceId, amount);
@@ -234,14 +184,10 @@ export async function executeTransfer(
     note,
     transferDate,
     createdAt: now,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
   }).returning().get();
 }
 
-export async function getTransfers(sourceId?: number, userId: string | null = null) {
+export async function getTransfers(sourceId?: number) {
   const rows = await db
     .select({
       id: transfers.id,
@@ -262,87 +208,63 @@ export async function getTransfers(sourceId?: number, userId: string | null = nu
     .from(transfers)
     .leftJoin(sql`money_sources fs`, sql`${transfers.fromSourceId} = fs.id`)
     .leftJoin(sql`money_sources ts`, sql`${transfers.toSourceId} = ts.id`)
-    .where(and(isNull(transfers.deletedAt), userId ? eq(transfers.userId, userId) : isNull(transfers.userId)))
     .orderBy(desc(transfers.transferDate), desc(transfers.createdAt))
     .all();
   return rows;
 }
 
-// ─── Recurring Transactions ──────────────────────────────────────────────────
-export async function getRecurringTransactions(sourceId?: number, userId: string | null = null): Promise<RecurringTransaction[]> {
-  const userFilter = userId ? eq(recurringTransactions.userId, userId) : isNull(recurringTransactions.userId);
+// â”€â”€â”€ Recurring Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getRecurringTransactions(sourceId?: number): Promise<RecurringTransaction[]> {
   if (sourceId !== undefined) {
     return db
       .select()
       .from(recurringTransactions)
-      .where(and(eq(recurringTransactions.sourceId, sourceId), eq(recurringTransactions.isActive, true), isNull(recurringTransactions.deletedAt), userFilter))
+      .where(and(eq(recurringTransactions.sourceId, sourceId), eq(recurringTransactions.isActive, true)))
       .orderBy(recurringTransactions.createdAt)
       .all();
   }
   return db
     .select()
     .from(recurringTransactions)
-    .where(and(eq(recurringTransactions.isActive, true), isNull(recurringTransactions.deletedAt), userFilter))
+    .where(eq(recurringTransactions.isActive, true))
     .orderBy(recurringTransactions.nextRunDate)
     .all();
 }
 
-export async function getDueRecurringTransactions(today: string, userId: string | null = null): Promise<RecurringTransaction[]> {
-  const userFilter = userId ? eq(recurringTransactions.userId, userId) : isNull(recurringTransactions.userId);
+export async function getDueRecurringTransactions(today: string): Promise<RecurringTransaction[]> {
   return db
     .select()
     .from(recurringTransactions)
-    .where(and(eq(recurringTransactions.isActive, true), isNull(recurringTransactions.deletedAt), lte(recurringTransactions.nextRunDate, today), userFilter))
+    .where(and(eq(recurringTransactions.isActive, true), lte(recurringTransactions.nextRunDate, today)))
     .all();
 }
 
-export async function createRecurringTransaction(data: NewRecurringTransaction, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(recurringTransactions).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createRecurringTransaction(data: NewRecurringTransaction) {
+  return db.insert(recurringTransactions).values(data).returning().get();
 }
 
 export async function updateRecurringTransaction(id: number, data: Partial<NewRecurringTransaction>) {
-  const now = new Date().toISOString();
-  return db.update(recurringTransactions).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(recurringTransactions.id, id)).returning().get();
+  return db.update(recurringTransactions).set(data).where(eq(recurringTransactions.id, id)).returning().get();
 }
 
 export async function deleteRecurringTransaction(id: number) {
-  const now = new Date().toISOString();
-  return db.update(recurringTransactions).set({
-    isActive: false,
-    deletedAt: now,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(recurringTransactions.id, id)).returning().get();
+  await db.delete(recurringTransactions).where(eq(recurringTransactions.id, id));
 }
 
-// ─── Targets ────────────────────────────────────────────────────────────────
-export async function getTargetForMonth(month: string, userId: string | null = null) {
-  const userFilter = userId ? eq(targets.userId, userId) : isNull(targets.userId);
-  return db.select().from(targets).where(and(eq(targets.month, month), isNull(targets.deletedAt), userFilter)).get();
+// â”€â”€â”€ Targets â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getTargetForMonth(month: string) {
+  return db.select().from(targets).where(eq(targets.month, month)).get();
 }
 
-export async function upsertTarget(month: string, overallLimit: number | null, userId: string | null = null) {
-  const now = new Date().toISOString();
-  const existing = await getTargetForMonth(month, userId);
+export async function upsertTarget(month: string, overallLimit: number | null) {
+  const existing = await getTargetForMonth(month);
   if (existing) {
-    return db.update(targets).set({ overallLimit, updatedAt: now, syncStatus: 'pending' }).where(eq(targets.id, existing.id)).returning().get();
+    return db.update(targets).set({ overallLimit }).where(eq(targets.id, existing.id)).returning().get();
   }
-  return db.insert(targets).values({ month, overallLimit, userId, syncId: randomUUID(), updatedAt: now, syncStatus: 'pending' }).returning().get();
+  return db.insert(targets).values({ month, overallLimit }).returning().get();
 }
 
-export async function getCategoryTargetsForMonth(month: string, userId: string | null = null) {
-  const userFilter = userId ? eq(targets.userId, userId) : isNull(targets.userId);
+export async function getCategoryTargetsForMonth(month: string) {
   return db
     .select({
       id: categoryTargets.id,
@@ -356,27 +278,26 @@ export async function getCategoryTargetsForMonth(month: string, userId: string |
     .from(categoryTargets)
     .innerJoin(targets, eq(categoryTargets.targetId, targets.id))
     .leftJoin(categories, eq(categoryTargets.categoryId, categories.id))
-    .where(and(eq(targets.month, month), isNull(targets.deletedAt), userFilter, isNull(categoryTargets.deletedAt)))
+    .where(eq(targets.month, month))
     .all();
 }
 
-export async function upsertCategoryTarget(month: string, categoryId: number, limitAmount: number, userId: string | null = null) {
-  const now = new Date().toISOString();
-  let target = await getTargetForMonth(month, userId);
+export async function upsertCategoryTarget(month: string, categoryId: number, limitAmount: number) {
+  let target = await getTargetForMonth(month);
   if (!target) {
-    target = (await db.insert(targets).values({ month, overallLimit: null, userId, syncId: randomUUID(), updatedAt: now, syncStatus: 'pending' }).returning().get()) ?? null;
+    target = (await db.insert(targets).values({ month, overallLimit: null }).returning().get()) ?? null;
   }
 
   const existing = await db
     .select()
     .from(categoryTargets)
-    .where(and(eq(categoryTargets.targetId, target!.id), eq(categoryTargets.categoryId, categoryId), isNull(categoryTargets.deletedAt)))
+    .where(and(eq(categoryTargets.targetId, target!.id), eq(categoryTargets.categoryId, categoryId)))
     .get();
 
   if (existing) {
     return db
       .update(categoryTargets)
-      .set({ limitAmount, updatedAt: now, syncStatus: 'pending' })
+      .set({ limitAmount })
       .where(eq(categoryTargets.id, existing.id))
       .returning()
       .get();
@@ -385,78 +306,51 @@ export async function upsertCategoryTarget(month: string, categoryId: number, li
     targetId: target!.id,
     categoryId,
     limitAmount,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
   }).returning().get();
 }
 
 export async function deleteCategoryTarget(id: number) {
-  const now = new Date().toISOString();
-  await db.update(categoryTargets).set({ deletedAt: now, updatedAt: now, syncStatus: 'pending' }).where(eq(categoryTargets.id, id));
+  await db.delete(categoryTargets).where(eq(categoryTargets.id, id));
 }
 
-// ─── Money Sources ────────────────────────────────────────────────────────
-export async function getMoneySources(userId: string | null = null) {
-  const userFilter = userId ? eq(moneySources.userId, userId) : isNull(moneySources.userId);
-  return db.select().from(moneySources).where(and(isNull(moneySources.deletedAt), userFilter)).orderBy(moneySources.name).all();
+// â”€â”€â”€ Money Sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export async function getMoneySources() {
+  return db.select().from(moneySources).orderBy(moneySources.name).all();
 }
 
-export async function getActiveMoneySources(userId: string | null = null) {
-  const userFilter = userId ? eq(moneySources.userId, userId) : isNull(moneySources.userId);
-  return db.select().from(moneySources).where(and(eq(moneySources.isActive, true), isNull(moneySources.deletedAt), userFilter)).orderBy(moneySources.name).all();
+export async function getActiveMoneySources() {
+  return db.select().from(moneySources).where(eq(moneySources.isActive, true)).orderBy(moneySources.name).all();
 }
 
-export async function createMoneySource(data: NewMoneySource, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(moneySources).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createMoneySource(data: NewMoneySource) {
+  return db.insert(moneySources).values(data).returning().get();
 }
 
 export async function updateMoneySource(id: number, data: Partial<NewMoneySource>) {
-  const now = new Date().toISOString();
-  return db.update(moneySources).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(moneySources.id, id)).returning().get();
+  return db.update(moneySources).set(data).where(eq(moneySources.id, id)).returning().get();
 }
 
 export async function deleteMoneySource(id: number) {
-  const now = new Date().toISOString();
-  return db.update(moneySources).set({
-    isActive: false,
-    deletedAt: now,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(moneySources.id, id)).returning().get();
+  return db.update(moneySources).set({ isActive: false }).where(eq(moneySources.id, id)).returning().get();
 }
 
 export async function adjustSourceBalance(id: number, delta: number) {
-  const now = new Date().toISOString();
   sqlite.runSync(
-    'UPDATE money_sources SET balance = balance + ?, updated_at = ?, sync_status = ? WHERE id = ?',
-    [delta, now, 'pending', id]
+    'UPDATE money_sources SET balance = balance + ? WHERE id = ?',
+    [delta, id]
   );
 }
 
-export async function getTotalSourceBalance(userId: string | null = null): Promise<number> {
-  const userFilter = userId ? eq(moneySources.userId, userId) : isNull(moneySources.userId);
+export async function getTotalSourceBalance(): Promise<number> {
   const result = await db
     .select({ total: sql<number>`COALESCE(SUM(${moneySources.balance}), 0)` })
     .from(moneySources)
-    .where(and(eq(moneySources.isActive, true), isNull(moneySources.deletedAt), userFilter))
+    .where(eq(moneySources.isActive, true))
     .get();
   return result?.total ?? 0;
 }
 
-// ─── Lends ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Lends â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const lendSelectColumns = {
   id: lends.id,
   amount: lends.amount,
@@ -477,84 +371,64 @@ const lendSelectColumns = {
   sourceColor: moneySources.color,
 };
 
-export async function getLends(userId: string | null = null) {
-  const userFilter = userId ? eq(lends.userId, userId) : isNull(lends.userId);
+export async function getLends() {
   return db
     .select(lendSelectColumns)
     .from(lends)
     .leftJoin(moneySources, eq(lends.sourceId, moneySources.id))
-    .where(and(isNull(lends.deletedAt), userFilter))
     .orderBy(desc(lends.lendDate), desc(lends.createdAt))
     .all();
 }
 
-export async function getActiveLends(userId: string | null = null) {
-  const userFilter = userId ? eq(lends.userId, userId) : isNull(lends.userId);
+export async function getActiveLends() {
   return db
     .select(lendSelectColumns)
     .from(lends)
     .leftJoin(moneySources, eq(lends.sourceId, moneySources.id))
-    .where(and(eq(lends.isPaid, false), isNull(lends.deletedAt), userFilter))
+    .where(eq(lends.isPaid, false))
     .orderBy(desc(lends.lendDate), desc(lends.createdAt))
     .all();
 }
 
-export async function createLend(data: NewLend, userId: string | null = null) {
-  const now = new Date().toISOString();
-  return db.insert(lends).values({
-    ...data,
-    userId,
-    syncId: randomUUID(),
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).returning().get();
+export async function createLend(data: NewLend) {
+  return db.insert(lends).values(data).returning().get();
 }
 
 export async function updateLend(id: number, data: Partial<NewLend>) {
-  const now = new Date().toISOString();
-  return db.update(lends).set({
-    ...data,
-    updatedAt: now,
-    syncStatus: 'pending',
-  }).where(eq(lends.id, id)).returning().get();
+  return db.update(lends).set(data).where(eq(lends.id, id)).returning().get();
 }
 
 export async function deleteLend(id: number) {
-  const now = new Date().toISOString();
-  await db.update(lends).set({ deletedAt: now, updatedAt: now, syncStatus: 'pending' }).where(eq(lends.id, id));
+  await db.delete(lends).where(eq(lends.id, id));
 }
 
 export async function markLendPaid(id: number) {
-  const now = new Date().toISOString();
-  const today = now.split('T')[0];
+  const today = new Date().toISOString().split('T')[0];
   return db
     .update(lends)
-    .set({ isPaid: true, paidDate: today, updatedAt: now, syncStatus: 'pending' })
+    .set({ isPaid: true, paidDate: today })
     .where(eq(lends.id, id))
     .returning()
     .get();
 }
 
-export async function getTotalActiveLendAmount(userId: string | null = null): Promise<number> {
-  const userFilter = userId ? eq(lends.userId, userId) : isNull(lends.userId);
+export async function getTotalActiveLendAmount(): Promise<number> {
   const result = await db
     .select({ total: sql<number>`COALESCE(SUM(${lends.amount}), 0)` })
     .from(lends)
-    .where(and(eq(lends.isPaid, false), isNull(lends.deletedAt), userFilter))
+    .where(eq(lends.isPaid, false))
     .get();
   return result?.total ?? 0;
 }
 
-// ─── Notification Log ────────────────────────────────────────────────────────
+// â”€â”€â”€ Notification Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function insertNotificationLogsBatch(
   entries: Array<{ billId?: number | null; lendId?: number | null; title: string; body: string; scheduledFor: string }>,
-  userId: string | null
 ) {
   if (entries.length === 0) return;
   const now = new Date().toISOString();
   await db.insert(notificationLog).values(entries.map(e => ({
-    userId: userId ?? null,
     billId: e.billId ?? null,
     lendId: e.lendId ?? null,
     title: e.title,
@@ -586,42 +460,37 @@ export async function deleteNotificationLogsByLendId(lendId: number) {
   await db.delete(notificationLog).where(eq(notificationLog.lendId, lendId));
 }
 
-export async function getUnreadNotificationCount(userId: string | null): Promise<number> {
+export async function getUnreadNotificationCount(): Promise<number> {
   const now = new Date().toISOString();
   const result = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(notificationLog)
     .where(and(
       lte(notificationLog.scheduledFor, now),
-      isNull(notificationLog.readAt),
-      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
+      sql`${notificationLog.readAt} IS NULL`,
     ))
     .get();
   return result?.count ?? 0;
 }
 
-export async function getNotificationLogs(userId: string | null) {
+export async function getNotificationLogs() {
   const now = new Date().toISOString();
   return db
     .select()
     .from(notificationLog)
-    .where(and(
-      lte(notificationLog.scheduledFor, now),
-      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
-    ))
+    .where(lte(notificationLog.scheduledFor, now))
     .orderBy(desc(notificationLog.scheduledFor))
     .all();
 }
 
-export async function markAllNotificationsRead(userId: string | null) {
+export async function markAllNotificationsRead() {
   const now = new Date().toISOString();
   await db
     .update(notificationLog)
     .set({ readAt: now })
     .where(and(
       lte(notificationLog.scheduledFor, now),
-      isNull(notificationLog.readAt),
-      userId ? eq(notificationLog.userId, userId) : isNull(notificationLog.userId),
+      sql`${notificationLog.readAt} IS NULL`,
     ));
 }
 

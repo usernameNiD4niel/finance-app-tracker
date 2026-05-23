@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
 import { useColorScheme } from 'react-native';
@@ -6,12 +6,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { buildTheme } from '../theme';
 import { useSettingsStore } from '../store/settingsStore';
-import { useAuthStore } from '../store/authStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
-import { verifyPremiumStatus } from '../services/subscription';
-import { GuestWarningModal } from '../components/GuestWarningModal';
-import { useNetworkSync } from '../hooks/useNetworkSync';
 import { ActivityIndicator, View } from 'react-native';
 import { getBills, getActiveLends } from '../db/queries';
 import {
@@ -24,18 +20,7 @@ import {
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const { theme, primaryColor, loadSettings, isLoaded } = useSettingsStore();
-  const { initAuthListener, isAuthLoading, user } = useAuthStore();
   const router = useRouter();
-
-  // Verify premium status from Firestore whenever the user changes (sign-in/startup)
-  useEffect(() => {
-    if (user?.uid) {
-      verifyPremiumStatus(user.uid).catch(() => {});
-    }
-  }, [user?.uid]);
-
-  // Triggers background sync on reconnect when signed in
-  useNetworkSync();
 
   useEffect(() => {
     // Initialize local DB and settings
@@ -43,23 +28,22 @@ export default function RootLayout() {
       try {
         runMigrations();
         await loadSettings();
-        const uid = useSettingsStore.getState().firebaseUid ?? null;
-        seedCategories(uid);
-        seedMoneySources(uid);
+        seedCategories();
+        seedMoneySources();
         await processDueRecurringTransactions();
 
         // Notification setup
         await requestNotificationPermissions();
         const currency = useSettingsStore.getState().currency;
-        const [billsList, lendsList] = await Promise.all([getBills(uid), getActiveLends(uid)]);
-        await syncNotificationLogs(billsList, lendsList, currency, uid);
+        const [billsList, lendsList] = await Promise.all([getBills(), getActiveLends()]);
+        await syncNotificationLogs(billsList, lendsList, currency);
         await rescheduleAllBillNotifications(billsList, currency);
       } catch (e) {
         console.error('[startup] init failed:', e);
       }
     })();
 
-    // Notification tap — navigate to the relevant screen
+    // Notification tap â€” navigate to the relevant screen
     const cleanupListeners = initNotificationListeners(({ billId, lendId }) => {
       if (billId != null) {
         router.push('/(tabs)/bills' as any);
@@ -70,10 +54,7 @@ export default function RootLayout() {
       }
     });
 
-    // Start Firebase auth state listener — resolves isAuthLoading to false
-    const unsubscribe = initAuthListener();
     return () => {
-      unsubscribe();
       cleanupListeners();
     };
   }, []);
@@ -85,7 +66,7 @@ export default function RootLayout() {
 
   const resolvedTheme = buildTheme(primaryColor, isDark);
 
-  if (!isLoaded || isAuthLoading) {
+  if (!isLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#2a2d3a' }}>
         <ActivityIndicator color="#818cf8" size="large" />
@@ -118,10 +99,8 @@ export default function RootLayout() {
           <Stack.Screen name="modals/notifications" options={modalScreenOptions} />
           <Stack.Screen name="modals/add-lend" options={modalScreenOptions} />
           <Stack.Screen name="modals/lends" options={modalScreenOptions} />
-          <Stack.Screen name="modals/cloud-auth" options={modalScreenOptions} />
           <Stack.Screen name="modals/recurring" options={modalScreenOptions} />
         </Stack>
-        <GuestWarningModal />
       </PaperProvider>
     </GestureHandlerRootView>
   );

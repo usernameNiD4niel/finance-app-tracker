@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -8,16 +8,13 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SourcePicker } from '../../components/SourcePicker';
-import { PremiumModal } from '../../components/PremiumModal';
 import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useLendStore } from '../../store/lendStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { scheduleLendNotification, cancelNotification } from '../../services/notifications';
 import { format } from 'date-fns';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
-import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
 
@@ -37,18 +34,14 @@ export default function AddLendScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const { currency, isPremium } = useSettingsStore();
-  const { user } = useAuthStore();
+  const { currency } = useSettingsStore();
   const { lends, addLend, editLend } = useLendStore();
   const { sources, loadSources } = useSourceStore();
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
   const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [premiumVisible, setPremiumVisible] = useState(false);
   const [hasInterest, setHasInterest] = useState(false);
   const [interestType, setInterestType] = useState<'fixed' | 'percentage'>('fixed');
-
-  useGuestWarning();
 
   const isEditing = !!id;
   const existing = isEditing ? lends.find(l => l.id === Number(id)) : null;
@@ -67,12 +60,6 @@ export default function AddLendScreen() {
 
   const watchedAmount = watch('amount');
   const watchedInterest = watch('interestValue');
-
-  useEffect(() => {
-    if (!isPremium) {
-      setPremiumVisible(true);
-    }
-  }, [isPremium]);
 
   useEffect(() => {
     loadSources();
@@ -147,7 +134,10 @@ export default function AddLendScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
@@ -158,7 +148,7 @@ export default function AddLendScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
         <Controller
           control={control}
@@ -374,15 +364,7 @@ export default function AddLendScreen() {
         onSelect={setSelectedSource}
         onClose={() => setSourcePickerVisible(false)}
       />
-
-      <PremiumModal
-        visible={premiumVisible}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => setPremiumVisible(false)}
-        onDismiss={() => { setPremiumVisible(false); router.back(); }}
-      />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

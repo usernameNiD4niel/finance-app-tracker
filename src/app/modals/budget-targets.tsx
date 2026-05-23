@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -7,19 +7,15 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTargetStore } from '../../store/targetStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useAuthStore } from '../../store/authStore';
-import { PremiumModal } from '../../components/PremiumModal';
 import { getCurrentMonth } from '../../utils/date';
 import { neuButton, neuCard, neuListItem } from '../../theme/neumorphism';
-import { useGuestWarning } from '../../hooks/useGuestWarning';
 import type { AppTheme } from '../../theme';
 
 export default function BudgetTargetsScreen() {
   const theme = useTheme<AppTheme>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { currency, isPremium } = useSettingsStore();
-  const { user } = useAuthStore();
+  const { currency } = useSettingsStore();
   const { categories, loadCategories } = useCategoryStore();
   const { currentTarget, categoryTargets, loadTargets, setOverallTarget, setCategoryTarget } = useTargetStore();
 
@@ -27,18 +23,11 @@ export default function BudgetTargetsScreen() {
   const [overallAmount, setOverallAmount] = useState('');
   const [catLimits, setCatLimits] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
-  const [premiumVisible, setPremiumVisible] = useState(false);
-
-  useGuestWarning();
 
   useEffect(() => {
-    if (!isPremium) {
-      setPremiumVisible(true);
-      return;
-    }
     loadCategories();
     loadTargets(month);
-  }, [isPremium]);
+  }, []);
 
   useEffect(() => {
     if (currentTarget?.overallLimit) setOverallAmount(String(currentTarget.overallLimit));
@@ -66,18 +55,10 @@ export default function BudgetTargetsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <PremiumModal
-        visible={premiumVisible}
-        userId={user?.uid ?? ''}
-        userEmail={user?.email ?? ''}
-        onSubscribeSuccess={() => {
-          setPremiumVisible(false);
-          loadCategories();
-          loadTargets(month);
-        }}
-        onDismiss={() => { setPremiumVisible(false); router.back(); }}
-      />
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={[styles.header, { backgroundColor: theme.colors.background, paddingTop: 16 + insets.top }]}>
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialCommunityIcons name="close" size={24} color={theme.colors.onSurface} />
@@ -86,7 +67,7 @@ export default function BudgetTargetsScreen() {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={[styles.card, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}>
           <Text variant="titleMedium" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 12 }}>
             Monthly Overall Limit
@@ -139,7 +120,7 @@ export default function BudgetTargetsScreen() {
           <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save Targets</Text>
         </TouchableOpacity>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

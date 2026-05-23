@@ -34,7 +34,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
     predictiveBackGestureEnabled: false,
     package: 'com.rey.financialapp',
-    googleServicesFile: './google-services.json',
     permissions: [
       'USE_BIOMETRIC',
       'USE_FINGERPRINT',
@@ -59,16 +58,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-font',
     '@react-native-community/datetimepicker',
     'expo-web-browser',
+    'expo-build-properties',
   ],
   scheme: 'ledgerist',
   extra: {
     router: { root: './src/app' },
     eas: { projectId: 'ce6f994c-af83-460b-b2e7-9da17211800e' },
-    firebaseApiKey: process.env.FIREBASE_API_KEY,
-    firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
-    firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-    firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-    firebaseAppId: process.env.FIREBASE_APP_ID,
   },
 });

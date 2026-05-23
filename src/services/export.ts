@@ -2,7 +2,6 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { format } from 'date-fns';
 import { getExpenses, getBills, getMoneySources, getLends, getExpenseTotalByCategory } from '../db/queries';
-import { useAuthStore } from '../store/authStore';
 
 export type DataType = 'expenses' | 'bills' | 'stats' | 'wallets' | 'lends';
 export type ExportFormat = 'csv' | 'json';
@@ -66,7 +65,6 @@ export async function exportData(
   endDate: string | null,
   exportFormat: ExportFormat
 ): Promise<void> {
-  const userId = useAuthStore.getState().user?.uid ?? null;
   const start = startDate || ALL_TIME_START;
   const end = endDate || todayStr();
   const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
@@ -78,22 +76,21 @@ export async function exportData(
       case 'expenses':
         fetched.expenses = await getExpenses(
           { startDate: startDate ?? undefined, endDate: endDate ?? undefined },
-          userId
         );
         break;
       case 'bills':
         // Bills are recurring — date range is intentionally ignored
-        fetched.bills = await getBills(userId);
+        fetched.bills = await getBills();
         break;
       case 'stats':
-        fetched.stats = await getExpenseTotalByCategory(start, end, userId);
+        fetched.stats = await getExpenseTotalByCategory(start, end);
         break;
       case 'wallets':
         // Wallets are snapshots — date range is intentionally ignored
-        fetched.wallets = await getMoneySources(userId);
+        fetched.wallets = await getMoneySources();
         break;
       case 'lends': {
-        const all = await getLends(userId);
+        const all = await getLends();
         // Apply optional date filter on lendDate
         fetched.lends = (startDate || endDate)
           ? all.filter(l => {

@@ -1,4 +1,80 @@
+﻿import * as FileSystem from 'expo-file-system/legacy';
 import { sqlite } from './client';
+
+const DATA_TABLES = [
+  'categories', 'expenses', 'bills', 'money_sources',
+  'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
+];
+
+// Sync columns added by the (now removed) cloud-sync feature. Dropped in v2.
+const SYNC_COLUMNS = ['sync_id', 'updated_at', 'deleted_at', 'sync_status', 'user_id'];
+
+function columnExists(table: string, col: string): boolean {
+  const rows = sqlite.getAllSync<{ name: string }>(`PRAGMA table_info(${table})`);
+  return rows.some(r => r.name === col);
+}
+
+function getSettingSync(key: string): string | null {
+  try {
+    const row = sqlite.getFirstSync<{ value: string }>(
+      `SELECT value FROM settings WHERE key = ?`, [key]
+    );
+    return row?.value ?? null;
+  } catch { return null; }
+}
+
+function setSettingSync(key: string, value: string): void {
+  sqlite.runSync(
+    `INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    [key, value]
+  );
+}
+
+// â”€â”€ v2: drop all cloud-sync columns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// One-shot, guarded by a settings flag. Snapshots the DB first as a safety net,
+// hard-deletes any soft-deleted rows, drops the sync-related indexes, then drops
+// the 5 sync columns from every data table (+ user_id from notification_log).
+function dropSyncColumns(): void {
+  if (getSettingSync('migration_v2_offline') === 'done') return;
+
+  // Safety snapshot before destructive column drops (best-effort).
+  try {
+    const docDir = (FileSystem.documentDirectory ?? '').replace('file://', '');
+    if (docDir) {
+      const snapshot = `${docDir}pre-cloud-removal-backup.db`;
+      sqlite.execSync('PRAGMA wal_checkpoint(TRUNCATE);');
+      sqlite.execSync(`VACUUM INTO '${snapshot}'`);
+    }
+  } catch (_e) { /* snapshot failed â€” proceed anyway (no production users) */ }
+
+  // Drop the cloud-era indexes (they reference user_id / deleted_at, which would
+  // otherwise block DROP COLUMN).
+  for (const idx of [
+    'idx_expenses_user_date', 'idx_expenses_category', 'idx_expenses_deleted',
+    'idx_bills_user_deleted', 'idx_targets_user_month', 'idx_category_targets_target',
+    'idx_lends_user_active', 'idx_money_sources_user', 'idx_recurring_source',
+  ]) {
+    try { sqlite.execSync(`DROP INDEX IF EXISTS ${idx}`); } catch (_e) {}
+  }
+
+  for (const table of DATA_TABLES) {
+    // Purge soft-deleted rows before the column that hid them disappears.
+    if (columnExists(table, 'deleted_at')) {
+      try { sqlite.execSync(`DELETE FROM ${table} WHERE deleted_at IS NOT NULL`); } catch (_e) {}
+    }
+    for (const col of SYNC_COLUMNS) {
+      if (columnExists(table, col)) {
+        try { sqlite.execSync(`ALTER TABLE ${table} DROP COLUMN ${col}`); } catch (_e) {}
+      }
+    }
+  }
+
+  if (columnExists('notification_log', 'user_id')) {
+    try { sqlite.execSync(`ALTER TABLE notification_log DROP COLUMN user_id`); } catch (_e) {}
+  }
+
+  setSettingSync('migration_v2_offline', 'done');
+}
 
 export function runMigrations() {
   sqlite.execSync(`
@@ -153,8 +229,6 @@ export function runMigrations() {
   } catch (_e) {}
   // Add lend_id to existing notification_log tables (for users upgrading)
   try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN lend_id INTEGER`); } catch (_e) {}
-  // Add user_id to notification_log so logs are scoped per user
-  try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN user_id TEXT`); } catch (_e) {}
   // Add notification_id to lends
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN notification_id TEXT`); } catch (_e) {}
 
@@ -191,85 +265,30 @@ export function runMigrations() {
     } catch (_e) { /* ignore */ }
   }
 
-  // ── Cloud sync columns (Phase 1) ─────────────────────────────────────────
-  // Add sync_id, updated_at, deleted_at, sync_status to all data tables.
-  // ALTER TABLE ignores errors so reruns are safe.
-  const SYNC_TABLES = [
-    'categories', 'expenses', 'bills', 'money_sources',
-    'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
-  ];
-  for (const table of SYNC_TABLES) {
-    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN sync_id TEXT`); } catch (_e) {}
-    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT`); } catch (_e) {}
-    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN deleted_at TEXT`); } catch (_e) {}
-    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'`); } catch (_e) {}
-  }
+  // â”€â”€ v2: remove all cloud-sync columns (one-shot, guarded) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  dropSyncColumns();
 
-  // Backfill sync_id (UUID v4) for any rows that don't have one yet.
-  // Uses SQLite's randomblob() — no JS needed.
-  const UUID_EXPR =
-    `lower(hex(randomblob(4))) || '-' ||` +
-    `lower(hex(randomblob(2))) || '-4' ||` +
-    `substr(lower(hex(randomblob(2))),2) || '-' ||` +
-    `substr('89ab', abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' ||` +
-    `lower(hex(randomblob(6)))`;
-
-  for (const table of SYNC_TABLES) {
-    // Assign a UUID to every row that doesn't have one
-    sqlite.execSync(`UPDATE ${table} SET sync_id = (${UUID_EXPR}) WHERE sync_id IS NULL`);
-    // Backfill updated_at from created_at for tables that have it
-    if (table !== 'category_targets') {
-      sqlite.execSync(`UPDATE ${table} SET updated_at = created_at WHERE updated_at IS NULL`);
-    } else {
-      // category_targets has no created_at — use current time
-      sqlite.execSync(`UPDATE category_targets SET updated_at = datetime('now') WHERE updated_at IS NULL`);
-    }
-  }
-
-  // ── Phase 2: user_id column ──────────────────────────────────────────────
-  // Add user_id to all data tables so each row is owned by a Firebase user.
-  // Existing rows get assigned to whoever is currently logged in (first-user claim).
-  const USER_TABLES = [
-    'categories', 'expenses', 'bills', 'money_sources',
-    'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
-  ];
-  for (const table of USER_TABLES) {
-    try { sqlite.execSync(`ALTER TABLE ${table} ADD COLUMN user_id TEXT`); } catch (_e) {}
-  }
-  // Backfill: assign the stored Firebase UID to all existing rows (if a user was already signed in)
-  const uidRow = sqlite.getFirstSync<{ value: string }>(
-    `SELECT value FROM settings WHERE key = 'firebase_uid'`
-  );
-  const existingUid = uidRow?.value ?? null;
-  if (existingUid) {
-    for (const table of USER_TABLES) {
-      sqlite.runSync(`UPDATE ${table} SET user_id = ? WHERE user_id IS NULL`, [existingUid]);
-    }
-  }
-
-  // ── Performance indexes ──────────────────────────────────────────────────────
+  // â”€â”€ Performance indexes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   sqlite.execSync(`
-    CREATE INDEX IF NOT EXISTS idx_expenses_user_date ON expenses(user_id, date);
+    CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
     CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category_id);
-    CREATE INDEX IF NOT EXISTS idx_expenses_deleted ON expenses(user_id, deleted_at);
-    CREATE INDEX IF NOT EXISTS idx_bills_user_deleted ON bills(user_id, deleted_at);
-    CREATE INDEX IF NOT EXISTS idx_targets_user_month ON targets(user_id, month, deleted_at);
-    CREATE INDEX IF NOT EXISTS idx_category_targets_target ON category_targets(target_id, deleted_at);
-    CREATE INDEX IF NOT EXISTS idx_lends_user_active ON lends(user_id, is_paid, deleted_at);
-    CREATE INDEX IF NOT EXISTS idx_money_sources_user ON money_sources(user_id, is_active, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_targets_month ON targets(month);
+    CREATE INDEX IF NOT EXISTS idx_category_targets_target ON category_targets(target_id);
+    CREATE INDEX IF NOT EXISTS idx_lends_active ON lends(is_paid);
+    CREATE INDEX IF NOT EXISTS idx_money_sources_active ON money_sources(is_active);
     CREATE INDEX IF NOT EXISTS idx_notification_log_bill ON notification_log(bill_id);
     CREATE INDEX IF NOT EXISTS idx_notification_log_schedule ON notification_log(scheduled_for, read_at);
-    CREATE INDEX IF NOT EXISTS idx_recurring_source ON recurring_transactions(source_id, deleted_at);
+    CREATE INDEX IF NOT EXISTS idx_recurring_source ON recurring_transactions(source_id);
   `);
 
-  // ── Dedup predefined categories ─────────────────────────────────────────────
+  // â”€â”€ Dedup predefined categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   try { dedupPredefinedCategories(); } catch (_e) {}
 
-  // ── Dedup predefined money_sources ──────────────────────────────────────────
+  // â”€â”€ Dedup predefined money_sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   try { dedupPredefinedSources(); } catch (_e) {}
 }
 
-// ── Dedup helpers (also called post-sync in cloud-auth) ──────────────────────
+// â”€â”€ Dedup helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function dedupPredefinedCategories() {
   const dupCatGroups = sqlite.getAllSync<{ name: string }>(
@@ -292,13 +311,12 @@ export function dedupPredefinedCategories() {
 }
 
 export function dedupPredefinedSources() {
-  const dupGroups = sqlite.getAllSync<{ name: string; user_id: string | null }>(
-    `SELECT name, user_id FROM money_sources WHERE is_custom = 0 GROUP BY name, COALESCE(user_id, '') HAVING COUNT(*) > 1`
+  const dupGroups = sqlite.getAllSync<{ name: string }>(
+    `SELECT name FROM money_sources WHERE is_custom = 0 GROUP BY name HAVING COUNT(*) > 1`
   );
   for (const group of dupGroups) {
-    const userFilter = group.user_id ? `user_id = '${group.user_id}'` : `user_id IS NULL`;
     const rows = sqlite.getAllSync<{ id: number }>(
-      `SELECT id FROM money_sources WHERE is_custom = 0 AND name = ? AND ${userFilter}`,
+      `SELECT id FROM money_sources WHERE is_custom = 0 AND name = ?`,
       [group.name]
     );
     const scored = rows.map(r => {
@@ -336,29 +354,17 @@ const PREDEFINED_CATEGORIES = [
   { name: 'Other', icon: 'dots-horizontal', color: '#6b7280' },
 ];
 
-export function seedCategories(userId: string | null = null) {
-  // Guard is scoped per (name, user_id) so each user gets their own predefined rows.
+export function seedCategories() {
   for (const cat of PREDEFINED_CATEGORIES) {
     try {
-      if (userId) {
-        sqlite.runSync(
-          `INSERT INTO categories (name, icon, color, is_custom, user_id)
-           SELECT ?, ?, ?, 0, ?
-           WHERE NOT EXISTS (
-             SELECT 1 FROM categories WHERE name = ? AND is_custom = 0 AND user_id = ?
-           )`,
-          [cat.name, cat.icon, cat.color, userId, cat.name, userId]
-        );
-      } else {
-        sqlite.runSync(
-          `INSERT INTO categories (name, icon, color, is_custom, user_id)
-           SELECT ?, ?, ?, 0, NULL
-           WHERE NOT EXISTS (
-             SELECT 1 FROM categories WHERE name = ? AND is_custom = 0 AND user_id IS NULL
-           )`,
-          [cat.name, cat.icon, cat.color, cat.name]
-        );
-      }
+      sqlite.runSync(
+        `INSERT INTO categories (name, icon, color, is_custom)
+         SELECT ?, ?, ?, 0
+         WHERE NOT EXISTS (
+           SELECT 1 FROM categories WHERE name = ? AND is_custom = 0
+         )`,
+        [cat.name, cat.icon, cat.color, cat.name]
+      );
     } catch (_e) {}
   }
 }
@@ -372,29 +378,17 @@ const PREDEFINED_SOURCES = [
   { name: 'PayPal', type: 'e_wallet', icon: 'wallet-outline', color: '#003087' },
 ];
 
-export function seedMoneySources(userId: string | null = null) {
-  // Guard is scoped per (name, user_id) so each user gets their own predefined rows.
+export function seedMoneySources() {
   for (const src of PREDEFINED_SOURCES) {
     try {
-      if (userId) {
-        sqlite.runSync(
-          `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
-           SELECT ?, ?, ?, ?, 0, ?
-           WHERE NOT EXISTS (
-             SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0 AND user_id = ?
-           )`,
-          [src.name, src.type, src.icon, src.color, userId, src.name, userId]
-        );
-      } else {
-        sqlite.runSync(
-          `INSERT INTO money_sources (name, type, icon, color, is_custom, user_id)
-           SELECT ?, ?, ?, ?, 0, NULL
-           WHERE NOT EXISTS (
-             SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0 AND user_id IS NULL
-           )`,
-          [src.name, src.type, src.icon, src.color, src.name]
-        );
-      }
+      sqlite.runSync(
+        `INSERT INTO money_sources (name, type, icon, color, is_custom)
+         SELECT ?, ?, ?, ?, 0
+         WHERE NOT EXISTS (
+           SELECT 1 FROM money_sources WHERE name = ? AND is_custom = 0
+         )`,
+        [src.name, src.type, src.icon, src.color, src.name]
+      );
     } catch (_e) {}
   }
 }
