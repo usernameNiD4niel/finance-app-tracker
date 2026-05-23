@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, useTheme } from 'react-native-paper';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
@@ -20,8 +20,30 @@ export default function BillsScreen() {
   const insets = useSafeAreaInsets();
   const { currency } = useSettingsStore();
   const { bills, loadBills, editBill, removeBill } = useBillStore();
+  const { highlightId } = useLocalSearchParams<{ highlightId?: string }>();
+  const listRef = useRef<FlatList>(null);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
 
   useFocusEffect(useCallback(() => { loadBills(); }, []));
+
+  // Highlight the bill a notification tap points at, then fade it out.
+  useEffect(() => {
+    const idNum = Number(highlightId);
+    if (!highlightId || Number.isNaN(idNum)) return;
+    setHighlightedId(idNum);
+    const t = setTimeout(() => setHighlightedId(null), 3000);
+    return () => clearTimeout(t);
+  }, [highlightId]);
+
+  // Scroll the highlighted bill into view once the list has data.
+  useEffect(() => {
+    if (highlightedId == null) return;
+    const index = bills.findIndex(b => b.id === highlightedId);
+    if (index < 0) return;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+    });
+  }, [highlightedId, bills.length]);
 
   const activeBills = bills.filter(b => b.isActive);
   const monthlyTotal = activeBills.reduce((sum, b) => sum + b.amount, 0);
@@ -70,8 +92,12 @@ export default function BillsScreen() {
       />
 
       <FlatList
+        ref={listRef}
         data={bills}
         keyExtractor={(item) => String(item.id)}
+        onScrollToIndexFailed={({ index }) => {
+          setTimeout(() => listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 }), 250);
+        }}
         renderItem={({ item, index }) => (
           <BillCard
             id={item.id}
@@ -87,6 +113,7 @@ export default function BillsScreen() {
             onDelete={handleDelete}
             onEdit={(id) => router.push({ pathname: '/modals/add-bill', params: { id } })}
             index={index}
+            highlighted={highlightedId === item.id}
           />
         )}
         ListEmptyComponent={

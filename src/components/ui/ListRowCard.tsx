@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useTheme } from 'react-native-paper';
 import Animated, {
   useSharedValue,
@@ -14,7 +14,7 @@ interface Props {
   onPress?: () => void;
   onLongPress?: () => void;
   index?: number;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export function ListRowCard({ children, onPress, onLongPress, index = 0, style }: Props) {

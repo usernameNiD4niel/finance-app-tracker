@@ -6,6 +6,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { isBiometricAvailable, authenticateWithBiometrics, verifyPin } from '../../services/auth';
+import {
+  setAppUnlocked,
+  consumePendingNotificationTap,
+  buildNotificationRoute,
+} from '../../services/notifications';
 import { neuCardLg, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -32,7 +37,15 @@ export default function LockScreen() {
   };
 
   const unlock = () => {
+    setAppUnlocked(true);
     router.replace('/(tabs)');
+    // If a notification launched the app, open its item now that we're past
+    // the PIN gate. Delay lets the tabs mount before we navigate onto them.
+    const pending = consumePendingNotificationTap();
+    if (pending) {
+      const route = buildNotificationRoute(pending);
+      setTimeout(() => router.navigate(route as any), 350);
+    }
   };
 
   const handlePin = async (pin: string) => {

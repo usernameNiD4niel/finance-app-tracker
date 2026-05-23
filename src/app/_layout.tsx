@@ -15,6 +15,10 @@ import {
   syncNotificationLogs,
   rescheduleAllBillNotifications,
   initNotificationListeners,
+  getInitialNotificationTap,
+  buildNotificationRoute,
+  setPendingNotificationTap,
+  isAppUnlocked,
 } from '../services/notifications';
 
 export default function RootLayout() {
@@ -26,6 +30,11 @@ export default function RootLayout() {
     // Initialize local DB and settings
     (async () => {
       try {
+        // Capture a notification that cold-started the app before anything else,
+        // so the lock screen can route to it once the user authenticates.
+        const initialTap = await getInitialNotificationTap();
+        if (initialTap) setPendingNotificationTap(initialTap);
+
         runMigrations();
         await loadSettings();
         seedCategories();
@@ -43,14 +52,13 @@ export default function RootLayout() {
       }
     })();
 
-    // Notification tap â€” navigate to the relevant screen
-    const cleanupListeners = initNotificationListeners(({ billId, lendId }) => {
-      if (billId != null) {
-        router.push('/(tabs)/bills' as any);
-      } else if (lendId != null) {
-        router.push('/(tabs)/' as any);
+    // Notification tap — open the item that triggered it. While the app is
+    // still locked, stash it; lock.tsx applies it after unlocking.
+    const cleanupListeners = initNotificationListeners((data) => {
+      if (isAppUnlocked()) {
+        router.navigate(buildNotificationRoute(data) as any);
       } else {
-        router.push('/modals/notifications' as any);
+        setPendingNotificationTap(data);
       }
     });
 

@@ -364,12 +364,76 @@ function toId(val: unknown): number | undefined {
   return isNaN(n) ? undefined : n;
 }
 
+// Tracks notification responses already routed this session so a cold-start tap
+// (read via getLastNotificationResponseAsync) and the live listener don't both
+// fire for the same notification.
+const handledTapIds = new Set<string>();
+
+function claimTap(id: string): boolean {
+  if (handledTapIds.has(id)) return false;
+  handledTapIds.add(id);
+  return true;
+}
+
+function parseTapResponse(
+  response: Notifications.NotificationResponse,
+): { data: NotificationTapData; id: string } {
+  const raw = response.notification.request.content.data ?? {};
+  // Coerce to number — some platforms serialise notification data as strings
+  return {
+    data: { billId: toId(raw.billId), lendId: toId(raw.lendId) },
+    id: response.notification.request.identifier,
+  };
+}
+
+// Whether the user has passed the lock screen this session. Deep links from a
+// notification must wait for this so we never reveal data behind the PIN gate.
+let appUnlocked = false;
+export function setAppUnlocked(value: boolean) { appUnlocked = value; }
+export function isAppUnlocked(): boolean { return appUnlocked; }
+
+// A tap captured before the app was unlocked, applied right after unlock.
+let pendingTap: NotificationTapData | null = null;
+export function setPendingNotificationTap(data: NotificationTapData) { pendingTap = data; }
+export function consumePendingNotificationTap(): NotificationTapData | null {
+  const t = pendingTap;
+  pendingTap = null;
+  return t;
+}
+
+// Routes a tap to the screen showing the item that triggered it. Bills and
+// lends land on their list with the relevant row highlighted; anything else
+// (e.g. the dev test notification) opens the notification center.
+export function buildNotificationRoute(
+  data: NotificationTapData,
+): { pathname: string; params?: Record<string, string> } {
+  const { billId, lendId } = data;
+  if (billId != null && billId > 0) {
+    return { pathname: '/(tabs)/bills', params: { highlightId: String(billId) } };
+  }
+  if (lendId != null && lendId > 0) {
+    return { pathname: '/modals/lends', params: { highlightId: String(lendId) } };
+  }
+  return { pathname: '/modals/notifications' };
+}
+
 export function initNotificationListeners(onTap: (data: NotificationTapData) => void): () => void {
   if (IS_EXPO_GO) return () => {};
   const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-    const raw = response.notification.request.content.data ?? {};
-    // Coerce to number — some platforms serialise notification data as strings
-    onTap({ billId: toId(raw.billId), lendId: toId(raw.lendId) });
+    const { data, id } = parseTapResponse(response);
+    if (!claimTap(id)) return;
+    onTap(data);
   });
   return () => sub.remove();
+}
+
+// The notification tap that launched the app from a killed state, if any.
+// Marks it handled so the live listener above won't process it a second time.
+export async function getInitialNotificationTap(): Promise<NotificationTapData | null> {
+  if (IS_EXPO_GO) return null;
+  const response = await Notifications.getLastNotificationResponseAsync();
+  if (!response) return null;
+  const { data, id } = parseTapResponse(response);
+  if (!claimTap(id)) return null;
+  return data;
 }

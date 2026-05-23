@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LendCard } from '../../components/LendCard';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
@@ -23,12 +23,26 @@ export default function LendsScreen() {
   const router = useRouter();
   const { currency } = useSettingsStore();
   const { lends, loadLends, markPaid, removeLend } = useLendStore();
+  const { highlightId } = useLocalSearchParams<{ highlightId?: string }>();
   const [filter, setFilter] = useState<string | number | null>('active');
   const [refreshing, setRefreshing] = useState(false);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     loadLends();
   }, []);
+
+  // Highlight the lend a notification tap points at, then fade it out. Show it
+  // under the "All" filter so a paid/old lend isn't hidden.
+  useEffect(() => {
+    const idNum = Number(highlightId);
+    if (!highlightId || Number.isNaN(idNum)) return;
+    setHighlightedId(idNum);
+    setFilter('all');
+    const t = setTimeout(() => setHighlightedId(null), 3000);
+    return () => clearTimeout(t);
+  }, [highlightId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -62,6 +76,7 @@ export default function LendsScreen() {
       </View>
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -82,8 +97,14 @@ export default function LendsScreen() {
           </View>
         ) : (
           filtered.map((lend, i) => (
-            <LendCard
+            <View
               key={lend.id}
+              onLayout={highlightedId === lend.id ? (e) => {
+                const y = e.nativeEvent.layout.y;
+                scrollRef.current?.scrollTo({ y: Math.max(y - 80, 0), animated: true });
+              } : undefined}
+            >
+            <LendCard
               id={lend.id}
               amount={lend.amount}
               borrowerName={lend.borrowerName}
@@ -103,7 +124,9 @@ export default function LendsScreen() {
               onDelete={removeLend}
               onEdit={(id) => router.push({ pathname: '/modals/add-lend', params: { id } })}
               index={i}
+              highlighted={highlightedId === lend.id}
             />
+            </View>
           ))
         )}
         <View style={{ height: 40 }} />

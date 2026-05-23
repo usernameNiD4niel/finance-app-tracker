@@ -27,6 +27,7 @@ interface Props {
   onDelete?: (id: number) => void;
   onEdit?: (id: number) => void;
   index?: number;
+  highlighted?: boolean;
 }
 
 function getDaysUntilDate(dateStr: string): number {
@@ -48,7 +49,7 @@ export const LendCard = React.memo(function LendCard({
   id, amount, borrowerName, note, lendDate, expectedPayDate,
   isPaid: rawIsPaid, paidDate, hasInterest: rawHasInterest, interestType, interestValue,
   sourceName, sourceIcon, sourceColor,
-  currency, onMarkPaid, onDelete, onEdit, index = 0,
+  currency, onMarkPaid, onDelete, onEdit, index = 0, highlighted = false,
 }: Props) {
   const theme = useTheme<AppTheme>();
   // Coerce SQLite 0/1 to boolean
@@ -92,7 +93,11 @@ export const LendCard = React.memo(function LendCard({
         : `Due in ${daysUntil}d`;
 
   return (
-    <ListRowCard onLongPress={handleLongPress} index={index} style={styles.card}>
+    <ListRowCard
+      onLongPress={handleLongPress}
+      index={index}
+      style={[styles.card, highlighted && { borderWidth: 2, borderColor: theme.colors.primary }]}
+    >
       <View style={[styles.iconContainer, { backgroundColor: (sourceColor ?? theme.colors.primary) + '22' }]}>
         <MaterialCommunityIcons
           name={(sourceIcon ?? 'hand-coin') as any}

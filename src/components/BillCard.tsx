@@ -21,12 +21,13 @@ interface Props {
   onDelete: (id: number) => void;
   onEdit: (id: number) => void;
   index?: number;
+  highlighted?: boolean;
 }
 
 export const BillCard = React.memo(function BillCard({
   id, name, amount, dueDay, isActive, frequency,
   categoryIcon, categoryColor, currency,
-  onToggle, onDelete, onEdit, index = 0,
+  onToggle, onDelete, onEdit, index = 0, highlighted = false,
 }: Props) {
   const theme = useTheme<AppTheme>();
   const daysLeft = getDaysUntilDue(dueDay);
@@ -50,7 +51,7 @@ export const BillCard = React.memo(function BillCard({
     <ListRowCard
       onLongPress={handleLongPress}
       index={index}
-      style={styles.card}
+      style={[styles.card, highlighted && { borderWidth: 2, borderColor: theme.colors.primary }]}
     >
       <View style={[styles.iconContainer, { backgroundColor: (categoryColor ?? theme.colors.primary) + '22' }]}>
         <MaterialCommunityIcons
