@@ -1,9 +1,9 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { format } from 'date-fns';
-import { getExpenses, getBills, getMoneySources, getLends, getExpenseTotalByCategory } from '../db/queries';
+import { getExpenses, getBills, getMoneySources, getLends, getBorrows, getExpenseTotalByCategory } from '../db/queries';
 
-export type DataType = 'expenses' | 'bills' | 'stats' | 'wallets' | 'lends';
+export type DataType = 'expenses' | 'bills' | 'stats' | 'wallets' | 'lends' | 'borrows';
 export type ExportFormat = 'csv' | 'json';
 
 // Used when no start date is provided — effectively "all time"
@@ -57,6 +57,14 @@ function lendsToCSV(data: Awaited<ReturnType<typeof getLends>>): string {
   return [header, ...rows].join('\n');
 }
 
+function borrowsToCSV(data: Awaited<ReturnType<typeof getBorrows>>): string {
+  const header = 'Lender,Amount,Receiving Wallet,Repayment Wallet,Borrow Date,Expected Pay Date,Status,Paid Date,Note';
+  const rows = data.map(b =>
+    `"${b.lenderName}",${b.amount},"${b.receivingSourceName ?? ''}","${b.repaymentSourceName ?? ''}","${b.borrowDate}","${b.expectedPayDate}","${b.isPaid ? 'Repaid' : 'Unpaid'}","${b.paidDate ?? ''}","${(b.note ?? '').replace(/"/g, '""')}"`
+  );
+  return [header, ...rows].join('\n');
+}
+
 // ── Main export function ──────────────────────────────────────────────────────
 
 export async function exportData(
@@ -96,6 +104,18 @@ export async function exportData(
           ? all.filter(l => {
               if (startDate && l.lendDate < startDate) return false;
               if (endDate && l.lendDate > endDate) return false;
+              return true;
+            })
+          : all;
+        break;
+      }
+      case 'borrows': {
+        const all = await getBorrows();
+        // Apply optional date filter on borrowDate
+        fetched.borrows = (startDate || endDate)
+          ? all.filter(b => {
+              if (startDate && b.borrowDate < startDate) return false;
+              if (endDate && b.borrowDate > endDate) return false;
               return true;
             })
           : all;
@@ -160,6 +180,19 @@ export async function exportData(
         note: l.note ?? null,
       }));
     }
+    if (fetched.borrows) {
+      output.borrows = fetched.borrows.map(b => ({
+        lender: b.lenderName,
+        amount: b.amount,
+        receivingWallet: b.receivingSourceName ?? null,
+        repaymentWallet: b.repaymentSourceName ?? null,
+        borrowDate: b.borrowDate,
+        expectedPayDate: b.expectedPayDate,
+        isPaid: b.isPaid,
+        paidDate: b.paidDate ?? null,
+        note: b.note ?? null,
+      }));
+    }
 
     content = JSON.stringify(output, null, 2);
   } else {
@@ -170,6 +203,7 @@ export async function exportData(
     if (fetched.stats)    sections.push(`--- SPENDING STATS ---\n${statsToCSV(fetched.stats)}`);
     if (fetched.wallets)  sections.push(`--- WALLETS ---\n${walletsToCSV(fetched.wallets)}`);
     if (fetched.lends)    sections.push(`--- LENDS ---\n${lendsToCSV(fetched.lends)}`);
+    if (fetched.borrows)  sections.push(`--- BORROWS ---\n${borrowsToCSV(fetched.borrows)}`);
     content = sections.join('\n\n');
   }
 

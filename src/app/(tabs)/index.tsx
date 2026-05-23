@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText, Alert } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../../components/BalanceCard';
 import { ExpenseListItem } from '../../components/ExpenseListItem';
 import { LendCard } from '../../components/LendCard';
+import { BorrowCard } from '../../components/BorrowCard';
 import { BudgetProgressBar } from '../../components/BudgetProgressBar';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { SectionHeader } from '../../components/ui/SectionHeader';
@@ -16,6 +17,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useTargetStore } from '../../store/targetStore';
 import { useLendStore } from '../../store/lendStore';
+import { useBorrowStore } from '../../store/borrowStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { calculateCurrentBalance, getUpcomingBills } from '../../services/balance';
 import { getCurrentMonth } from '../../utils/date';
@@ -59,6 +61,9 @@ export default function DashboardScreen() {
   const activeLends = useLendStore(s => s.activeLends);
   const loadActiveLends = useLendStore(s => s.loadActiveLends);
   const markLendPaid = useLendStore(s => s.markPaid);
+  const activeBorrows = useBorrowStore(s => s.activeBorrows);
+  const loadActiveBorrows = useBorrowStore(s => s.loadActiveBorrows);
+  const markBorrowPaid = useBorrowStore(s => s.markPaid);
   const allRecurring = useSourceStore(s => s.allRecurring);
   const loadAllRecurring = useSourceStore(s => s.loadAllRecurring);
   const sources = useSourceStore(s => s.sources);
@@ -79,6 +84,7 @@ export default function DashboardScreen() {
       loadTargets(month),
       loadAllRecurring(),
       loadActiveLends(),
+      loadActiveBorrows(),
     ]);
     const [balance, bills] = await Promise.all([
       calculateCurrentBalance(),
@@ -93,6 +99,16 @@ export default function DashboardScreen() {
     const balance = await calculateCurrentBalance();
     setBalanceData(balance);
   }, [markLendPaid]);
+
+  const repayBorrow = useCallback(async (id: number) => {
+    const result = await markBorrowPaid(id);
+    if (!result.ok) {
+      Alert.alert('Unable to Mark Repaid', result.message ?? 'Something went wrong.');
+      return;
+    }
+    const balance = await calculateCurrentBalance();
+    setBalanceData(balance);
+  }, [markBorrowPaid]);
 
   const onEdit = useCallback((id: number) => {
     router.push({ pathname: '/modals/add-expense', params: { id } });
@@ -112,6 +128,7 @@ export default function DashboardScreen() {
   const recentExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
   const topCategoryTargets = useMemo(() => categoryTargets.slice(0, 3), [categoryTargets]);
   const topLends = useMemo(() => activeLends.slice(0, 3), [activeLends]);
+  const topBorrows = useMemo(() => activeBorrows.slice(0, 3), [activeBorrows]);
   const topRecurring = useMemo(() => allRecurring.slice(0, 5), [allRecurring]);
 
   const sourceMap = useMemo(() => {
@@ -151,17 +168,21 @@ export default function DashboardScreen() {
   const goToLends = useCallback(() => router.push('/modals/lends'), [router]);
   const goToBill = useCallback((id: number) => router.push({ pathname: '/(tabs)/bills', params: { highlightId: String(id) } }), [router]);
   const goToLend = useCallback((id: number) => router.push({ pathname: '/modals/lends', params: { highlightId: String(id) } }), [router]);
+  const goToBorrows = useCallback(() => router.push('/modals/borrows'), [router]);
+  const goToBorrow = useCallback((id: number) => router.push({ pathname: '/modals/borrows', params: { highlightId: String(id) } }), [router]);
   const goToNotifications = useCallback(() => router.push('/modals/notifications'), [router]);
 
   const goToAddExpense = useCallback(() => router.push('/modals/add-expense'), [router]);
   const goToAddLend = useCallback(() => router.push('/modals/add-lend'), [router]);
+  const goToAddBorrow = useCallback(() => router.push('/modals/add-borrow'), [router]);
 
   const quickActions = useMemo(() => [
     { icon: 'plus', label: 'Add', color: theme.colors.primary, onPress: goToAddExpense },
     { icon: 'receipt', label: 'Bills', color: theme.custom.warning, onPress: goToBills },
     { icon: 'hand-coin', label: 'Lend', color: theme.colors.tertiary, onPress: goToAddLend },
+    { icon: 'cash-plus', label: 'Borrow', color: theme.custom.expense, onPress: goToAddBorrow },
     { icon: 'cash-multiple', label: 'Expenses', color: theme.colors.secondary, onPress: goToExpenses },
-  ], [theme, goToAddExpense, goToBills, goToAddLend, goToExpenses]);
+  ], [theme, goToAddExpense, goToBills, goToAddLend, goToAddBorrow, goToExpenses]);
 
   return (
     <ScreenContainer>
@@ -321,6 +342,36 @@ export default function DashboardScreen() {
                 />
               ))
             )}
+          </View>
+        )}
+
+        {/* Active Borrows */}
+        {activeBorrows.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader title="Active Borrows" onSeeAll={goToBorrows} />
+            {topBorrows.map((borrow, i) => (
+              <BorrowCard
+                key={borrow.id}
+                id={borrow.id}
+                amount={borrow.amount}
+                lenderName={borrow.lenderName}
+                note={borrow.note}
+                borrowDate={borrow.borrowDate}
+                expectedPayDate={borrow.expectedPayDate}
+                isPaid={borrow.isPaid}
+                paidDate={borrow.paidDate}
+                hasInterest={borrow.hasInterest}
+                interestType={borrow.interestType}
+                interestValue={borrow.interestValue}
+                receivingSourceName={borrow.receivingSourceName}
+                receivingSourceIcon={borrow.receivingSourceIcon}
+                receivingSourceColor={borrow.receivingSourceColor}
+                currency={currency}
+                onPress={goToBorrow}
+                onMarkPaid={repayBorrow}
+                index={i}
+              />
+            ))}
           </View>
         )}
 

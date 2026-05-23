@@ -1,10 +1,11 @@
 ﻿import { db, sqlite } from './client';
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/sqlite-core';
 import {
-  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends, notificationLog,
+  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends, borrows, notificationLog,
   type NewCategory, type NewExpense, type NewBill,
   type NewRecurringTransaction, type RecurringTransaction,
-  type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend,
+  type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend, type NewBorrow,
 } from './schema';
 
 // â”€â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -421,16 +422,99 @@ export async function getTotalActiveLendAmount(): Promise<number> {
   return result?.total ?? 0;
 }
 
+// â”€â”€â”€ Borrows â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// A borrow touches two wallets: money lands in the receiving wallet on creation,
+// and is paid back out of the repayment wallet when marked paid. Both are joined.
+const receivingSource = alias(moneySources, 'receiving_source');
+const repaymentSource = alias(moneySources, 'repayment_source');
+
+const borrowSelectColumns = {
+  id: borrows.id,
+  amount: borrows.amount,
+  receivingSourceId: borrows.receivingSourceId,
+  repaymentSourceId: borrows.repaymentSourceId,
+  lenderName: borrows.lenderName,
+  note: borrows.note,
+  borrowDate: borrows.borrowDate,
+  expectedPayDate: borrows.expectedPayDate,
+  isPaid: borrows.isPaid,
+  paidDate: borrows.paidDate,
+  hasInterest: borrows.hasInterest,
+  interestType: borrows.interestType,
+  interestValue: borrows.interestValue,
+  notificationId: borrows.notificationId,
+  createdAt: borrows.createdAt,
+  receivingSourceName: receivingSource.name,
+  receivingSourceIcon: receivingSource.icon,
+  receivingSourceColor: receivingSource.color,
+  repaymentSourceName: repaymentSource.name,
+  repaymentSourceIcon: repaymentSource.icon,
+  repaymentSourceColor: repaymentSource.color,
+};
+
+export async function getBorrows() {
+  return db
+    .select(borrowSelectColumns)
+    .from(borrows)
+    .leftJoin(receivingSource, eq(borrows.receivingSourceId, receivingSource.id))
+    .leftJoin(repaymentSource, eq(borrows.repaymentSourceId, repaymentSource.id))
+    .orderBy(desc(borrows.borrowDate), desc(borrows.createdAt))
+    .all();
+}
+
+export async function getActiveBorrows() {
+  return db
+    .select(borrowSelectColumns)
+    .from(borrows)
+    .leftJoin(receivingSource, eq(borrows.receivingSourceId, receivingSource.id))
+    .leftJoin(repaymentSource, eq(borrows.repaymentSourceId, repaymentSource.id))
+    .where(eq(borrows.isPaid, false))
+    .orderBy(desc(borrows.borrowDate), desc(borrows.createdAt))
+    .all();
+}
+
+export async function createBorrow(data: NewBorrow) {
+  return db.insert(borrows).values(data).returning().get();
+}
+
+export async function updateBorrow(id: number, data: Partial<NewBorrow>) {
+  return db.update(borrows).set(data).where(eq(borrows.id, id)).returning().get();
+}
+
+export async function deleteBorrow(id: number) {
+  await db.delete(borrows).where(eq(borrows.id, id));
+}
+
+export async function markBorrowPaid(id: number) {
+  const today = new Date().toISOString().split('T')[0];
+  return db
+    .update(borrows)
+    .set({ isPaid: true, paidDate: today })
+    .where(eq(borrows.id, id))
+    .returning()
+    .get();
+}
+
+export async function getTotalActiveBorrowAmount(): Promise<number> {
+  const result = await db
+    .select({ total: sql<number>`COALESCE(SUM(${borrows.amount}), 0)` })
+    .from(borrows)
+    .where(eq(borrows.isPaid, false))
+    .get();
+  return result?.total ?? 0;
+}
+
 // â”€â”€â”€ Notification Log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function insertNotificationLogsBatch(
-  entries: Array<{ billId?: number | null; lendId?: number | null; title: string; body: string; scheduledFor: string }>,
+  entries: Array<{ billId?: number | null; lendId?: number | null; borrowId?: number | null; title: string; body: string; scheduledFor: string }>,
 ) {
   if (entries.length === 0) return;
   const now = new Date().toISOString();
   await db.insert(notificationLog).values(entries.map(e => ({
     billId: e.billId ?? null,
     lendId: e.lendId ?? null,
+    borrowId: e.borrowId ?? null,
     title: e.title,
     body: e.body,
     scheduledFor: e.scheduledFor,
@@ -458,6 +542,19 @@ export async function getExistingLendNotificationLogDates(lendId: number): Promi
 
 export async function deleteNotificationLogsByLendId(lendId: number) {
   await db.delete(notificationLog).where(eq(notificationLog.lendId, lendId));
+}
+
+export async function getExistingBorrowNotificationLogDates(borrowId: number): Promise<string[]> {
+  const rows = await db
+    .select({ scheduledFor: notificationLog.scheduledFor })
+    .from(notificationLog)
+    .where(eq(notificationLog.borrowId, borrowId))
+    .all();
+  return rows.map(r => r.scheduledFor);
+}
+
+export async function deleteNotificationLogsByBorrowId(borrowId: number) {
+  await db.delete(notificationLog).where(eq(notificationLog.borrowId, borrowId));
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {

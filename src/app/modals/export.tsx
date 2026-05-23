@@ -16,6 +16,7 @@ const DATA_TYPES: { key: DataType; label: string; icon: string; dateNote?: strin
   { key: 'stats',    label: 'Stats',     icon: 'chart-bar' },
   { key: 'wallets',  label: 'Wallets',   icon: 'wallet-outline',      dateNote: 'all' },
   { key: 'lends',    label: 'Lends',     icon: 'hand-coin-outline' },
+  { key: 'borrows',  label: 'Borrows',   icon: 'cash-plus' },
 ];
 
 export default function ExportScreen() {

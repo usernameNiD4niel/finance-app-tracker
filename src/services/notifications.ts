@@ -4,6 +4,7 @@ import {
   insertNotificationLogsBatch,
   getExistingNotificationLogDates,
   getExistingLendNotificationLogDates,
+  getExistingBorrowNotificationLogDates,
   updateBill,
 } from '../db/queries';
 
@@ -195,6 +196,63 @@ export async function scheduleLendNotification(
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+// Reminds the user to pay the lender back, mirroring lend reminders.
+export async function scheduleBorrowNotification(
+  borrowId: number,
+  lenderName: string,
+  amount: number,
+  expectedPayDate: string,
+  currency: string
+): Promise<string | null> {
+  if (IS_EXPO_GO) return null;
+  const hasPermission = await requestNotificationPermissions();
+  if (!hasPermission) return null;
+
+  const [year, month, day] = expectedPayDate.split('-').map(Number);
+  const payDate = new Date(year, month - 1, day, 8, 0, 0);
+  const dayBefore = subtractOneDay(payDate);
+  const now = new Date();
+
+  if (payDate <= now) return null;
+
+  try {
+    const ids: string[] = [];
+    const amountStr = formatAmount(amount, currency);
+
+    if (dayBefore > now) {
+      const id1 = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💸 Repayment Due Tomorrow',
+          body: `You owe ${lenderName} ${amountStr} — due tomorrow`,
+          data: { borrowId },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: dayBefore,
+        },
+      });
+      ids.push(id1);
+    }
+
+    const id2 = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '💸 Repayment Due Today',
+        body: `You owe ${lenderName} ${amountStr} — due today`,
+        data: { borrowId },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: payDate,
+      },
+    });
+    ids.push(id2);
+
+    return ids.join(',');
+  } catch {
+    return null;
+  }
+}
+
 type BillForNotification = {
   id: number;
   name: string;
@@ -215,12 +273,22 @@ type LendForNotification = {
   notificationId?: string | null;
 };
 
+type BorrowForNotification = {
+  id: number;
+  lenderName: string;
+  amount: number;
+  expectedPayDate: string;
+  isPaid: boolean;
+  notificationId?: string | null;
+};
+
 // ── Notification log sync ─────────────────────────────────────────────────────
 
 export async function syncNotificationLogs(
   billsList: BillForNotification[],
   lendsList: LendForNotification[],
   currency: string,
+  borrowsList: BorrowForNotification[] = [],
 ) {
   const now = new Date();
 
@@ -277,6 +345,37 @@ export async function syncNotificationLogs(
         lendId: lend.id,
         title: '🤝 Lend Due Today',
         body: `${lend.borrowerName} owes you ${amountStr} — expected today`,
+        scheduledFor: payDate.toISOString(),
+      });
+    }
+    if (newEntries.length > 0) await insertNotificationLogsBatch(newEntries);
+  }
+
+  for (const borrow of borrowsList) {
+    if (borrow.isPaid) continue;
+
+    const [year, month, day] = borrow.expectedPayDate.split('-').map(Number);
+    const payDate = new Date(year, month - 1, day, 8, 0, 0);
+    if (payDate <= now) continue;
+
+    const dayBefore = subtractOneDay(payDate);
+    const amountStr = formatAmount(borrow.amount, currency);
+    const existingDates = new Set(await getExistingBorrowNotificationLogDates(borrow.id));
+    const newEntries: Parameters<typeof insertNotificationLogsBatch>[0] = [];
+
+    if (dayBefore > now && !existingDates.has(dayBefore.toISOString())) {
+      newEntries.push({
+        borrowId: borrow.id,
+        title: '💸 Repayment Due Tomorrow',
+        body: `You owe ${borrow.lenderName} ${amountStr} — due tomorrow`,
+        scheduledFor: dayBefore.toISOString(),
+      });
+    }
+    if (!existingDates.has(payDate.toISOString())) {
+      newEntries.push({
+        borrowId: borrow.id,
+        title: '💸 Repayment Due Today',
+        body: `You owe ${borrow.lenderName} ${amountStr} — due today`,
         scheduledFor: payDate.toISOString(),
       });
     }
@@ -356,6 +455,7 @@ export async function sendTestNotification(): Promise<void> {
 export type NotificationTapData = {
   billId?: number;
   lendId?: number;
+  borrowId?: number;
 };
 
 function toId(val: unknown): number | undefined {
@@ -381,7 +481,7 @@ function parseTapResponse(
   const raw = response.notification.request.content.data ?? {};
   // Coerce to number — some platforms serialise notification data as strings
   return {
-    data: { billId: toId(raw.billId), lendId: toId(raw.lendId) },
+    data: { billId: toId(raw.billId), lendId: toId(raw.lendId), borrowId: toId(raw.borrowId) },
     id: response.notification.request.identifier,
   };
 }
@@ -407,12 +507,15 @@ export function consumePendingNotificationTap(): NotificationTapData | null {
 export function buildNotificationRoute(
   data: NotificationTapData,
 ): { pathname: string; params?: Record<string, string> } {
-  const { billId, lendId } = data;
+  const { billId, lendId, borrowId } = data;
   if (billId != null && billId > 0) {
     return { pathname: '/(tabs)/bills', params: { highlightId: String(billId) } };
   }
   if (lendId != null && lendId > 0) {
     return { pathname: '/modals/lends', params: { highlightId: String(lendId) } };
+  }
+  if (borrowId != null && borrowId > 0) {
+    return { pathname: '/modals/borrows', params: { highlightId: String(borrowId) } };
   }
   return { pathname: '/modals/notifications' };
 }

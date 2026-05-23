@@ -4,6 +4,7 @@ import { useBillStore } from './billStore';
 import { useCategoryStore } from './categoryStore';
 import { useSourceStore } from './sourceStore';
 import { useLendStore } from './lendStore';
+import { useBorrowStore } from './borrowStore';
 import { useTargetStore } from './targetStore';
 
 // Called after a sync completes to refresh all in-memory store state from SQLite.
@@ -16,6 +17,7 @@ export async function refreshAllStores(): Promise<void> {
     useSourceStore.getState().loadSources(),
     useSourceStore.getState().loadAllRecurring(),
     useLendStore.getState().loadLends(),
+    useBorrowStore.getState().loadBorrows(),
     useTargetStore.getState().loadTargets(currentMonth),
   ]);
 }

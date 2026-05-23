@@ -3,7 +3,7 @@ import { sqlite } from './client';
 
 const DATA_TABLES = [
   'categories', 'expenses', 'bills', 'money_sources',
-  'recurring_transactions', 'transfers', 'lends', 'targets', 'category_targets',
+  'recurring_transactions', 'transfers', 'lends', 'borrows', 'targets', 'category_targets',
 ];
 
 // Sync columns added by the (now removed) cloud-sync feature. Dropped in v2.
@@ -166,6 +166,24 @@ export function runMigrations() {
       interest_value REAL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS borrows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      amount REAL NOT NULL,
+      receiving_source_id INTEGER NOT NULL,
+      repayment_source_id INTEGER NOT NULL,
+      lender_name TEXT NOT NULL,
+      note TEXT,
+      borrow_date TEXT NOT NULL,
+      expected_pay_date TEXT NOT NULL,
+      is_paid INTEGER NOT NULL DEFAULT 0,
+      paid_date TEXT,
+      has_interest INTEGER NOT NULL DEFAULT 0,
+      interest_type TEXT,
+      interest_value REAL,
+      notification_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
 
   // Add source_id columns (ignore if already exists)
@@ -229,6 +247,8 @@ export function runMigrations() {
   } catch (_e) {}
   // Add lend_id to existing notification_log tables (for users upgrading)
   try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN lend_id INTEGER`); } catch (_e) {}
+  // Add borrow_id to existing notification_log tables (for users upgrading)
+  try { sqlite.execSync(`ALTER TABLE notification_log ADD COLUMN borrow_id INTEGER`); } catch (_e) {}
   // Add notification_id to lends
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN notification_id TEXT`); } catch (_e) {}
 
@@ -275,6 +295,7 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_targets_month ON targets(month);
     CREATE INDEX IF NOT EXISTS idx_category_targets_target ON category_targets(target_id);
     CREATE INDEX IF NOT EXISTS idx_lends_active ON lends(is_paid);
+    CREATE INDEX IF NOT EXISTS idx_borrows_active ON borrows(is_paid);
     CREATE INDEX IF NOT EXISTS idx_money_sources_active ON money_sources(is_active);
     CREATE INDEX IF NOT EXISTS idx_notification_log_bill ON notification_log(bill_id);
     CREATE INDEX IF NOT EXISTS idx_notification_log_schedule ON notification_log(scheduled_for, read_at);
@@ -328,11 +349,13 @@ export function dedupPredefinedSources() {
         ) + (
           SELECT COUNT(*) FROM lends WHERE source_id = ?
         ) + (
+          SELECT COUNT(*) FROM borrows WHERE receiving_source_id = ? OR repayment_source_id = ?
+        ) + (
           SELECT COUNT(*) FROM transfers WHERE from_source_id = ? OR to_source_id = ?
         ) + (
           SELECT COUNT(*) FROM recurring_transactions WHERE source_id = ?
         ) AS c`,
-        [r.id, r.id, r.id, r.id, r.id, r.id]
+        [r.id, r.id, r.id, r.id, r.id, r.id, r.id, r.id]
       );
       return { id: r.id, refs: ref?.c ?? 0 };
     });

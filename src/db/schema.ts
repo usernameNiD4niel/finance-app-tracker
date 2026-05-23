@@ -90,6 +90,24 @@ export const lends = sqliteTable('lends', {
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
 
+export const borrows = sqliteTable('borrows', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  amount: real('amount').notNull(),
+  receivingSourceId: integer('receiving_source_id').notNull(),
+  repaymentSourceId: integer('repayment_source_id').notNull(),
+  lenderName: text('lender_name').notNull(),
+  note: text('note'),
+  borrowDate: text('borrow_date').notNull(),
+  expectedPayDate: text('expected_pay_date').notNull(),
+  isPaid: integer('is_paid', { mode: 'boolean' }).notNull().default(false),
+  paidDate: text('paid_date'),
+  hasInterest: integer('has_interest', { mode: 'boolean' }).notNull().default(false),
+  interestType: text('interest_type'), // 'fixed' or 'percentage'
+  interestValue: real('interest_value'), // exact amount or percentage
+  notificationId: text('notification_id'),
+  createdAt: text('created_at').notNull().default(new Date().toISOString()),
+});
+
 export const transfers = sqliteTable('transfers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   fromSourceId: integer('from_source_id').notNull(),
@@ -122,6 +140,8 @@ export type MoneySource = typeof moneySources.$inferSelect;
 export type NewMoneySource = typeof moneySources.$inferInsert;
 export type Lend = typeof lends.$inferSelect;
 export type NewLend = typeof lends.$inferInsert;
+export type Borrow = typeof borrows.$inferSelect;
+export type NewBorrow = typeof borrows.$inferInsert;
 export type Transfer = typeof transfers.$inferSelect;
 export type NewTransfer = typeof transfers.$inferInsert;
 
@@ -129,6 +149,7 @@ export const notificationLog = sqliteTable('notification_log', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   billId: integer('bill_id'),
   lendId: integer('lend_id'),
+  borrowId: integer('borrow_id'),
   title: text('title').notNull(),
   body: text('body').notNull(),
   scheduledFor: text('scheduled_for').notNull(),

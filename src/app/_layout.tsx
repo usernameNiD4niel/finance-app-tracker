@@ -9,7 +9,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { runMigrations, seedCategories, seedMoneySources } from '../db/migrations';
 import { processDueRecurringTransactions } from '../services/recurring';
 import { ActivityIndicator, View } from 'react-native';
-import { getBills, getActiveLends } from '../db/queries';
+import { getBills, getActiveLends, getActiveBorrows } from '../db/queries';
 import {
   requestNotificationPermissions,
   syncNotificationLogs,
@@ -44,8 +44,10 @@ export default function RootLayout() {
         // Notification setup
         await requestNotificationPermissions();
         const currency = useSettingsStore.getState().currency;
-        const [billsList, lendsList] = await Promise.all([getBills(), getActiveLends()]);
-        await syncNotificationLogs(billsList, lendsList, currency);
+        const [billsList, lendsList, borrowsList] = await Promise.all([
+          getBills(), getActiveLends(), getActiveBorrows(),
+        ]);
+        await syncNotificationLogs(billsList, lendsList, currency, borrowsList);
         await rescheduleAllBillNotifications(billsList, currency);
       } catch (e) {
         console.error('[startup] init failed:', e);
@@ -107,6 +109,8 @@ export default function RootLayout() {
           <Stack.Screen name="modals/notifications" options={modalScreenOptions} />
           <Stack.Screen name="modals/add-lend" options={modalScreenOptions} />
           <Stack.Screen name="modals/lends" options={modalScreenOptions} />
+          <Stack.Screen name="modals/add-borrow" options={modalScreenOptions} />
+          <Stack.Screen name="modals/borrows" options={modalScreenOptions} />
           <Stack.Screen name="modals/recurring" options={modalScreenOptions} />
         </Stack>
       </PaperProvider>
