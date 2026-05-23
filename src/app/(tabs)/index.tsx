@@ -149,6 +149,8 @@ export default function DashboardScreen() {
   const goToBudgetTargets = useCallback(() => router.push('/modals/budget-targets'), [router]);
   const goToExpenses = useCallback(() => router.push('/(tabs)/expenses'), [router]);
   const goToLends = useCallback(() => router.push('/modals/lends'), [router]);
+  const goToBill = useCallback((id: number) => router.push({ pathname: '/(tabs)/bills', params: { highlightId: String(id) } }), [router]);
+  const goToLend = useCallback((id: number) => router.push({ pathname: '/modals/lends', params: { highlightId: String(id) } }), [router]);
   const goToNotifications = useCallback(() => router.push('/modals/notifications'), [router]);
 
   const goToAddExpense = useCallback(() => router.push('/modals/add-expense'), [router]);
@@ -222,7 +224,7 @@ export default function DashboardScreen() {
               <View key={bill.id}>
                 <Pressable
                   style={[styles.upcomingBill, billCardStyle]}
-                  onPress={goToBills}
+                  onPress={() => goToBill(bill.id)}
                 >
                   <View style={[styles.billIcon, { backgroundColor: (bill.categoryColor ?? theme.colors.primary) + '22' }]}>
                     <MaterialCommunityIcons
@@ -313,6 +315,7 @@ export default function DashboardScreen() {
                   sourceIcon={lend.sourceIcon}
                   sourceColor={lend.sourceColor}
                   currency={currency}
+                  onPress={goToLend}
                   onMarkPaid={markPaid}
                   index={i}
                 />

@@ -23,6 +23,7 @@ interface Props {
   sourceIcon: string | null;
   sourceColor: string | null;
   currency: string;
+  onPress?: (id: number) => void;
   onMarkPaid?: (id: number) => void;
   onDelete?: (id: number) => void;
   onEdit?: (id: number) => void;
@@ -49,7 +50,7 @@ export const LendCard = React.memo(function LendCard({
   id, amount, borrowerName, note, lendDate, expectedPayDate,
   isPaid: rawIsPaid, paidDate, hasInterest: rawHasInterest, interestType, interestValue,
   sourceName, sourceIcon, sourceColor,
-  currency, onMarkPaid, onDelete, onEdit, index = 0, highlighted = false,
+  currency, onPress, onMarkPaid, onDelete, onEdit, index = 0, highlighted = false,
 }: Props) {
   const theme = useTheme<AppTheme>();
   // Coerce SQLite 0/1 to boolean
@@ -94,6 +95,7 @@ export const LendCard = React.memo(function LendCard({
 
   return (
     <ListRowCard
+      onPress={onPress ? () => onPress(id) : undefined}
       onLongPress={handleLongPress}
       index={index}
       style={[styles.card, highlighted && { borderWidth: 2, borderColor: theme.colors.primary }]}
