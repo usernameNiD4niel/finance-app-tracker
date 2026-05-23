@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-nat
 import { Text, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { neuCardLg, neuChip } from '../theme/neumorphism';
+import { formatCurrency } from '../utils/currency';
 import type { MoneySource } from '../db/schema';
 import type { AppTheme } from '../theme';
 
@@ -12,9 +13,24 @@ interface Props {
   selectedId: number | null;
   onSelect: (source: MoneySource) => void;
   onClose: () => void;
+  /** Currency code used to display each wallet's balance. */
+  currency?: string;
+  /**
+   * Amount the user intends to spend. Wallets whose available balance is below
+   * this (or below 1) are disabled so the wallet can never go negative.
+   */
+  requiredAmount?: number;
+  /**
+   * Returns the balance available for the operation. Lets callers account for
+   * edit flows where the original amount has already been deducted.
+   */
+  getAvailableBalance?: (source: MoneySource) => number;
 }
 
-export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }: Props) {
+export function SourcePicker({
+  visible, sources, selectedId, onSelect, onClose,
+  currency = 'USD', requiredAmount = 0, getAvailableBalance,
+}: Props) {
   const theme = useTheme<AppTheme>();
 
   return (
@@ -29,6 +45,10 @@ export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }
             <View style={styles.grid}>
               {sources.filter(s => s.isActive).map((src) => {
                 const isSelected = src.id === selectedId;
+                const available = getAvailableBalance ? getAvailableBalance(src) : src.balance;
+                // A wallet can't sit negative: block empty wallets (< 1) and any
+                // wallet that doesn't have enough to cover the intended amount.
+                const disabled = available < 1 || (requiredAmount > 0 && available < requiredAmount);
                 return (
                   <TouchableOpacity
                     key={src.id}
@@ -37,9 +57,11 @@ export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }
                       {
                         backgroundColor: isSelected ? src.color + '22' : theme.custom.cardBg,
                         boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
+                        opacity: disabled ? 0.4 : 1,
                       },
                     ]}
                     onPress={() => { onSelect(src); onClose(); }}
+                    disabled={disabled}
                     activeOpacity={0.7}
                   >
                     <MaterialCommunityIcons
@@ -53,6 +75,18 @@ export function SourcePicker({ visible, sources, selectedId, onSelect, onClose }
                       numberOfLines={2}
                     >
                       {src.name}
+                    </Text>
+                    <Text
+                      variant="labelSmall"
+                      style={{
+                        color: disabled ? theme.custom.expense : theme.colors.onSurfaceVariant,
+                        marginTop: 2,
+                        textAlign: 'center',
+                        fontSize: 10,
+                      }}
+                      numberOfLines={1}
+                    >
+                      {formatCurrency(available, currency)}
                     </Text>
                   </TouchableOpacity>
                 );

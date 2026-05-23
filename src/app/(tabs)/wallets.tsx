@@ -127,6 +127,14 @@ export default function WalletsScreen() {
   const handleDwConfirm = async () => {
     const amount = Number(dwAmount);
     if (!amount || amount <= 0 || !sheetSourceId) return;
+
+    if (dwMode === 'withdraw' && sheetSource && amount > sheetSource.balance) {
+      Alert.alert(
+        'Insufficient Balance',
+        `${sheetSource.name} only has ${formatCurrency(sheetSource.balance, currency)}. The wallet can't go negative.`
+      );
+      return;
+    }
     Keyboard.dismiss();
 
     if (dwMode === 'deposit') {
@@ -187,8 +195,16 @@ export default function WalletsScreen() {
   const handleTransferConfirm = async () => {
     const amount = Number(trAmount);
     if (!amount || amount <= 0 || !sheetSourceId || !trToSource) return;
-    Keyboard.dismiss();
     const fee = Number(trFee) || 0;
+    const totalOut = amount + fee;
+    if (sheetSource && totalOut > sheetSource.balance) {
+      Alert.alert(
+        'Insufficient Balance',
+        `${sheetSource.name} only has ${formatCurrency(sheetSource.balance, currency)}. This transfer needs ${formatCurrency(totalOut, currency)} (incl. fee). The wallet can't go negative.`
+      );
+      return;
+    }
+    Keyboard.dismiss();
     const today = new Date().toISOString().split('T')[0];
     await transfer(sheetSourceId, trToSource.id, amount, fee, trNote.trim() || null, today);
     setSheetPage('detail');

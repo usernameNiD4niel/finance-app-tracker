@@ -15,6 +15,7 @@ import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { format } from 'date-fns';
+import { formatCurrency } from '../../utils/currency';
 import { neuButton, neuCard } from '../../theme/neumorphism';
 import type { Category, MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
@@ -45,7 +46,7 @@ export default function AddExpenseScreen() {
   const isEditing = !!id;
   const existing = isEditing ? expenses.find(e => e.id === Number(id)) : null;
 
-  const { control, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       amount: existing ? String(existing.amount) : '',
@@ -53,6 +54,13 @@ export default function AddExpenseScreen() {
       date: existing?.date ?? format(new Date(), 'yyyy-MM-dd'),
     },
   });
+
+  const watchedAmount = Number(watch('amount')) || 0;
+
+  // Balance a wallet has free for this expense. When editing, the original
+  // amount was already deducted from its source, so add it back.
+  const availableFor = (src: MoneySource) =>
+    isEditing && existing?.sourceId === src.id ? src.balance + existing.amount : src.balance;
 
   useEffect(() => {
     loadCategories();
@@ -74,6 +82,14 @@ export default function AddExpenseScreen() {
     }
     if (!selectedSource) {
       Alert.alert('Source Required', 'Please select a wallet source.');
+      return;
+    }
+    const available = availableFor(selectedSource);
+    if (Number(data.amount) > available) {
+      Alert.alert(
+        'Insufficient Balance',
+        `${selectedSource.name} only has ${formatCurrency(available, currency)} available. The wallet can't go negative.`
+      );
       return;
     }
     setSubmitting(true);
@@ -241,6 +257,9 @@ export default function AddExpenseScreen() {
         selectedId={selectedSource?.id ?? null}
         onSelect={setSelectedSource}
         onClose={() => setSourcePickerVisible(false)}
+        currency={currency}
+        requiredAmount={watchedAmount}
+        getAvailableBalance={availableFor}
       />
     </KeyboardAvoidingView>
   );

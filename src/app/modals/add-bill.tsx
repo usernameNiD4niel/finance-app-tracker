@@ -279,6 +279,7 @@ export default function AddBillScreen() {
         selectedId={selectedSource?.id ?? null}
         onSelect={setSelectedSource}
         onClose={() => setSourcePickerVisible(false)}
+        currency={currency}
       />
     </KeyboardAvoidingView>
   );

@@ -14,6 +14,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
 import { scheduleLendNotification, cancelNotification } from '../../services/notifications';
 import { format } from 'date-fns';
+import { formatCurrency } from '../../utils/currency';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { MoneySource } from '../../db/schema';
 import type { AppTheme } from '../../theme';
@@ -61,6 +62,16 @@ export default function AddLendScreen() {
   const watchedAmount = watch('amount');
   const watchedInterest = watch('interestValue');
 
+  // Only the principal is deducted from the wallet when lending.
+  const principal = Number(watchedAmount) || 0;
+
+  // Balance free for this lend. When editing an unpaid lend, the original
+  // principal was already deducted from its source, so add it back.
+  const availableFor = (src: MoneySource) =>
+    isEditing && existing?.sourceId === src.id && !existing?.isPaid
+      ? src.balance + existing.amount
+      : src.balance;
+
   useEffect(() => {
     loadSources();
     if (existing) {
@@ -86,6 +97,14 @@ export default function AddLendScreen() {
   const onSubmit = async (data: FormData) => {
     if (!selectedSource) {
       Alert.alert('Source Required', 'Please select a wallet source.');
+      return;
+    }
+    const available = availableFor(selectedSource);
+    if (Number(data.amount) > available) {
+      Alert.alert(
+        'Insufficient Balance',
+        `${selectedSource.name} only has ${formatCurrency(available, currency)} available. The wallet can't go negative.`
+      );
       return;
     }
     if (hasInterest) {
@@ -363,6 +382,9 @@ export default function AddLendScreen() {
         selectedId={selectedSource?.id ?? null}
         onSelect={setSelectedSource}
         onClose={() => setSourcePickerVisible(false)}
+        currency={currency}
+        requiredAmount={principal}
+        getAvailableBalance={availableFor}
       />
     </KeyboardAvoidingView>
   );
