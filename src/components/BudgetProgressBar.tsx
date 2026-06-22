@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { useEffect } from 'react';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { formatCurrency } from '../utils/currency';
 import { neuInset } from '../theme/neumorphism';
 import type { AppTheme } from '../theme';

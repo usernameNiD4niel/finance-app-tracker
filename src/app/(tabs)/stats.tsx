@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useFocusEffect } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { RoundedCard } from '../../components/ui/RoundedCard';

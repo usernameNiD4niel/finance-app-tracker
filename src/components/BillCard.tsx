@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Alert, View } from 'react-native';
 import { Text, Switch, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { formatCurrency } from '../utils/currency';
 import { getDaysUntilDue } from '../utils/date';
 import { ListRowCard } from './ui/ListRowCard';

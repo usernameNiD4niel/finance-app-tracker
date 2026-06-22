@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSettingsStore } from '../../store/settingsStore';
 import { CURRENCIES } from '../../utils/currency';
 import { neuListItem } from '../../theme/neumorphism';

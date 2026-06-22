@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, TouchableOpacity, Pressable, Text as RNText, Alert } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BalanceCard } from '../../components/BalanceCard';
 import { ExpenseListItem } from '../../components/ExpenseListItem';

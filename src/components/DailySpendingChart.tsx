@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { getDaysInMonth, getDate, format } from 'date-fns';
 import { RoundedCard } from './ui/RoundedCard';

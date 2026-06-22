@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { exportData, type DataType, type ExportFormat } from '../../services/export';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';

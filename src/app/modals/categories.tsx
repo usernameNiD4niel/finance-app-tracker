@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useCategoryStore } from '../../store/categoryStore';
 import { neuButton, neuListItem, neuCardLg, neuChip } from '../../theme/neumorphism';
 import type { Category } from '../../db/schema';

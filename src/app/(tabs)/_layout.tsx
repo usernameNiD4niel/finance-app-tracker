@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Pressable, StyleSheet, Text } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,

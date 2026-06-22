@@ -2,7 +2,7 @@
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Text, Switch, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { MutedLabel } from '../../components/ui/MutedLabel';

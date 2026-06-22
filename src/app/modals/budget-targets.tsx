@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, P
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTargetStore } from '../../store/targetStore';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useSettingsStore } from '../../store/settingsStore';

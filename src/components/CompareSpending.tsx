@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { SegmentedChips } from './ui/SegmentedChips';
 import { RoundedCard } from './ui/RoundedCard';
 import { getExpenseTotal } from '../db/queries';

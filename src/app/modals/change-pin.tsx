@@ -3,7 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PINPad } from '../../components/PINPad';
 import { useSettingsStore } from '../../store/settingsStore';
 import { hashPin, verifyPin } from '../../services/auth';

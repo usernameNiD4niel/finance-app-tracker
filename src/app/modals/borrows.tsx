@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert }
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BorrowCard } from '../../components/BorrowCard';
 import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { useBorrowStore } from '../../store/borrowStore';

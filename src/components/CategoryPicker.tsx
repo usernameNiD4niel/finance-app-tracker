@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { neuCardLg, neuChip } from '../theme/neumorphism';
 import type { Category } from '../db/schema';
 import type { AppTheme } from '../theme';

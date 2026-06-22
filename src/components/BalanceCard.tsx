@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatCurrency } from '../utils/currency';
 import { neuHero } from '../theme/neumorphism';

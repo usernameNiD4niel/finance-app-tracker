@@ -15,19 +15,17 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "FIREBASE_API_KEY": "AIzaSyBg77kcgz3WwSjENjFIhkx1bBTdxz2rm2w",
-        "FIREBASE_AUTH_DOMAIN": "financial-app-c328f.firebaseapp.com",
-        "FIREBASE_PROJECT_ID": "financial-app-c328f",
-        "FIREBASE_STORAGE_BUCKET": "financial-app-c328f.firebasestorage.app",
-        "FIREBASE_MESSAGING_SENDER_ID": "278595331130",
-        "FIREBASE_APP_ID": "1:278595331130:android:7715bab3d82c4d39e8c103"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle"
+      }
+    },
+    "production-apk": {
+      "extends": "production",
+      "android": {
+        "buildType": "apk"
       }
     }
   },

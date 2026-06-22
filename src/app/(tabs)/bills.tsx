@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Text, FAB, useTheme } from 'react-native-paper';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { BillCard } from '../../components/BillCard';

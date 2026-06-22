@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import { RoundedCard } from './ui/RoundedCard';
 import { formatCurrency } from '../utils/currency';

@@ -6,7 +6,7 @@ import {
 import { Text, TextInput, useTheme } from 'react-native-paper';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { SourceCard } from '../../components/SourceCard';
