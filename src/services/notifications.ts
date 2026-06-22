@@ -53,6 +53,30 @@ function subtractOneDay(date: Date): Date {
   return d;
 }
 
+// ── Same-day catch-up ───────────────────────────────────────────────────────────
+// "Due today" notifications are scheduled for 8am on the due day. If an item is due
+// *today* but 8am has already passed, we don't want to skip the reminder entirely —
+// fire it a few seconds out so the user still gets notified today.
+const SAME_DAY_CATCHUP_MS = 10_000;
+
+function isSameCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// Resolves when the "due today" notification should actually fire:
+//   • 8am still ahead         → that 8am moment (normal case)
+//   • 8am passed, still today → ~10s from now (catch-up)
+//   • the due day is over     → null (caller skips)
+function resolveDueTrigger(dueAt8am: Date, now: Date): Date | null {
+  if (dueAt8am > now) return dueAt8am;
+  if (isSameCalendarDay(dueAt8am, now)) return new Date(now.getTime() + SAME_DAY_CATCHUP_MS);
+  return null;
+}
+
 // ── Cancel ────────────────────────────────────────────────────────────────────
 // Supports comma-separated IDs (we store "beforeId,onDayId" per bill/lend).
 
@@ -130,6 +154,24 @@ export async function scheduleBillNotification(
       ids.push(id2);
     }
 
+    // Same-day catch-up: bill is due today but 8am already passed (so the due date
+    // above rolled to next month) — fire a reminder shortly so today isn't missed.
+    const thisMonthDueAt8 = new Date(now.getFullYear(), now.getMonth(), dueDay, 8, 0, 0);
+    if (thisMonthDueAt8 <= now && isSameCalendarDay(thisMonthDueAt8, now)) {
+      const id3 = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '💳 Bill Due Today',
+          body: `${billName} — ${amountStr} is due today`,
+          data: { billId },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: new Date(now.getTime() + SAME_DAY_CATCHUP_MS),
+        },
+      });
+      ids.push(id3);
+    }
+
     return ids.length > 0 ? ids.join(',') : null;
   } catch {
     return null;
@@ -154,7 +196,10 @@ export async function scheduleLendNotification(
   const dayBefore = subtractOneDay(payDate);
   const now = new Date();
 
-  if (payDate <= now) return null;
+  // Skip only when the due day is fully past; if it's still today but 8am has
+  // passed, resolveDueTrigger gives a "fire shortly" time instead of null.
+  const dueTrigger = resolveDueTrigger(payDate, now);
+  if (!dueTrigger) return null;
 
   try {
     const ids: string[] = [];
@@ -183,7 +228,7 @@ export async function scheduleLendNotification(
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: payDate,
+        date: dueTrigger,
       },
     });
     ids.push(id2);
@@ -213,7 +258,10 @@ export async function scheduleBorrowNotification(
   const dayBefore = subtractOneDay(payDate);
   const now = new Date();
 
-  if (payDate <= now) return null;
+  // Skip only when the due day is fully past; if it's still today but 8am has
+  // passed, resolveDueTrigger gives a "fire shortly" time instead of null.
+  const dueTrigger = resolveDueTrigger(payDate, now);
+  if (!dueTrigger) return null;
 
   try {
     const ids: string[] = [];
@@ -242,7 +290,7 @@ export async function scheduleBorrowNotification(
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: payDate,
+        date: dueTrigger,
       },
     });
     ids.push(id2);
