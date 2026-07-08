@@ -583,6 +583,10 @@ export function initNotificationListeners(onTap: (data: NotificationTapData) => 
 export async function getInitialNotificationTap(): Promise<NotificationTapData | null> {
   if (IS_EXPO_GO) return null;
   const response = await Notifications.getLastNotificationResponseAsync();
+  // The OS keeps returning the same "last response" on every cold start
+  // (even a plain tap on the app icon), not just the one that followed the
+  // actual notification tap. Clear it so it only ever fires once.
+  Notifications.clearLastNotificationResponse();
   if (!response) return null;
   const { data, id } = parseTapResponse(response);
   if (!claimTap(id)) return null;
