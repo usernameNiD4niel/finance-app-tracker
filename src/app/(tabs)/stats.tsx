@@ -6,32 +6,43 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { RoundedCard } from '../../components/ui/RoundedCard';
+import { SegmentedChips } from '../../components/ui/SegmentedChips';
 import { CompareSpending } from '../../components/CompareSpending';
 import { DailySpendingChart } from '../../components/DailySpendingChart';
+import { WeeklySpendingChart } from '../../components/WeeklySpendingChart';
 import { CategoryRingChart } from '../../components/CategoryRingChart';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
-import { getMonthBounds, formatMonthYear } from '../../utils/date';
+import { getMonthBounds, getWeekBounds, formatMonthYear, formatWeekRange } from '../../utils/date';
 import { formatCurrency } from '../../utils/currency';
-import { format, subMonths } from 'date-fns';
+import { format, subMonths, subWeeks, startOfWeek } from 'date-fns';
 import { neuChip, neuInset, neuButton } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
 const PLACEHOLDER_HEIGHTS = [0.5, 0.8, 0.35, 0.95, 0.6, 0.75, 0.45];
 
+type ViewPeriod = 'week' | 'month';
+
+const VIEW_PERIOD_CHIPS = [
+  { key: 'week', label: 'Weekly' },
+  { key: 'month', label: 'Monthly' },
+];
+
 export default function StatsScreen() {
   const theme = useTheme<AppTheme>();
   const { currency } = useSettingsStore();
   const { expenses, categoryTotals, dailyTotals, loadExpenses, loadCategoryTotals, loadDailyTotals } = useExpenseStore();
+  const [viewPeriod, setViewPeriod] = useState<ViewPeriod>('month');
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [isFocused, setIsFocused] = useState(false);
 
   const load = useCallback(async () => {
-    const { start, end } = getMonthBounds(selectedMonth);
+    const { start, end } = viewPeriod === 'month' ? getMonthBounds(selectedMonth) : getWeekBounds(selectedWeek);
     await loadExpenses({ startDate: start, endDate: end });
     await loadCategoryTotals(start, end);
     await loadDailyTotals(start, end);
-  }, [selectedMonth]);
+  }, [viewPeriod, selectedMonth, selectedWeek]);
 
   useFocusEffect(useCallback(() => {
     setIsFocused(true);
@@ -42,6 +53,7 @@ export default function StatsScreen() {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
   const maxCategoryTotal = Math.max(...categoryTotals.map(c => c.total ?? 0), 1);
   const months = Array.from({ length: 6 }, (_, i) => subMonths(new Date(), 5 - i));
+  const weeks = Array.from({ length: 8 }, (_, i) => subWeeks(new Date(), 7 - i));
   const primary = theme.colors.primary;
 
   return (
@@ -49,13 +61,22 @@ export default function StatsScreen() {
       <TopHeader title="Statistics" />
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Month Selector */}
+        {/* Weekly / Monthly toggle */}
+        <View style={styles.viewToggleWrap}>
+          <SegmentedChips
+            chips={VIEW_PERIOD_CHIPS}
+            selectedKey={viewPeriod}
+            onSelect={(key) => setViewPeriod(key as ViewPeriod)}
+          />
+        </View>
+
+        {/* Period Selector */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.monthRow}
         >
-          {months.map((m, i) => {
+          {viewPeriod === 'month' ? months.map((m, i) => {
             const isSelected = format(m, 'yyyy-MM') === format(selectedMonth, 'yyyy-MM');
             return (
               <TouchableOpacity
@@ -79,6 +100,32 @@ export default function StatsScreen() {
                 </Text>
               </TouchableOpacity>
             );
+          }) : weeks.map((w, i) => {
+            const isSelected = format(startOfWeek(w, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+              === format(startOfWeek(selectedWeek, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+            const isCurrentWeek = i === weeks.length - 1;
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.monthChip,
+                  {
+                    backgroundColor: isSelected ? primary + '22' : theme.custom.cardBg,
+                    boxShadow: isSelected ? (neuChip(theme) as any) : undefined,
+                  },
+                ]}
+                onPress={() => setSelectedWeek(w)}
+              >
+                <Text
+                  style={[
+                    styles.monthChipText,
+                    { color: isSelected ? primary : theme.colors.onSurface },
+                  ]}
+                >
+                  {isCurrentWeek ? 'This Week' : format(startOfWeek(w, { weekStartsOn: 1 }), 'MMM d')}
+                </Text>
+              </TouchableOpacity>
+            );
           })}
         </ScrollView>
 
@@ -86,7 +133,9 @@ export default function StatsScreen() {
         <View style={styles.cardWrap}>
           <RoundedCard>
             <Text variant="labelMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              {formatMonthYear(format(selectedMonth, 'yyyy-MM-dd'))}
+              {viewPeriod === 'month'
+                ? formatMonthYear(format(selectedMonth, 'yyyy-MM-dd'))
+                : formatWeekRange(format(selectedWeek, 'yyyy-MM-dd'))}
             </Text>
             <Text variant="displaySmall" style={{ color: theme.custom.expense, fontWeight: '800', marginTop: 4 }}>
               {formatCurrency(total, currency)}
@@ -150,14 +199,18 @@ export default function StatsScreen() {
           <View style={styles.empty}>
             <MaterialCommunityIcons name="chart-bar" size={60} color={theme.colors.onSurfaceVariant} />
             <Text variant="titleMedium" style={{ color: theme.colors.onSurfaceVariant, marginTop: 12 }}>
-              No data for this month
+              No data for this {viewPeriod}
             </Text>
           </View>
         )}
 
         {/* Graph Reports */}
         <View style={styles.cardWrap}>
-          <DailySpendingChart dailyTotals={dailyTotals} month={selectedMonth} currency={currency} />
+          {viewPeriod === 'month' ? (
+            <DailySpendingChart dailyTotals={dailyTotals} month={selectedMonth} currency={currency} />
+          ) : (
+            <WeeklySpendingChart dailyTotals={dailyTotals} week={selectedWeek} currency={currency} />
+          )}
           <View style={{ height: 16 }} />
           <CategoryRingChart categoryTotals={categoryTotals} currency={currency} />
         </View>
@@ -223,6 +276,10 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   // ── Stats styles ─────────────────────────────────────────────────────────
+  viewToggleWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
   monthRow: {
     paddingHorizontal: 16,
     paddingVertical: 12,

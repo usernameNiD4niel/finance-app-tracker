@@ -18,7 +18,7 @@ interface Props {
 
 const CHART_HEIGHT = 140;
 
-function AnimatedBar({ height, color, delay }: { height: number; color: string; delay: number }) {
+export function AnimatedBar({ height, color, delay }: { height: number; color: string; delay: number }) {
   const progress = useSharedValue(0);
 
   useEffect(() => {

@@ -70,6 +70,16 @@ export function formatMonthYear(dateStr: string): string {
   return format(new Date(dateStr), 'MMMM yyyy');
 }
 
+export function formatWeekRange(dateStr: string): string {
+  const d = new Date(dateStr);
+  const start = startOfWeek(d, { weekStartsOn: 1 });
+  const end = endOfWeek(d, { weekStartsOn: 1 });
+  const sameMonth = format(start, 'MMM') === format(end, 'MMM');
+  return sameMonth
+    ? `${format(start, 'MMM d')} – ${format(end, 'd, yyyy')}`
+    : `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
+}
+
 export function getDaysUntilDue(dueDay: number, today = new Date()): number {
   const currentDay = getDate(today);
   const daysInMonth = getDaysInMonth(today);
