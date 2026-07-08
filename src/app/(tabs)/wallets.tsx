@@ -1,9 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, StyleSheet, FlatList, TouchableOpacity, Modal, ScrollView,
-  Alert, KeyboardAvoidingView, Platform, Pressable, Keyboard, Switch,
+  View, StyleSheet, FlatList, TouchableOpacity, ScrollView,
+  Alert, KeyboardAvoidingView, Platform, Pressable, Keyboard, Switch, BackHandler,
 } from 'react-native';
-import { Text, TextInput, useTheme } from 'react-native-paper';
+import { Text, TextInput, useTheme, Portal } from 'react-native-paper';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -113,6 +113,19 @@ export default function WalletsScreen() {
   const [cardSoaDay, setCardSoaDay] = useState('');
 
   useFocusEffect(useCallback(() => { loadSources(); loadCards(); }, []));
+
+  // Hardware back button closes whichever sheet is open, innermost first —
+  // these sheets are rendered via Portal (not RN's Modal), so they don't get
+  // Android's built-in back-button-closes-modal behavior for free.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (cardModalVisible) { setCardModalVisible(false); return true; }
+      if (editModalVisible) { setEditModalVisible(false); return true; }
+      if (sheetVisible) { setSheetVisible(false); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [cardModalVisible, editModalVisible, sheetVisible]);
 
   const activeSources = sources.filter(s => s.isActive);
   const activeCards = cards.filter(c => c.isActive);
@@ -916,8 +929,9 @@ export default function WalletsScreen() {
       />
 
       {/* Detail Bottom Sheet */}
-      <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      {sheetVisible && (
+      <Portal>
+        <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setSheetVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -931,11 +945,13 @@ export default function WalletsScreen() {
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
-      </Modal>
+      </Portal>
+      )}
 
       {/* Add/Edit Wallet Modal */}
-      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      {editModalVisible && (
+      <Portal>
+        <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setEditModalVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -1032,11 +1048,13 @@ export default function WalletsScreen() {
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
-      </Modal>
+      </Portal>
+      )}
 
       {/* Add/Edit Credit Card Modal */}
-      <Modal visible={cardModalVisible} animationType="slide" transparent onRequestClose={() => setCardModalVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      {cardModalVisible && (
+      <Portal>
+        <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setCardModalVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -1109,7 +1127,8 @@ export default function WalletsScreen() {
             </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
-      </Modal>
+      </Portal>
+      )}
     </ScreenContainer>
   );
 }

@@ -108,7 +108,7 @@ export default function CategoriesScreen() {
       />
 
       {/* Add/Edit Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
+      <Modal visible={modalVisible} animationType="slide" transparent statusBarTranslucent navigationBarTranslucent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]}>
           <View style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]}>
