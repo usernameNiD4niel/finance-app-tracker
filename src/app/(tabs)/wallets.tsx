@@ -10,13 +10,15 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ScreenContainer } from '../../components/ui/ScreenContainer';
 import { TopHeader } from '../../components/ui/TopHeader';
 import { SourceCard } from '../../components/SourceCard';
+import { CreditCardListItem } from '../../components/CreditCardListItem';
 import { useSourceStore } from '../../store/sourceStore';
+import { useCreditCardStore } from '../../store/creditCardStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { formatCurrency } from '../../utils/currency';
 import { buildInitialNextRunDate } from '../../services/recurring';
 import { neuButton, neuCardLg, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
-import type { MoneySource, RecurringTransaction } from '../../db/schema';
+import type { MoneySource, RecurringTransaction, CreditCard } from '../../db/schema';
 
 const SOURCE_TYPES = [
   { value: 'bank', label: 'Bank' },
@@ -66,6 +68,7 @@ export default function WalletsScreen() {
     recurringMap, loadRecurring, addRecurring, removeRecurring,
     transfer,
   } = useSourceStore();
+  const { cards, loadCards, addCard, editCard, removeCard } = useCreditCardStore();
 
   // ── Detail bottom sheet ───────────────────────────────────────────────────
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -101,9 +104,18 @@ export default function WalletsScreen() {
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [initialBalance, setInitialBalance] = useState('');
 
-  useFocusEffect(useCallback(() => { loadSources(); }, []));
+  // ── Add/Edit credit card modal ────────────────────────────────────────────
+  const [cardModalVisible, setCardModalVisible] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<number | null>(null);
+  const [cardName, setCardName] = useState('');
+  const [cardIcon, setCardIcon] = useState(ICON_OPTIONS[4]); // 'credit-card-outline'
+  const [cardColor, setCardColor] = useState(COLOR_OPTIONS[0]);
+  const [cardSoaDay, setCardSoaDay] = useState('');
+
+  useFocusEffect(useCallback(() => { loadSources(); loadCards(); }, []));
 
   const activeSources = sources.filter(s => s.isActive);
+  const activeCards = cards.filter(c => c.isActive);
   const sheetSource = sources.find(s => s.id === sheetSourceId);
   const sheetRecurring: RecurringTransaction[] = sheetSourceId ? (recurringMap[sheetSourceId] ?? []) : [];
 
@@ -264,6 +276,53 @@ export default function WalletsScreen() {
     const label = src?.isCustom ? 'Delete' : 'Deactivate';
     Alert.alert(`${label} Source`, `${label} "${src?.name}"?`, [
       { text: label, style: 'destructive', onPress: () => removeSource(id) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  // ── Add/Edit credit card ──────────────────────────────────────────────────
+  const openAddCard = () => {
+    setEditingCardId(null);
+    setCardName('');
+    setCardIcon('credit-card-outline');
+    setCardColor(COLOR_OPTIONS[0]);
+    setCardSoaDay('');
+    setCardModalVisible(true);
+  };
+
+  const openEditCard = (id: number) => {
+    const card = cards.find(c => c.id === id);
+    if (!card) return;
+    setEditingCardId(id);
+    setCardName(card.name);
+    setCardIcon(card.icon);
+    setCardColor(card.color);
+    setCardSoaDay(card.soaDay != null ? String(card.soaDay) : '');
+    setCardModalVisible(true);
+  };
+
+  const handleSaveCard = async () => {
+    if (!cardName.trim()) return;
+    const day = cardSoaDay.trim() ? Math.min(31, Math.max(1, Number(cardSoaDay) || 1)) : null;
+    if (editingCardId) {
+      await editCard(editingCardId, { name: cardName.trim(), icon: cardIcon, color: cardColor, soaDay: day });
+    } else {
+      await addCard({
+        name: cardName.trim(),
+        icon: cardIcon,
+        color: cardColor,
+        soaDay: day,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      });
+    }
+    setCardModalVisible(false);
+  };
+
+  const handleDeleteCard = (id: number) => {
+    const card = cards.find(c => c.id === id);
+    Alert.alert('Delete Credit Card', `Delete "${card?.name}"?`, [
+      { text: 'Delete', style: 'destructive', onPress: () => removeCard(id) },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -788,24 +847,61 @@ export default function WalletsScreen() {
           </TouchableOpacity>
         )}
         ListFooterComponent={
-          <TouchableOpacity
-            style={[styles.addWalletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}
-            onPress={openAdd}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.addWalletIcon, { backgroundColor: theme.colors.primary + '1a' }]}>
-              <MaterialCommunityIcons name="plus" size={24} color={theme.colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
-                Add Wallet
-              </Text>
-              <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                Bank, e-wallet, cash or custom
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              style={[styles.addWalletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}
+              onPress={openAdd}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.addWalletIcon, { backgroundColor: theme.colors.primary + '1a' }]}>
+                <MaterialCommunityIcons name="plus" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+                  Add Wallet
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Bank, e-wallet, cash or custom
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
+            </TouchableOpacity>
+
+            <Text variant="labelLarge" style={[styles.cardsSectionHeader, { color: theme.colors.onSurfaceVariant }]}>
+              Credit Cards
+            </Text>
+            {activeCards.map((card, index) => (
+              <CreditCardListItem
+                key={card.id}
+                id={card.id}
+                name={card.name}
+                icon={card.icon}
+                color={card.color}
+                soaDay={card.soaDay}
+                onEdit={openEditCard}
+                onDelete={handleDeleteCard}
+                index={index}
+              />
+            ))}
+            <TouchableOpacity
+              style={[styles.addWalletCard, { backgroundColor: theme.custom.cardBg, boxShadow: neuCardLg(theme) as any }]}
+              onPress={openAddCard}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.addWalletIcon, { backgroundColor: theme.colors.primary + '1a' }]}>
+                <MaterialCommunityIcons name="plus" size={24} color={theme.colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurface, fontWeight: '600' }}>
+                  Add Credit Card
+                </Text>
+                <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Optional statement (SOA) date
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} />
+            </TouchableOpacity>
+          </>
         }
         ListEmptyComponent={
           <View style={styles.empty}>
@@ -937,6 +1033,83 @@ export default function WalletsScreen() {
           </Pressable>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Add/Edit Credit Card Modal */}
+      <Modal visible={cardModalVisible} animationType="slide" transparent onRequestClose={() => setCardModalVisible(false)}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setCardModalVisible(false); }}>
+            <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
+              <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
+              <Text variant="titleLarge" style={{ color: theme.colors.onSurface, fontWeight: '700', marginBottom: 16 }}>
+                {editingCardId ? 'Edit Credit Card' : 'New Credit Card'}
+              </Text>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                <TextInput
+                  value={cardName}
+                  onChangeText={setCardName}
+                  mode="outlined"
+                  label="Card Name"
+                  style={{ marginBottom: 16 }}
+                />
+
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>Icon</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {ICON_OPTIONS.map(icon => (
+                      <TouchableOpacity
+                        key={icon}
+                        style={[styles.iconOption, {
+                          backgroundColor: cardIcon === icon ? theme.colors.primary + '22' : theme.custom.cardBg,
+                          boxShadow: cardIcon === icon ? (neuChip(theme) as any) : undefined,
+                        }]}
+                        onPress={() => setCardIcon(icon)}
+                      >
+                        <MaterialCommunityIcons name={icon as any} size={22} color={cardIcon === icon ? theme.colors.primary : theme.colors.onSurface} />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>Color</Text>
+                <View style={styles.colorGrid}>
+                  {COLOR_OPTIONS.map(color => (
+                    <TouchableOpacity
+                      key={color}
+                      style={[styles.colorDot, { backgroundColor: color, borderWidth: cardColor === color ? 3 : 0, borderColor: theme.custom.buttonText }]}
+                      onPress={() => setCardColor(color)}
+                    />
+                  ))}
+                </View>
+
+                <Text variant="labelLarge" style={{ color: theme.colors.onSurfaceVariant, marginBottom: 8 }}>
+                  SOA Date (optional)
+                </Text>
+                <TextInput
+                  value={cardSoaDay}
+                  onChangeText={setCardSoaDay}
+                  keyboardType="number-pad"
+                  mode="outlined"
+                  placeholder="Day of month, e.g. 15"
+                  style={{ marginBottom: 16 }}
+                />
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={[styles.cancelBtn, { backgroundColor: theme.colors.surfaceVariant }]} onPress={() => setCardModalVisible(false)}>
+                    <Text variant="labelLarge" style={{ color: theme.colors.onSurface }}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, { backgroundColor: theme.colors.primary, boxShadow: neuButton(theme) as any }]}
+                    onPress={handleSaveCard}
+                  >
+                    <Text variant="labelLarge" style={{ color: theme.custom.buttonText }}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </Pressable>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScreenContainer>
   );
 }
@@ -959,6 +1132,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cardsSectionHeader: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 4,
+    fontWeight: '700',
   },
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '90%' },

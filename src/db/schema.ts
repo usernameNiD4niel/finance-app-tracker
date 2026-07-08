@@ -14,6 +14,7 @@ export const expenses = sqliteTable('expenses', {
   amount: real('amount').notNull(),
   categoryId: integer('category_id').notNull().references(() => categories.id),
   sourceId: integer('source_id'),
+  creditCardId: integer('credit_card_id'),
   note: text('note'),
   date: text('date').notNull(),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
@@ -41,6 +42,16 @@ export const moneySources = sqliteTable('money_sources', {
   color: text('color').notNull(),
   balance: real('balance').notNull().default(0),
   isCustom: integer('is_custom', { mode: 'boolean' }).notNull().default(false),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull().default(new Date().toISOString()),
+});
+
+export const creditCards = sqliteTable('credit_cards', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  icon: text('icon').notNull(),
+  color: text('color').notNull(),
+  soaDay: integer('soa_day'), // optional day-of-month (1-31) the statement of account closes
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: text('created_at').notNull().default(new Date().toISOString()),
 });
@@ -138,6 +149,8 @@ export type CategoryTarget = typeof categoryTargets.$inferSelect;
 export type NewCategoryTarget = typeof categoryTargets.$inferInsert;
 export type MoneySource = typeof moneySources.$inferSelect;
 export type NewMoneySource = typeof moneySources.$inferInsert;
+export type CreditCard = typeof creditCards.$inferSelect;
+export type NewCreditCard = typeof creditCards.$inferInsert;
 export type Lend = typeof lends.$inferSelect;
 export type NewLend = typeof lends.$inferInsert;
 export type Borrow = typeof borrows.$inferSelect;

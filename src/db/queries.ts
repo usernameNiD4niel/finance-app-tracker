@@ -2,10 +2,10 @@
 import { eq, desc, gte, lte, and, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/sqlite-core';
 import {
-  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, lends, borrows, notificationLog,
+  categories, expenses, bills, recurringTransactions, transfers, targets, categoryTargets, settings, moneySources, creditCards, lends, borrows, notificationLog,
   type NewCategory, type NewExpense, type NewBill,
   type NewRecurringTransaction, type RecurringTransaction,
-  type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewLend, type NewBorrow,
+  type NewTarget, type NewCategoryTarget, type NewMoneySource, type NewCreditCard, type NewLend, type NewBorrow,
 } from './schema';
 
 // â”€â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -51,6 +51,7 @@ export async function getExpenses(filters?: { startDate?: string; endDate?: stri
       amount: expenses.amount,
       categoryId: expenses.categoryId,
       sourceId: expenses.sourceId,
+      creditCardId: expenses.creditCardId,
       note: expenses.note,
       date: expenses.date,
       createdAt: expenses.createdAt,
@@ -60,10 +61,14 @@ export async function getExpenses(filters?: { startDate?: string; endDate?: stri
       sourceName: moneySources.name,
       sourceIcon: moneySources.icon,
       sourceColor: moneySources.color,
+      creditCardName: creditCards.name,
+      creditCardIcon: creditCards.icon,
+      creditCardColor: creditCards.color,
     })
     .from(expenses)
     .leftJoin(categories, eq(expenses.categoryId, categories.id))
     .leftJoin(moneySources, eq(expenses.sourceId, moneySources.id))
+    .leftJoin(creditCards, eq(expenses.creditCardId, creditCards.id))
     .where(conditions.length ? and(...conditions) : undefined)
     .orderBy(desc(expenses.date), desc(expenses.createdAt))
     .all();
@@ -349,6 +354,27 @@ export async function getTotalSourceBalance(): Promise<number> {
     .where(eq(moneySources.isActive, true))
     .get();
   return result?.total ?? 0;
+}
+
+// ─── Credit Cards ────────────────────────────────────────────────────────────
+export async function getCreditCards() {
+  return db.select().from(creditCards).orderBy(creditCards.name).all();
+}
+
+export async function getActiveCreditCards() {
+  return db.select().from(creditCards).where(eq(creditCards.isActive, true)).orderBy(creditCards.name).all();
+}
+
+export async function createCreditCard(data: NewCreditCard) {
+  return db.insert(creditCards).values(data).returning().get();
+}
+
+export async function updateCreditCard(id: number, data: Partial<NewCreditCard>) {
+  return db.update(creditCards).set(data).where(eq(creditCards.id, id)).returning().get();
+}
+
+export async function deleteCreditCard(id: number) {
+  return db.update(creditCards).set({ isActive: false }).where(eq(creditCards.id, id)).returning().get();
 }
 
 // â”€â”€â”€ Lends â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

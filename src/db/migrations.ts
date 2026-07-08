@@ -190,6 +190,23 @@ export function runMigrations() {
   try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE bills ADD COLUMN source_id INTEGER`); } catch (_e) { /* column exists */ }
 
+  // Create credit_cards table (for users upgrading from a version without it)
+  try {
+    sqlite.execSync(`
+      CREATE TABLE IF NOT EXISTS credit_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        color TEXT NOT NULL,
+        soa_day INTEGER,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      )
+    `);
+  } catch (_e) { /* table exists */ }
+  // Let expenses optionally be paid via a credit card instead of a wallet source
+  try { sqlite.execSync(`ALTER TABLE expenses ADD COLUMN credit_card_id INTEGER`); } catch (_e) { /* column exists */ }
+
   // Add interest columns to lends (ignore if already exists)
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN has_interest INTEGER NOT NULL DEFAULT 0`); } catch (_e) { /* column exists */ }
   try { sqlite.execSync(`ALTER TABLE lends ADD COLUMN interest_type TEXT`); } catch (_e) { /* column exists */ }
@@ -300,6 +317,8 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_notification_log_bill ON notification_log(bill_id);
     CREATE INDEX IF NOT EXISTS idx_notification_log_schedule ON notification_log(scheduled_for, read_at);
     CREATE INDEX IF NOT EXISTS idx_recurring_source ON recurring_transactions(source_id);
+    CREATE INDEX IF NOT EXISTS idx_credit_cards_active ON credit_cards(is_active);
+    CREATE INDEX IF NOT EXISTS idx_expenses_credit_card ON expenses(credit_card_id);
   `);
 
   // â”€â”€ Dedup predefined categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

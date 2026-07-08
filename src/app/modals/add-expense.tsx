@@ -9,16 +9,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { CategoryPicker } from '../../components/CategoryPicker';
 import { SourcePicker } from '../../components/SourcePicker';
+import { CreditCardPicker } from '../../components/CreditCardPicker';
 import { DatePickerField } from '../../components/ui/DatePickerField';
 import { useCategoryStore } from '../../store/categoryStore';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useSourceStore } from '../../store/sourceStore';
+import { useCreditCardStore } from '../../store/creditCardStore';
 import { format } from 'date-fns';
 import { formatCurrency } from '../../utils/currency';
-import { neuButton, neuCard } from '../../theme/neumorphism';
-import type { Category, MoneySource } from '../../db/schema';
+import { neuButton, neuChip, neuCard } from '../../theme/neumorphism';
+import type { Category, MoneySource, CreditCard } from '../../db/schema';
 import type { AppTheme } from '../../theme';
+
+type PaymentType = 'wallet' | 'credit_card';
 
 const schema = z.object({
   amount: z.string().min(1, 'Required').refine(v => !isNaN(Number(v)) && Number(v) > 0, 'Enter a valid amount'),
@@ -37,10 +41,14 @@ export default function AddExpenseScreen() {
   const { categories, loadCategories } = useCategoryStore();
   const { expenses, addExpense, editExpense } = useExpenseStore();
   const { sources, loadSources } = useSourceStore();
+  const { cards, loadCards } = useCreditCardStore();
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [sourcePickerVisible, setSourcePickerVisible] = useState(false);
+  const [cardPickerVisible, setCardPickerVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSource, setSelectedSource] = useState<MoneySource | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CreditCard | null>(null);
+  const [paymentType, setPaymentType] = useState<PaymentType>('wallet');
   const [submitting, setSubmitting] = useState(false);
 
   const isEditing = !!id;
@@ -65,39 +73,53 @@ export default function AddExpenseScreen() {
   useEffect(() => {
     loadCategories();
     loadSources();
+    loadCards();
     if (existing) {
       const cat = categories.find(c => c.id === existing.categoryId);
       if (cat) setSelectedCategory(cat);
-      if (existing.sourceId) {
+      if (existing.creditCardId) {
+        setPaymentType('credit_card');
+        const card = cards.find(c => c.id === existing.creditCardId);
+        if (card) setSelectedCard(card);
+      } else if (existing.sourceId) {
+        setPaymentType('wallet');
         const src = sources.find(s => s.id === existing.sourceId);
         if (src) setSelectedSource(src);
       }
     }
-  }, [categories.length, sources.length]);
+  }, [categories.length, sources.length, cards.length]);
 
   const onSubmit = async (data: FormData) => {
     if (!selectedCategory) {
       Alert.alert('Category Required', 'Please select a category.');
       return;
     }
-    if (!selectedSource) {
-      Alert.alert('Source Required', 'Please select a wallet source.');
-      return;
-    }
-    const available = availableFor(selectedSource);
-    if (Number(data.amount) > available) {
-      Alert.alert(
-        'Insufficient Balance',
-        `${selectedSource.name} only has ${formatCurrency(available, currency)} available. The wallet can't go negative.`
-      );
-      return;
+    if (paymentType === 'wallet') {
+      if (!selectedSource) {
+        Alert.alert('Source Required', 'Please select a wallet source.');
+        return;
+      }
+      const available = availableFor(selectedSource);
+      if (Number(data.amount) > available) {
+        Alert.alert(
+          'Insufficient Balance',
+          `${selectedSource.name} only has ${formatCurrency(available, currency)} available. The wallet can't go negative.`
+        );
+        return;
+      }
+    } else {
+      if (!selectedCard) {
+        Alert.alert('Credit Card Required', 'Please select a credit card.');
+        return;
+      }
     }
     setSubmitting(true);
     try {
       const payload = {
         amount: Number(data.amount),
         categoryId: selectedCategory.id,
-        sourceId: selectedSource?.id ?? null,
+        sourceId: paymentType === 'wallet' ? (selectedSource?.id ?? null) : null,
+        creditCardId: paymentType === 'credit_card' ? (selectedCard?.id ?? null) : null,
         note: data.note || null,
         date: data.date,
       };
@@ -172,30 +194,84 @@ export default function AddExpenseScreen() {
           <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
         </TouchableOpacity>
 
-        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Source</Text>
-        <TouchableOpacity
-          style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
-          onPress={() => setSourcePickerVisible(true)}
-        >
-          {selectedSource ? (
-            <>
-              <View style={[styles.catIconWrap, { backgroundColor: selectedSource.color + '22' }]}>
-                <MaterialCommunityIcons name={selectedSource.icon as any} size={20} color={selectedSource.color} />
-              </View>
-              <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
-                {selectedSource.name}
+        <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Pay With</Text>
+        <View style={styles.paymentTypeRow}>
+          {(['wallet', 'credit_card'] as const).map(type => (
+            <TouchableOpacity
+              key={type}
+              style={[
+                styles.paymentTypeChip,
+                {
+                  backgroundColor: paymentType === type ? theme.colors.primary + '22' : theme.custom.cardBg,
+                  boxShadow: paymentType === type ? (neuChip(theme) as any) : undefined,
+                },
+              ]}
+              onPress={() => setPaymentType(type)}
+            >
+              <MaterialCommunityIcons
+                name={type === 'wallet' ? 'wallet-outline' : 'credit-card-outline'}
+                size={18}
+                color={paymentType === type ? theme.colors.primary : theme.colors.onSurface}
+              />
+              <Text
+                variant="labelMedium"
+                style={{ color: paymentType === type ? theme.colors.primary : theme.colors.onSurface, marginLeft: 6 }}
+              >
+                {type === 'wallet' ? 'Wallet' : 'Credit Card'}
               </Text>
-            </>
-          ) : (
-            <>
-              <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
-              <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
-                Select Source
-              </Text>
-            </>
-          )}
-          <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
-        </TouchableOpacity>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {paymentType === 'wallet' ? (
+          <TouchableOpacity
+            style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+            onPress={() => setSourcePickerVisible(true)}
+          >
+            {selectedSource ? (
+              <>
+                <View style={[styles.catIconWrap, { backgroundColor: selectedSource.color + '22' }]}>
+                  <MaterialCommunityIcons name={selectedSource.icon as any} size={20} color={selectedSource.color} />
+                </View>
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+                  {selectedSource.name}
+                </Text>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons name="wallet-outline" size={20} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Select Source
+                </Text>
+              </>
+            )}
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.categoryBtn, { backgroundColor: theme.custom.cardBg, boxShadow: neuCard(theme) as any }]}
+            onPress={() => setCardPickerVisible(true)}
+          >
+            {selectedCard ? (
+              <>
+                <View style={[styles.catIconWrap, { backgroundColor: selectedCard.color + '22' }]}>
+                  <MaterialCommunityIcons name={selectedCard.icon as any} size={20} color={selectedCard.color} />
+                </View>
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurface }}>
+                  {selectedCard.name}
+                </Text>
+              </>
+            ) : (
+              <>
+                <MaterialCommunityIcons name="credit-card-outline" size={20} color={theme.colors.onSurfaceVariant} />
+                <Text variant="bodyLarge" style={{ color: theme.colors.onSurfaceVariant }}>
+                  Select Credit Card
+                </Text>
+              </>
+            )}
+            <MaterialCommunityIcons name="chevron-right" size={20} color={theme.colors.onSurfaceVariant} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
+        )}
 
         <Text variant="labelLarge" style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Note (optional)</Text>
         <Controller
@@ -261,6 +337,14 @@ export default function AddExpenseScreen() {
         requiredAmount={watchedAmount}
         getAvailableBalance={availableFor}
       />
+
+      <CreditCardPicker
+        visible={cardPickerVisible}
+        cards={cards}
+        selectedId={selectedCard?.id ?? null}
+        onSelect={setSelectedCard}
+        onClose={() => setCardPickerVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -278,6 +362,15 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   label: { marginBottom: 6, marginTop: 16 },
   input: { marginBottom: 4 },
+  paymentTypeRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  paymentTypeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
   categoryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
