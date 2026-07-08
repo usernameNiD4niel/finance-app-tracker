@@ -917,7 +917,7 @@ export default function WalletsScreen() {
 
       {/* Detail Bottom Sheet */}
       <Modal visible={sheetVisible} animationType="slide" transparent onRequestClose={() => setSheetVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setSheetVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -935,7 +935,7 @@ export default function WalletsScreen() {
 
       {/* Add/Edit Wallet Modal */}
       <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setEditModalVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
@@ -1036,7 +1036,7 @@ export default function WalletsScreen() {
 
       {/* Add/Edit Credit Card Modal */}
       <Modal visible={cardModalVisible} animationType="slide" transparent onRequestClose={() => setCardModalVisible(false)}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <Pressable style={[styles.overlay, { backgroundColor: theme.custom.overlayBg }]} onPress={() => { Keyboard.dismiss(); setCardModalVisible(false); }}>
             <Pressable style={[styles.sheet, { backgroundColor: theme.custom.cardBg }]} onPress={Keyboard.dismiss}>
               <View style={[styles.handle, { backgroundColor: theme.colors.outline }]} />
