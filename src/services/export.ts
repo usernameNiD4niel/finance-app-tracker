@@ -1,7 +1,9 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as SQLite from 'expo-sqlite';
 import { format } from 'date-fns';
 import { getExpenses, getBills, getMoneySources, getLends, getBorrows, getExpenseTotalByCategory } from '../db/queries';
+import { sqlite } from '../db/client';
 
 export type DataType = 'expenses' | 'bills' | 'stats' | 'wallets' | 'lends' | 'borrows';
 export type ExportFormat = 'csv' | 'json';
@@ -217,5 +219,47 @@ export async function exportData(
     mimeType: exportFormat === 'csv' ? 'text/csv' : 'application/json',
     UTI: exportFormat === 'csv' ? 'public.comma-separated-values-text' : 'public.json',
     dialogTitle: `Ledgerist Export (${exportFormat.toUpperCase()})`,
+  });
+}
+
+// ── Full database export (.db) ────────────────────────────────────────────────
+// Exports a raw copy of the SQLite database itself, so it can later be
+// restored/imported wholesale on another device — unlike the CSV/JSON export
+// above, which only serializes a readable subset of the data.
+
+export async function exportDatabaseFile(): Promise<void> {
+  const timestamp = format(new Date(), 'yyyyMMdd-HHmmss');
+  const fileName = `ledgerist-backup-${timestamp}.db`;
+
+  // The app runs in WAL journal mode, so a plain file copy of finance_tracker.db
+  // could miss committed transactions still sitting in its -wal file. SQLite's
+  // own online-backup API produces a correct, self-contained snapshot instead.
+  const destDb = await SQLite.openDatabaseAsync(fileName);
+  try {
+    await SQLite.backupDatabaseAsync({ sourceDatabase: sqlite, destDatabase: destDb });
+    await destDb.execAsync('PRAGMA wal_checkpoint(TRUNCATE);');
+  } finally {
+    await destDb.closeAsync();
+  }
+
+  const sourcePath = `file://${SQLite.defaultDatabaseDirectory}/${fileName}`;
+  const destDir = FileSystem.documentDirectory ?? FileSystem.cacheDirectory ?? '';
+  const destPath = destDir + fileName;
+  await FileSystem.copyAsync({ from: sourcePath, to: destPath });
+
+  // Clean up the temporary backup (and any WAL sidecar files) left behind in
+  // the SQLite directory — only the copy in destPath is needed from here.
+  for (const suffix of ['', '-wal', '-shm']) {
+    await FileSystem.deleteAsync(`${sourcePath}${suffix}`, { idempotent: true });
+  }
+
+  const canShare = await Sharing.isAvailableAsync();
+  if (!canShare) {
+    throw new Error(`Sharing is not supported on this device.\nFile saved to: ${destPath}`);
+  }
+  await Sharing.shareAsync(destPath, {
+    mimeType: 'application/x-sqlite3',
+    UTI: 'public.database',
+    dialogTitle: 'Ledgerist Database Backup',
   });
 }

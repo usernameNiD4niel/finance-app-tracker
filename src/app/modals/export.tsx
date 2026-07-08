@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { exportData, type DataType, type ExportFormat } from '../../services/export';
+import { exportData, exportDatabaseFile, type DataType, type ExportFormat } from '../../services/export';
 import { neuButton, neuCard, neuChip } from '../../theme/neumorphism';
 import type { AppTheme } from '../../theme';
 
@@ -29,6 +29,7 @@ export default function ExportScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [exportingDb, setExportingDb] = useState(false);
 
   function toggleType(key: DataType) {
     setSelectedTypes(prev => {
@@ -85,6 +86,17 @@ export default function ExportScreen() {
     }
   }
 
+  async function handleExportDatabase() {
+    setExportingDb(true);
+    try {
+      await exportDatabaseFile();
+    } catch (e) {
+      Alert.alert('Export Failed', e instanceof Error ? e.message : String(e));
+    } finally {
+      setExportingDb(false);
+    }
+  }
+
   const s = theme.colors.onSurface;
   const muted = theme.colors.onSurfaceVariant;
   const card = theme.custom.cardBg;
@@ -102,6 +114,31 @@ export default function ExportScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
+        {/* ── Full Database Backup ─────────────────────────────────────── */}
+        <Text variant="titleMedium" style={[styles.sectionTitle, { color: s }]}>
+          Move to a New Phone
+        </Text>
+        <View style={[styles.dbCard, { backgroundColor: card, borderColor: outline, boxShadow: neuCard(theme) as any }]}>
+          <Text variant="bodySmall" style={{ color: muted, marginBottom: 12 }}>
+            Exports a full copy of your database — everything, exactly as it is
+            on this device. Send it to your new phone to bring all your data over.
+          </Text>
+          <TouchableOpacity
+            style={[
+              styles.dbExportBtn,
+              { backgroundColor: primary + '22', boxShadow: exportingDb ? undefined : (neuChip(theme) as any) },
+            ]}
+            onPress={handleExportDatabase}
+            disabled={exportingDb}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons name="database-export-outline" size={20} color={primary} />
+            <Text variant="labelLarge" style={{ color: primary, marginLeft: 8 }}>
+              {exportingDb ? 'Exporting…' : 'Export Database (.db)'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* ── Data Types ────────────────────────────────────────────────── */}
         <Text variant="titleMedium" style={[styles.sectionTitle, { color: s }]}>
@@ -260,6 +297,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 12,
     marginTop: 8,
+  },
+  dbCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+  },
+  dbExportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    paddingVertical: 14,
   },
   typeGrid: {
     flexDirection: 'row',
